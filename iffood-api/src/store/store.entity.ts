@@ -10,9 +10,9 @@ import {
 import { StoreUser } from '../database/store-user/store-user.entity';
 
 @Entity({
-  name: 'user_profiles',
+  name: 'stores',
 })
-export class UserProfile {
+export class Store {
   @PrimaryGeneratedColumn('uuid')
   id: number;
 
@@ -20,7 +20,16 @@ export class UserProfile {
   name: string;
 
   @Column()
-  email: string;
+  description: string;
+
+  @Column()
+  whatsapp: string;
+
+  @Column({ name: 'photo_url' })
+  photoUrl: string;
+
+  @Column()
+  status: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -31,9 +40,6 @@ export class UserProfile {
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date;
 
-  @Column({ name: 'user_auth_id' })
-  userAuthId: string;
-
-  @OneToMany(() => StoreUser, (storeUser) => storeUser.userProfile)
+  @OneToMany(() => StoreUser, (storeUser) => storeUser.store)
   storeUsers: StoreUser[];
 }
