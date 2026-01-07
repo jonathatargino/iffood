@@ -4,10 +4,17 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { GoogleIcon } from "./components/google-icon";
 import { BgAsset, BottomDecoration } from "./components/login-background";
+import { useAuth } from "@/contexts/auth/context";
 
 export function LoginPage() {
-  const handleGoogleLogin = () => {
-    console.log("Login com Google clicado");
+  const { signInWithGoogle } = useAuth();
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleGuestContinue = () => {
