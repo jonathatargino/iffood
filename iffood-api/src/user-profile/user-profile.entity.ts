@@ -7,14 +7,14 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { StoreUser } from '../database/store-user/store-user.entity';
+import { StoreUser } from '../store-user/store-user.entity';
 
 @Entity({
   name: 'user_profiles',
 })
 export class UserProfile {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column()
   name: string;

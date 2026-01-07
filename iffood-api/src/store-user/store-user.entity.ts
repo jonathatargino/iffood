@@ -7,15 +7,15 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { UserProfile } from '../../user-profile/user-profile.entity';
-import { Store } from '../../store/store.entity';
+import { UserProfile } from '../user-profile/user-profile.entity';
+import { Store } from '../store/store.entity';
 
 @Entity({
   name: 'store_users',
 })
 export class StoreUser {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @ManyToOne(() => Store, (store) => store.storeUsers)
   @JoinColumn({ name: 'store_id' })

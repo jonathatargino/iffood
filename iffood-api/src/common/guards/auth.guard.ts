@@ -19,7 +19,9 @@ export class AuthGuard implements CanActivate {
 
     try {
       const result = await jwtVerify(authorizationToken, this.remoteJWKSet);
-      request['user'] = result.payload;
+      if (!result.payload.sub) return false;
+
+      request['userId'] = result.payload.sub;
       return true;
     } catch {
       return false;
