@@ -1,6 +1,7 @@
 import { useMediaQuery } from "./hooks/use-media-query";
 import { LoginPage } from "./pages/login";
 import { DesktopNotSupported } from "./pages/desktop-not-supported";
+import { ConfiguracoesPage } from "./pages/configuracoes";
 import { AuthProvider } from "./contexts/auth";
 import { createBrowserRouter, RouterProvider } from "react-router";
 
@@ -12,6 +13,10 @@ const router = createBrowserRouter([
   {
     path: "login",
     element: <LoginPage />,
+  },
+  {
+    path: "configuracoes",
+    element: <ConfiguracoesPage />,
   },
 ]);
 
