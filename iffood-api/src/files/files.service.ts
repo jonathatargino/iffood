@@ -1,5 +1,5 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 @Injectable()
 export class FilesService {
@@ -30,7 +30,7 @@ export class FilesService {
       await this.s3Client.send(command);
     } catch (error) {
       console.log(error);
-      return null;
+      throw new InternalServerErrorException();
     }
 
     return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${generatedUUID}`;

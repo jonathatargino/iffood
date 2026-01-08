@@ -1,8 +1,21 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import sharp from 'sharp';
+import { FilesService } from '../files/files.service';
 
 @Injectable()
 export class ImagesService {
+  constructor(private readonly fileService: FilesService) {}
+
+  async upload(imageBuffer: Buffer) {
+    await this.validate(imageBuffer);
+    const processedPhoto = await this.process(imageBuffer);
+
+    return await this.fileService.upload({
+      fileBuffer: processedPhoto,
+      mimeType: 'image/webp',
+    });
+  }
+
   async validate(imageBuffer: Buffer): Promise<void> {
     const image = sharp(imageBuffer);
     const metadata = await image.metadata();

@@ -1,10 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Store } from './store.entity';
-import { DataSource, Repository } from 'typeorm';
-import { FilesService } from '../files/files.service';
-import { StoreUser } from '../store-user/store-user.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 import { ImagesService } from '../images/images.service';
+import { StoreRepository } from './store.repository';
 
 interface ServiceCreateStoreDto {
   name: string;
@@ -17,69 +14,29 @@ interface ServiceCreateStoreDto {
 @Injectable()
 export class StoreService {
   constructor(
-    @InjectRepository(Store)
-    private readonly storeRepository: Repository<Store>,
-    private readonly dataSource: DataSource,
-    private fileService: FilesService,
+    private readonly storeRepository: StoreRepository,
     private imageService: ImagesService,
   ) {}
 
   async findByUserId(userId: string): Promise<Store[]> {
-    const store = await this.storeRepository.find({
-      where: {
-        storeUsers: {
-          userProfile: {
-            id: userId,
-          },
-        },
-      },
-      relations: {
-        storeUsers: {
-          userProfile: true,
-        },
-      },
-    });
-
-    return store;
+    const stores = await this.storeRepository.findManyByUserId(userId);
+    return stores;
   }
 
   async create(store: ServiceCreateStoreDto): Promise<Store> {
-    await this.imageService.validate(store.photo.buffer);
-    const processedPhoto = await this.imageService.process(store.photo.buffer);
+    const photoUrl = await this.imageService.upload(store.photo.buffer);
 
-    const photoUrl = await this.fileService.upload({
-      fileBuffer: processedPhoto,
-      mimeType: 'image/webp',
-    });
-
-    if (!photoUrl) {
-      throw new Error('Error uploading file');
-    }
-
-    return this.dataSource.transaction(async (entityManager) => {
-      const createdStore = entityManager.create(Store, {
-        photoUrl,
+    const createdStore = await this.storeRepository.create({
+      data: {
         name: store.name,
         description: store.description,
         whatsapp: store.whatsapp,
-        status: true,
-      });
-
-      await entityManager.save(createdStore);
-
-      const createdStoreUser = entityManager.create(StoreUser, {
-        store: {
-          id: createdStore.id,
-        },
-        userProfile: {
-          id: store.userId,
-        },
-      });
-
-      await entityManager.save(createdStoreUser);
-
-      return createdStore;
+        photoUrl,
+      },
+      userId: store.userId,
     });
+
+    return createdStore;
   }
 
   async update({
@@ -95,34 +52,19 @@ export class StoreService {
     whatsapp: string;
     userId: string;
   }) {
-    const store = await this.storeRepository.findOne({
-      where: {
-        id: storeId,
-        storeUsers: {
-          userProfile: {
-            id: userId,
-          },
-        },
-      },
-      relations: {
-        storeUsers: {
-          userProfile: true,
-        },
-      },
-    });
-
-    if (!store) {
-      throw new Error('Store not found');
-    }
-
-    await this.storeRepository.update(
-      { id: storeId },
-      {
+    const isUpdated = await this.storeRepository.update({
+      data: {
         name,
         description,
         whatsapp,
       },
-    );
+      storeId,
+      userId,
+    });
+
+    if (!isUpdated) {
+      throw new NotFoundException();
+    }
   }
 
   async updatePhoto({
@@ -134,44 +76,19 @@ export class StoreService {
     photo: Express.Multer.File;
     userId: string;
   }) {
-    const store = await this.storeRepository.findOne({
-      where: {
-        id: storeId,
-        storeUsers: {
-          userProfile: {
-            id: userId,
-          },
-        },
-      },
-      relations: {
-        storeUsers: {
-          userProfile: true,
-        },
-      },
-    });
+    const photoUrl = await this.imageService.upload(photo.buffer);
 
-    if (!store) {
-      throw new Error('Store not found');
-    }
-
-    await this.imageService.validate(photo.buffer);
-    const processedPhoto = await this.imageService.process(photo.buffer);
-
-    const photoUrl = await this.fileService.upload({
-      fileBuffer: processedPhoto,
-      mimeType: 'image/webp',
-    });
-
-    if (!photoUrl) {
-      throw new Error('Error uploading file');
-    }
-
-    await this.storeRepository.update(
-      { id: storeId },
-      {
+    const isUpdated = await this.storeRepository.update({
+      data: {
         photoUrl,
       },
-    );
+      storeId,
+      userId,
+    });
+
+    if (!isUpdated) {
+      throw new NotFoundException();
+    }
   }
 
   async delete({
@@ -181,25 +98,10 @@ export class StoreService {
     userId: string;
     storeId: string;
   }): Promise<void> {
-    const store = await this.storeRepository.findOne({
-      where: {
-        id: storeId,
-        storeUsers: {
-          userProfile: {
-            id: userId,
-          },
-        },
-      },
-      relations: {
-        storeUsers: {
-          userProfile: true,
-        },
-      },
-    });
+    const isDeleted = await this.storeRepository.delete({ storeId, userId });
 
-    if (!store) {
-      throw new Error('Store not found');
+    if (!isDeleted) {
+      throw new NotFoundException();
     }
-    await this.storeRepository.softDelete({ id: store.id });
   }
 }
