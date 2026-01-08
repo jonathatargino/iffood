@@ -5,7 +5,7 @@ export interface Store {
   name: string;
   description: string;
   whatsapp: string;
-  photo?: string;
+  photoUrl: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,6 +15,12 @@ export interface CreateStoreData {
   description: string;
   whatsapp: string;
   photo: File | null | undefined;
+}
+
+export interface UpdateStoreData {
+  name: string;
+  description: string;
+  whatsapp: string;
 }
 
 export const storeService = {
@@ -40,5 +46,25 @@ export const storeService = {
     });
 
     return response.data;
+  },
+
+  async updateStore(storeId: string, data: UpdateStoreData): Promise<Store> {
+    const response = await api.put<Store>(`/store/${storeId}`, data);
+    return response.data;
+  },
+
+  async updateStorePhoto(storeId: string, photo: File): Promise<void> {
+    const formData = new FormData();
+    formData.append("photo", photo);
+
+    await api.patch(`/store/${storeId}/photo`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
+  async deleteStore(storeId: string): Promise<void> {
+    await api.delete(`/store/${storeId}`);
   },
 };

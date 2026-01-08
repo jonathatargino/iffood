@@ -169,7 +169,7 @@ export function StoreForm({ onBack, onSave }: StoreFormProps) {
           <label className="text-xs text-gray-400 mb-3 block uppercase tracking-wider">
             Foto da Loja *
           </label>
-          <div className="relative aspect-video bg-gray-50 rounded-2xl overflow-hidden border-2 border-dashed border-gray-200 hover:border-[#FF7622] transition-colors">
+          <div className="relative aspect-square bg-gray-50 rounded-2xl overflow-hidden border-2 border-dashed border-gray-200 hover:border-[#FF7622] transition-colors">
             {photoPreview ? (
               <>
                 <img
