@@ -4,10 +4,11 @@ import { Store } from './store.entity';
 import { Module } from '@nestjs/common';
 import { StoreService } from './store.service';
 import { FilesService } from '../files/files.service';
+import { ImagesService } from '../images/images.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Store])],
   controllers: [StoreController],
-  providers: [StoreService, FilesService],
+  providers: [StoreService, FilesService, ImagesService],
 })
 export class StoreModule {}

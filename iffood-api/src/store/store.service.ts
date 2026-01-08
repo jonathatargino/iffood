@@ -4,6 +4,7 @@ import { DataSource, Repository } from 'typeorm';
 import { FilesService } from '../files/files.service';
 import { StoreUser } from '../store-user/store-user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ImagesService } from '../images/images.service';
 
 interface ServiceCreateStoreDto {
   name: string;
@@ -20,6 +21,7 @@ export class StoreService {
     private readonly storeRepository: Repository<Store>,
     private readonly dataSource: DataSource,
     private fileService: FilesService,
+    private imageService: ImagesService,
   ) {}
 
   async findByUserId(userId: string): Promise<Store[]> {
@@ -42,9 +44,12 @@ export class StoreService {
   }
 
   async create(store: ServiceCreateStoreDto): Promise<Store> {
+    await this.imageService.validate(store.photo.buffer);
+    const processedPhoto = await this.imageService.process(store.photo.buffer);
+
     const photoUrl = await this.fileService.upload({
-      fileBuffer: store.photo.buffer,
-      mimeType: store.photo.mimetype,
+      fileBuffer: processedPhoto,
+      mimeType: 'image/webp',
     });
 
     if (!photoUrl) {
