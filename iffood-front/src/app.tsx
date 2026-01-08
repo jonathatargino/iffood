@@ -2,8 +2,11 @@ import { useMediaQuery } from "./hooks/use-media-query";
 import { LoginPage } from "./pages/login";
 import { DesktopNotSupported } from "./pages/desktop-not-supported";
 import { ConfiguracoesPage } from "./pages/configuracoes";
+import { MinhaLojaPage } from "./pages/minha-loja";
 import { AuthProvider } from "./contexts/auth";
+import { QueryProvider } from "./contexts/query";
 import { createBrowserRouter, RouterProvider } from "react-router";
+import { Toaster } from "@/components/ui/sonner";
 
 const router = createBrowserRouter([
   {
@@ -18,6 +21,10 @@ const router = createBrowserRouter([
     path: "configuracoes",
     element: <ConfiguracoesPage />,
   },
+  {
+    path: "minha-loja",
+    element: <MinhaLojaPage />,
+  },
 ]);
 
 export function App() {
@@ -29,7 +36,10 @@ export function App() {
 
   return (
     <AuthProvider>
-      <RouterProvider router={router} />
+      <QueryProvider>
+        <RouterProvider router={router} />
+        <Toaster richColors position="top-center" />
+      </QueryProvider>
     </AuthProvider>
   );
 }

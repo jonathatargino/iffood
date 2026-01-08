@@ -1,0 +1,44 @@
+import { api } from "@/lib/api";
+
+export interface Store {
+  id: string;
+  name: string;
+  description: string;
+  whatsapp: string;
+  photo?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateStoreData {
+  name: string;
+  description: string;
+  whatsapp: string;
+  photo: File | null | undefined;
+}
+
+export const storeService = {
+  async getMyStore(): Promise<Store[]> {
+    const response = await api.get<Store[]>("/store/me");
+    return response.data;
+  },
+
+  async createStore(data: CreateStoreData): Promise<Store> {
+    const formData = new FormData();
+    formData.append("name", data.name);
+    formData.append("description", data.description);
+    formData.append("whatsapp", data.whatsapp);
+
+    if (data.photo) {
+      formData.append("photo", data.photo);
+    }
+
+    const response = await api.post<Store>("/store", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return response.data;
+  },
+};

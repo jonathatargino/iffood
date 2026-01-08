@@ -90,7 +90,7 @@ export function ConfiguracoesPage() {
 
   const handleMyStoreClick = () => {
     if (isLoggedIn) {
-      console.log("Minha loja clicado");
+      navigate("/minha-loja");
     }
   };
 
