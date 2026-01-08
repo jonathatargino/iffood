@@ -81,4 +81,125 @@ export class StoreService {
       return createdStore;
     });
   }
+
+  async update({
+    description,
+    name,
+    storeId,
+    whatsapp,
+    userId,
+  }: {
+    storeId: string;
+    name: string;
+    description: string;
+    whatsapp: string;
+    userId: string;
+  }) {
+    const store = await this.storeRepository.findOne({
+      where: {
+        id: storeId,
+        storeUsers: {
+          userProfile: {
+            id: userId,
+          },
+        },
+      },
+      relations: {
+        storeUsers: {
+          userProfile: true,
+        },
+      },
+    });
+
+    if (!store) {
+      throw new Error('Store not found');
+    }
+
+    await this.storeRepository.update(
+      { id: storeId },
+      {
+        name,
+        description,
+        whatsapp,
+      },
+    );
+  }
+
+  async updatePhoto({
+    storeId,
+    photo,
+    userId,
+  }: {
+    storeId: string;
+    photo: Express.Multer.File;
+    userId: string;
+  }) {
+    const store = await this.storeRepository.findOne({
+      where: {
+        id: storeId,
+        storeUsers: {
+          userProfile: {
+            id: userId,
+          },
+        },
+      },
+      relations: {
+        storeUsers: {
+          userProfile: true,
+        },
+      },
+    });
+
+    if (!store) {
+      throw new Error('Store not found');
+    }
+
+    await this.imageService.validate(photo.buffer);
+    const processedPhoto = await this.imageService.process(photo.buffer);
+
+    const photoUrl = await this.fileService.upload({
+      fileBuffer: processedPhoto,
+      mimeType: 'image/webp',
+    });
+
+    if (!photoUrl) {
+      throw new Error('Error uploading file');
+    }
+
+    await this.storeRepository.update(
+      { id: storeId },
+      {
+        photoUrl,
+      },
+    );
+  }
+
+  async delete({
+    userId,
+    storeId,
+  }: {
+    userId: string;
+    storeId: string;
+  }): Promise<void> {
+    const store = await this.storeRepository.findOne({
+      where: {
+        id: storeId,
+        storeUsers: {
+          userProfile: {
+            id: userId,
+          },
+        },
+      },
+      relations: {
+        storeUsers: {
+          userProfile: true,
+        },
+      },
+    });
+
+    if (!store) {
+      throw new Error('Store not found');
+    }
+    await this.storeRepository.softDelete({ id: store.id });
+  }
 }

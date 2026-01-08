@@ -1,9 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   InternalServerErrorException,
+  Param,
+  Patch,
   Post,
+  Put,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -48,5 +52,47 @@ export class StoreController {
       console.log(error);
       throw new InternalServerErrorException();
     }
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard)
+  async delete(@UserId() userId: string, @Param('id') storeId: string) {
+    try {
+      await this.storeService.delete({ userId, storeId });
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  @Put(':id')
+  @UseGuards(AuthGuard)
+  async update(
+    @Body() body: CreateStoreDto,
+    @UserId() userId: string,
+    @Param('id') storeId: string,
+  ) {
+    await this.storeService.update({
+      description: body.description,
+      name: body.name,
+      whatsapp: body.whatsapp,
+      storeId,
+      userId,
+    });
+  }
+
+  @Patch(':id/photo')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('photo'))
+  async updatePhoto(
+    @UploadedFile() photo: Express.Multer.File,
+    @UserId() userId: string,
+    @Param('id') storeId: string,
+  ) {
+    await this.storeService.updatePhoto({
+      photo,
+      storeId,
+      userId,
+    });
   }
 }
