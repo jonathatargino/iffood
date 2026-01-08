@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Store } from './store.entity';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { FilesService } from '../files/files.service';
 import { StoreUser } from '../store-user/store-user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 
 interface ServiceCreateStoreDto {
   name: string;
@@ -15,9 +16,30 @@ interface ServiceCreateStoreDto {
 @Injectable()
 export class StoreService {
   constructor(
+    @InjectRepository(Store)
+    private readonly storeRepository: Repository<Store>,
     private readonly dataSource: DataSource,
     private fileService: FilesService,
   ) {}
+
+  async findByUserId(userId: string): Promise<Store[]> {
+    const store = await this.storeRepository.find({
+      where: {
+        storeUsers: {
+          userProfile: {
+            id: userId,
+          },
+        },
+      },
+      relations: {
+        storeUsers: {
+          userProfile: true,
+        },
+      },
+    });
+
+    return store;
+  }
 
   async create(store: ServiceCreateStoreDto): Promise<Store> {
     const photoUrl = await this.fileService.upload({

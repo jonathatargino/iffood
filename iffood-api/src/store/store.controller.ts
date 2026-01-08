@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   InternalServerErrorException,
   Post,
   UploadedFile,
@@ -18,6 +19,12 @@ import { UserId } from '../common/decorators/user-id';
 })
 export class StoreController {
   constructor(private storeService: StoreService) {}
+
+  @Get('me')
+  @UseGuards(AuthGuard)
+  async findMyStore(@UserId() userId: string) {
+    return this.storeService.findByUserId(userId);
+  }
 
   @Post()
   @UseGuards(AuthGuard)
