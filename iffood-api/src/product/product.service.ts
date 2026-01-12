@@ -43,4 +43,17 @@ export class ProductService {
 
     return result;
   }
+
+  async delete({ productId, userId }: { productId: string; userId: string }) {
+    const isDeleted = await this.productRepository.delete({
+      productId,
+      userId,
+    });
+
+    if (!isDeleted) {
+      throw new ForbiddenException();
+    }
+
+    return;
+  }
 }

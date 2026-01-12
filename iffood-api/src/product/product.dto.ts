@@ -64,4 +64,5 @@ export interface FindAllProductFilters {
   name?: string;
   pageSize: number;
   page: number;
+  withDeleted?: boolean;
 }

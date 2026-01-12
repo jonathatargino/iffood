@@ -23,6 +23,7 @@ export class ProductRepository {
         productOptions: true,
         store: true,
       },
+      withDeleted: filters.withDeleted || false,
     });
 
     return result;
@@ -34,5 +35,22 @@ export class ProductRepository {
       store: { id: data.storeId },
     });
     return result;
+  }
+
+  async delete({ productId, userId }: { productId: string; userId: string }) {
+    const productToDelete = await this.typeormProductRepository.findOne({
+      where: {
+        id: productId,
+        store: { storeUsers: { userProfile: { id: userId } } },
+      },
+      relations: { productOptions: true, store: { storeUsers: true } },
+    });
+
+    if (!productToDelete) {
+      return false;
+    }
+
+    await this.typeormProductRepository.softRemove(productToDelete);
+    return true;
   }
 }

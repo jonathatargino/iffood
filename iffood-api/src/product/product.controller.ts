@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Query,
   UploadedFile,
@@ -46,5 +48,14 @@ export class ProductController {
       photo,
       userId,
     });
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard)
+  async deleteProduct(
+    @Param('id') productId: string,
+    @UserId() userId: string,
+  ) {
+    return await this.productService.delete({ productId, userId });
   }
 }
