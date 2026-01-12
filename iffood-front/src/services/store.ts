@@ -29,6 +29,15 @@ export const storeService = {
     return response.data;
   },
 
+  async getAllStores(params?: {
+    name?: string;
+    pageSize?: number;
+    page?: number;
+  }): Promise<Store[]> {
+    const response = await api.get<Store[]>("/store", { params });
+    return response.data;
+  },
+
   async createStore(data: CreateStoreData): Promise<Store> {
     const formData = new FormData();
     formData.append("name", data.name);

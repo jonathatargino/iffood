@@ -5,7 +5,6 @@ import { toast } from "sonner";
 interface PhotoUploadModalProps {
   isOpen: boolean;
   title: string;
-  currentImage: string;
   onUpload: (file: File) => void;
   onClose: () => void;
   isLoading?: boolean;
@@ -14,7 +13,6 @@ interface PhotoUploadModalProps {
 export function PhotoUploadModal({
   isOpen,
   title,
-  currentImage,
   onUpload,
   onClose,
   isLoading = false,

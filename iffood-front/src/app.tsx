@@ -3,6 +3,9 @@ import { LoginPage } from "./pages/login";
 import { DesktopNotSupported } from "./pages/desktop-not-supported";
 import { ConfiguracoesPage } from "./pages/configuracoes";
 import { MinhaLojaPage } from "./pages/minha-loja";
+import Home from "./pages/home";
+import SearchPage from "./pages/busca";
+import ViewAllPage from "./pages/ver-todos";
 import { AuthProvider } from "./contexts/auth";
 import { QueryProvider } from "./contexts/query";
 import { createBrowserRouter, RouterProvider } from "react-router";
@@ -11,7 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <div>Home</div>,
+    element: <Home />,
   },
   {
     path: "login",
@@ -24,6 +27,14 @@ const router = createBrowserRouter([
   {
     path: "minha-loja",
     element: <MinhaLojaPage />,
+  },
+  {
+    path: "busca",
+    element: <SearchPage />,
+  },
+  {
+    path: ":type",
+    element: <ViewAllPage />,
   },
 ]);
 

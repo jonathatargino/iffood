@@ -368,7 +368,6 @@ export function MyStore({ store }: MyStoreProps) {
       <PhotoUploadModal
         isOpen={showPhotoModal}
         title="Alterar Foto da Loja"
-        currentImage={store.photoUrl}
         onUpload={handlePhotoUpload}
         onClose={() => setShowPhotoModal(false)}
         isLoading={updatePhotoMutation.isPending}
