@@ -11,6 +11,31 @@ export class ProductRepository {
     private readonly typeormProductRepository: Repository<Product>,
   ) {}
 
+  async findById({ productId }: { productId: string }) {
+    const result = await this.typeormProductRepository.findOne({
+      where: { id: productId },
+      relations: { productOptions: true, store: true },
+    });
+    return result;
+  }
+
+  async findByIdAndUserId({
+    productId,
+    userId,
+  }: {
+    productId: string;
+    userId: string;
+  }) {
+    const result = await this.typeormProductRepository.findOne({
+      where: {
+        id: productId,
+        store: { storeUsers: { userProfile: { id: userId } } },
+      },
+      relations: { productOptions: true, store: { storeUsers: true } },
+    });
+    return result;
+  }
+
   async findAll(filters: FindAllProductFilters) {
     const result = await this.typeormProductRepository.find({
       where: {

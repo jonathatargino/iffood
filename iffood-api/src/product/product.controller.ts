@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -13,7 +14,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { UserId } from '../common/decorators/user-id';
-import { CreateProductDto } from './product.dto';
+import { CreateProductDto, UpdateProductDto } from './product.dto';
 import { ProductService } from './product.service';
 
 @Controller('product')
@@ -57,5 +58,25 @@ export class ProductController {
     @UserId() userId: string,
   ) {
     return await this.productService.delete({ productId, userId });
+  }
+
+  @Put(':id')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('photo'))
+  async updateProduct(
+    @Param('id') id: string,
+    @Body() body: UpdateProductDto,
+    @UploadedFile() photo: Express.Multer.File,
+    @UserId() userId: string,
+  ) {
+    return await this.productService.updateProductWithOptions({
+      id: id,
+      description: body.description,
+      name: body.name,
+      productOptions: body.productOptions,
+      value: body.value,
+      photo,
+      userId,
+    });
   }
 }

@@ -2,10 +2,18 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import {
   CreateProductWithPhotoAndUserIdDto,
   FindAllProductFilters,
+  UpdateProductWithPhotoAndUserIdDto,
 } from './product.dto';
 import { ImagesService } from '../images/images.service';
 import { ProductRepository } from './product.repository';
 import { StoreUserService } from '../store-user/store-user.service';
+import { DataSource } from 'typeorm';
+import { Product } from './product.entity';
+import {
+  ProductOptionStatus,
+  UpdateProductOptionDto,
+} from '../product-option/product-option.dto';
+import { ProductOption } from '../product-option/product-option.entity';
 
 @Injectable()
 export class ProductService {
@@ -13,6 +21,7 @@ export class ProductService {
     private readonly imageService: ImagesService,
     private readonly productRepository: ProductRepository,
     private readonly storeUserService: StoreUserService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findAllByStoreId(filters: FindAllProductFilters) {
@@ -42,6 +51,78 @@ export class ProductService {
     });
 
     return result;
+  }
+
+  async updateProductWithOptions(dto: UpdateProductWithPhotoAndUserIdDto) {
+    return this.dataSource.transaction(async (entityManager) => {
+      const product = await entityManager.findOne(Product, {
+        where: {
+          id: dto.id,
+          store: { storeUsers: { userProfile: { id: dto.userId } } },
+        },
+        relations: { productOptions: true, store: { storeUsers: true } },
+      });
+
+      if (!product) {
+        throw new ForbiddenException();
+      }
+
+      let photoUrl: string | undefined = product.photoUrl;
+      if (dto.photo) {
+        photoUrl = await this.imageService.upload(dto.photo.buffer);
+      }
+
+      product.photoUrl = photoUrl ?? product.photoUrl;
+
+      if (dto.productOptions) {
+        const dtoProductOptionsMap = dto.productOptions.reduce(
+          (map, option) => {
+            if (option.id) {
+              map[option.id] = option;
+            } else {
+              (map.new as UpdateProductOptionDto[]).push(option);
+            }
+            return map;
+          },
+          { new: [] } as Record<
+            string,
+            UpdateProductOptionDto | UpdateProductOptionDto[]
+          >,
+        );
+
+        product.productOptions = product.productOptions.map((option) => {
+          const dtoOption = dtoProductOptionsMap[
+            option.id
+          ] as UpdateProductOptionDto;
+
+          if (!dtoOption) return option;
+
+          if (dtoOption.status === ProductOptionStatus.Updated) {
+            option.name = dtoOption.name ?? option.name;
+            option.quantity = dtoOption.quantity ?? option.quantity;
+            return option;
+          }
+
+          if (dtoOption.status === ProductOptionStatus.Deleted) {
+            option.deletedAt = new Date();
+            return option;
+          }
+
+          return option;
+        });
+
+        for (const newOption of dtoProductOptionsMap.new as UpdateProductOptionDto[]) {
+          product.productOptions.push(
+            entityManager.create(ProductOption, {
+              name: newOption.name,
+              quantity: newOption.quantity,
+            }),
+          );
+        }
+      }
+
+      await entityManager.save(Product, product);
+    });
   }
 
   async delete({ productId, userId }: { productId: string; userId: string }) {
