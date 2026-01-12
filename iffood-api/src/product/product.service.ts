@@ -61,6 +61,7 @@ export class ProductService {
       productOptions: dto.productOptions,
       value: dto.value,
       storeId: dto.storeId,
+      category: dto.category,
     });
 
     return result;
@@ -86,6 +87,10 @@ export class ProductService {
       }
 
       product.photoUrl = photoUrl ?? product.photoUrl;
+      product.category = dto.category ?? product.category;
+      product.name = dto.name ?? product.name;
+      product.description = dto.description ?? product.description;
+      product.value = dto.value ?? product.value;
 
       if (dto.productOptions) {
         const dtoProductOptionsMap = dto.productOptions.reduce(

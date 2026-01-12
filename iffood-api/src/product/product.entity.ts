@@ -9,6 +9,11 @@ import {
 import { ProductOption } from '../product-option/product-option.entity';
 import { Store } from '../store/store.entity';
 
+export enum ProductCategory {
+  Sweet = 'sweet',
+  Savory = 'savory',
+}
+
 @Entity({
   name: 'products',
 })
@@ -24,6 +29,9 @@ export class Product {
 
   @Column()
   description: string;
+
+  @Column({ type: 'enum', enum: ProductCategory })
+  category: ProductCategory;
 
   @Column({ name: 'photo_url' })
   photoUrl: string;

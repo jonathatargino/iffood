@@ -92,6 +92,7 @@ export class ProductController {
       value: body.value,
       photo,
       userId,
+      category: body.category,
     });
   }
 }

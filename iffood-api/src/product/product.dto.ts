@@ -7,12 +7,14 @@ import {
   IsArray,
   ValidateNested,
   IsOptional,
+  IsEnum,
 } from 'class-validator';
 import {
   CreateProductOptionDto,
   UpdateProductOptionDto,
 } from '../product-option/product-option.dto';
 import { Transform, Type, plainToInstance } from 'class-transformer';
+import { ProductCategory } from './product.entity';
 
 export class CreateProductDto {
   @Transform(({ value }) => Number(value))
@@ -25,6 +27,11 @@ export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsEnum(ProductCategory)
+  category: ProductCategory;
 
   @IsString()
   @IsNotEmpty()
@@ -66,6 +73,11 @@ export class UpdateProductDto {
   @IsString()
   @IsOptional()
   name: string;
+
+  @IsString()
+  @IsOptional()
+  @IsEnum(ProductCategory)
+  category: ProductCategory;
 
   @IsString()
   @IsOptional()
