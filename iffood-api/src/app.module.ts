@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { StoreModule } from './store/store.module';
 import { ProductsModule } from './product/product.module';
 import { StoreUserModule } from './store-user/store-user.module';
+import { StoreAvailabilityModule } from './store-availability/store-availability.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { StoreUserModule } from './store-user/store-user.module';
     }),
 
     UserProfileModule,
+    StoreAvailabilityModule,
     StoreModule,
     ProductsModule,
     StoreUserModule,

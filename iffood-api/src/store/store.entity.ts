@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { StoreUser } from '../store-user/store-user.entity';
 import { Product } from '../product/product.entity';
+import { StoreAvailability } from '../store-availability/store-availability.entity';
 
 @Entity({
   name: 'stores',
@@ -48,4 +49,10 @@ export class Store {
     cascade: ['soft-remove'],
   })
   products: Product[];
+
+  @OneToMany(
+    () => StoreAvailability,
+    (storeAvailability) => storeAvailability.store,
+  )
+  storeAvailabilities: StoreAvailability[];
 }
