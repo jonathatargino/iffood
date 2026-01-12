@@ -36,6 +36,8 @@ export class Product {
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date;
 
-  @OneToMany(() => ProductOption, (productOption) => productOption.product)
+  @OneToMany(() => ProductOption, (productOption) => productOption.product, {
+    cascade: ['insert', 'update', 'soft-remove'],
+  })
   productOptions: ProductOption[];
 }

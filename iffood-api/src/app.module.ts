@@ -3,8 +3,8 @@ import { UserProfileModule } from './user-profile/user-profile.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { StoreModule } from './store/store.module';
-import { FilesModule } from './files/files.module';
-import { ImagesModule } from './images/images.module';
+import { ProductsModule } from './product/product.module';
+import { StoreUserModule } from './store-user/store-user.module';
 
 @Module({
   imports: [
@@ -18,8 +18,8 @@ import { ImagesModule } from './images/images.module';
 
     UserProfileModule,
     StoreModule,
-    FilesModule,
-    ImagesModule,
+    ProductsModule,
+    StoreUserModule,
   ],
 })
 export class AppModule {}
