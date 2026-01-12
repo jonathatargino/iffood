@@ -58,3 +58,10 @@ export class CreateProductWithPhotoAndUserIdDto extends CreateProductDto {
 export class FullCreateProductDto extends CreateProductDto {
   photoUrl: string;
 }
+
+export interface FindAllProductFilters {
+  storeId?: string;
+  name?: string;
+  pageSize: number;
+  page: number;
+}

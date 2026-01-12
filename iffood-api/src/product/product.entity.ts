@@ -1,4 +1,4 @@
-import { Entity, OneToMany } from 'typeorm';
+import { Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import {
   Column,
   CreateDateColumn,
@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { ProductOption } from '../product-option/product-option.entity';
+import { Store } from '../store/store.entity';
 
 @Entity({
   name: 'products',
@@ -40,4 +41,8 @@ export class Product {
     cascade: ['insert', 'update', 'soft-remove'],
   })
   productOptions: ProductOption[];
+
+  @ManyToOne(() => Store, (store) => store.products)
+  @JoinColumn({ name: 'store_id' })
+  store: Store;
 }

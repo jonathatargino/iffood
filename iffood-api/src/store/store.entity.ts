@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { StoreUser } from '../store-user/store-user.entity';
+import { Product } from '../product/product.entity';
 
 @Entity({
   name: 'stores',
@@ -42,4 +43,9 @@ export class Store {
 
   @OneToMany(() => StoreUser, (storeUser) => storeUser.store)
   storeUsers: StoreUser[];
+
+  @OneToMany(() => Product, (product) => product.store, {
+    cascade: ['soft-remove'],
+  })
+  products: Product[];
 }

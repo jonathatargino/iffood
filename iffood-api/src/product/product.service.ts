@@ -1,5 +1,8 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { CreateProductWithPhotoAndUserIdDto } from './product.dto';
+import {
+  CreateProductWithPhotoAndUserIdDto,
+  FindAllProductFilters,
+} from './product.dto';
 import { ImagesService } from '../images/images.service';
 import { ProductRepository } from './product.repository';
 import { StoreUserService } from '../store-user/store-user.service';
@@ -11,6 +14,11 @@ export class ProductService {
     private readonly productRepository: ProductRepository,
     private readonly storeUserService: StoreUserService,
   ) {}
+
+  async findAllByStoreId(filters: FindAllProductFilters) {
+    const result = await this.productRepository.findAll(filters);
+    return result;
+  }
 
   async createProductWithOptions(dto: CreateProductWithPhotoAndUserIdDto) {
     const isAllowed = await this.storeUserService.isUserStoreMember({

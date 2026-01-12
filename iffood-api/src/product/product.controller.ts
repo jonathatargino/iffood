@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -15,6 +17,21 @@ import { ProductService } from './product.service';
 @Controller('product')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
+
+  @Get()
+  async findAll(
+    @Query('storeId') storeId: string,
+    @Query('page') page: number = 1,
+    @Query('pageSize') pageSize: number = 20,
+    @Query('name') name?: string,
+  ) {
+    return await this.productService.findAllByStoreId({
+      page,
+      pageSize,
+      name,
+      storeId,
+    });
+  }
 
   @Post()
   @UseGuards(AuthGuard)
