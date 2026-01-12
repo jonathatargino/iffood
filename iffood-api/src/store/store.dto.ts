@@ -13,3 +13,9 @@ export class CreateStoreDto {
   @IsNotEmpty()
   whatsapp: string;
 }
+
+export interface FindAllStoreFilters {
+  name?: string;
+  pageSize: number;
+  page: number;
+}

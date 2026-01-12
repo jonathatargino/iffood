@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Store } from './store.entity';
 import { ImagesService } from '../images/images.service';
 import { StoreRepository } from './store.repository';
+import { FindAllStoreFilters } from './store.dto';
 
 interface ServiceCreateStoreDto {
   name: string;
@@ -17,6 +18,19 @@ export class StoreService {
     private readonly storeRepository: StoreRepository,
     private imageService: ImagesService,
   ) {}
+
+  async findAll(filters: FindAllStoreFilters): Promise<Store[]> {
+    const stores = await this.storeRepository.findAll(filters);
+    return stores;
+  }
+
+  async findById(storeId: string): Promise<Store> {
+    const store = await this.storeRepository.findById(storeId);
+    if (!store) {
+      throw new NotFoundException();
+    }
+    return store;
+  }
 
   async findByUserId(userId: string): Promise<Store[]> {
     const stores = await this.storeRepository.findManyByUserId(userId);

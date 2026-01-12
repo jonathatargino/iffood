@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, ILike, Repository } from 'typeorm';
 import { Store } from './store.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StoreUser } from '../store-user/store-user.entity';
+import { FindAllStoreFilters } from './store.dto';
 
 @Injectable()
 export class StoreRepository {
@@ -10,6 +11,23 @@ export class StoreRepository {
     @InjectRepository(Store) private typeormStoreRepository: Repository<Store>,
     private readonly dataSource: DataSource,
   ) {}
+
+  async findAll(filters: FindAllStoreFilters): Promise<Store[]> {
+    return this.typeormStoreRepository.find({
+      where: {
+        name: filters.name ? ILike(`%${filters.name}%`) : undefined,
+      },
+    });
+  }
+
+  async findById(storeId: string): Promise<Store | null> {
+    return this.typeormStoreRepository.findOne({
+      where: { id: storeId },
+      relations: {
+        products: true,
+      },
+    });
+  }
 
   async findManyByUserId(userId: string): Promise<Store[]> {
     return this.typeormStoreRepository.find({

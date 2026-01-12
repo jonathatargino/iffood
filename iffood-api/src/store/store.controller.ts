@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -24,10 +25,25 @@ import { UserId } from '../common/decorators/user-id';
 export class StoreController {
   constructor(private storeService: StoreService) {}
 
+  @Get()
+  async findAll(
+    @Query('name') name?: string,
+    @Query('pageSize') pageSize: number = 20,
+    @Query('page') page: number = 1,
+  ) {
+    return this.storeService.findAll({ name, pageSize, page });
+  }
+
   @Get('me')
   @UseGuards(AuthGuard)
   async findMyStore(@UserId() userId: string) {
     return this.storeService.findByUserId(userId);
+  }
+
+  @Get(':id')
+  async findById(@Param('id') storeId: string) {
+    const store = await this.storeService.findById(storeId);
+    return store;
   }
 
   @Post()

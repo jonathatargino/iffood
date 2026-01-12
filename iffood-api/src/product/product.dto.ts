@@ -117,3 +117,16 @@ export interface FindAllProductFilters {
   page: number;
   withDeleted?: boolean;
 }
+
+export interface ProductWithCounts {
+  id: string;
+  value: number;
+  name: string;
+  description: string;
+  photoUrl: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+  productOptionsCount: number;
+  accumulativeProductOptionsCount: number;
+}

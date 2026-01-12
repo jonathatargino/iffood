@@ -24,6 +24,19 @@ export class ProductService {
     private readonly dataSource: DataSource,
   ) {}
 
+  async findById({ productId }: { productId: string }) {
+    const result = await this.productRepository.findById({ productId });
+    const accumulativeProductOptionsCount = result?.productOptions.reduce(
+      (acc, option) => acc + option.quantity,
+      0,
+    );
+    return { ...result, accumulativeProductOptionsCount };
+  }
+
+  async findAllWithCountByStoreId({ storeId }: { storeId: string }) {
+    return this.productRepository.findAllWithCounts({ storeId });
+  }
+
   async findAllByStoreId(filters: FindAllProductFilters) {
     const result = await this.productRepository.findAll(filters);
     return result;

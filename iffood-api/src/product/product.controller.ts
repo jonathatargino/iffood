@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Post,
   Put,
@@ -21,6 +22,15 @@ import { ProductService } from './product.service';
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
+  async findById(@Param('id') productId: string) {
+    const result = await this.productService.findById({ productId });
+    if (!result) {
+      throw new NotFoundException();
+    }
+
+    return result;
+  }
+
   @Get()
   async findAll(
     @Query('storeId') storeId: string,
@@ -34,6 +44,11 @@ export class ProductController {
       name,
       storeId,
     });
+  }
+
+  @Get('dashboard')
+  async findAllWithCountByStoreId(@Query('storeId') storeId: string) {
+    return await this.productService.findAllWithCountByStoreId({ storeId });
   }
 
   @Post()
