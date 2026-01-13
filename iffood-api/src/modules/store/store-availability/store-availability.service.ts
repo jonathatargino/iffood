@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { Store } from '../store/store.entity';
+import { Store } from '../store.entity';
 import { StoreAvailabilityRepository } from './store-availability.repository';
 import { UpdateStoreAvailabilityWithUserIdDto } from './store-availability.dto';
 import { StoreAvailability } from './store-availability.entity';

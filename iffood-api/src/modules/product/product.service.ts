@@ -4,7 +4,6 @@ import {
   FindAllProductFilters,
   UpdateProductWithPhotoAndUserIdDto,
 } from './product.dto';
-import { ImagesService } from '../images/images.service';
 import { ProductRepository } from './product.repository';
 import { StoreUserService } from '../store-user/store-user.service';
 import { DataSource } from 'typeorm';
@@ -12,8 +11,9 @@ import { Product } from './product.entity';
 import {
   ProductOptionStatus,
   UpdateProductOptionDto,
-} from '../product-option/product-option.dto';
-import { ProductOption } from '../product-option/product-option.entity';
+} from './product-option/product-option.dto';
+import { ProductOption } from './product-option/product-option.entity';
+import { ImagesService } from '../../infra/images/images.service';
 
 @Injectable()
 export class ProductService {

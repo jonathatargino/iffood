@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
-import { UserProfileModule } from './user-profile/user-profile.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { StoreModule } from './store/store.module';
-import { ProductsModule } from './product/product.module';
-import { StoreUserModule } from './store-user/store-user.module';
-import { StoreAvailabilityModule } from './store-availability/store-availability.module';
+import { StoreModule } from './modules/store/store.module';
+import { ProductsModule } from './modules/product/product.module';
+import { StoreUserModule } from './modules/store-user/store-user.module';
+import { StoreAvailabilityModule } from './modules/store/store-availability/store-availability.module';
 
 @Module({
   imports: [
@@ -17,7 +16,6 @@ import { StoreAvailabilityModule } from './store-availability/store-availability
       synchronize: false,
     }),
 
-    UserProfileModule,
     StoreAvailabilityModule,
     StoreModule,
     ProductsModule,

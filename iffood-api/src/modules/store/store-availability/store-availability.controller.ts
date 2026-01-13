@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import { StoreAvailabilityService } from './store-availability.service';
 import { UpdateStoreAvailabilityDto } from './store-availability.dto';
-import { UserId } from '../common/decorators/user-id';
+import { UserId } from '../../../common/decorators/user-id';
 
 @Controller('store/store-availability')
 export class StoreAvailabilityController {

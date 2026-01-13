@@ -9,12 +9,12 @@ import {
   IsOptional,
   IsEnum,
 } from 'class-validator';
+import { Transform, Type, plainToInstance } from 'class-transformer';
+import { ProductCategory } from './product.entity';
 import {
   CreateProductOptionDto,
   UpdateProductOptionDto,
-} from '../product-option/product-option.dto';
-import { Transform, Type, plainToInstance } from 'class-transformer';
-import { ProductCategory } from './product.entity';
+} from './product-option/product-option.dto';
 
 export class CreateProductDto {
   @Transform(({ value }) => Number(value))

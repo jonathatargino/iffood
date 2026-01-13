@@ -13,8 +13,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { AuthGuard } from '../common/guards/auth.guard';
-import { UserId } from '../common/decorators/user-id';
+import { AuthGuard } from '../../common/guards/auth.guard';
+import { UserId } from '../../common/decorators/user-id';
 import { CreateProductDto, UpdateProductDto } from './product.dto';
 import { ProductService } from './product.service';
 

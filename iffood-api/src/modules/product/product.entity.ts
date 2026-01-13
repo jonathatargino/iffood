@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { ProductOption } from '../product-option/product-option.entity';
+import { ProductOption } from './product-option/product-option.entity';
 import { Store } from '../store/store.entity';
 
 export enum ProductCategory {

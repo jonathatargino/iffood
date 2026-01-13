@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Store } from '../store/store.entity';
+import { Store } from '../store.entity';
 
 @Entity({
   name: 'store_availabilities',

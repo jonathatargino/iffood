@@ -16,8 +16,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateStoreDto, UpdateStoreDto } from './store.dto';
 import { StoreService } from './store.service';
-import { AuthGuard } from '../common/guards/auth.guard';
-import { UserId } from '../common/decorators/user-id';
+import { AuthGuard } from '../../common/guards/auth.guard';
+import { UserId } from '../../common/decorators/user-id';
 
 @Controller({
   path: 'store',

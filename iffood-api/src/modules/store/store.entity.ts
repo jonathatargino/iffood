@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { StoreUser } from '../store-user/store-user.entity';
 import { Product } from '../product/product.entity';
-import { StoreAvailability } from '../store-availability/store-availability.entity';
+import { StoreAvailability } from './store-availability/store-availability.entity';
 
 @Entity({
   name: 'stores',

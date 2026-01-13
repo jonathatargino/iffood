@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Store } from './store.entity';
-import { ImagesService } from '../images/images.service';
 import { StoreRepository } from './store.repository';
 import { FindAllStoreFilters } from './store.dto';
+import { ImagesService } from '../../infra/images/images.service';
 
 interface ServiceCreateStoreDto {
   name: string;
