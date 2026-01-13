@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, ILike, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Store } from './store.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StoreUser } from './store-user/store-user.entity';
@@ -13,11 +13,23 @@ export class StoreRepository {
   ) {}
 
   async findAll(filters: FindAllStoreFilters): Promise<Store[]> {
-    return this.typeormStoreRepository.find({
-      where: {
-        name: filters.name ? ILike(`%${filters.name}%`) : undefined,
-      },
-    });
+    const queryBuilder = this.typeormStoreRepository
+      .createQueryBuilder('store')
+      .leftJoin('store.products', 'product')
+      .leftJoin('product.productOptions', 'productOption')
+      .where('store.status = :status', { status: true });
+
+    if (filters.name) {
+      queryBuilder.andWhere('store.name ILIKE :name', {
+        name: `%${filters.name}%`,
+      });
+    }
+
+    queryBuilder
+      .groupBy('store.id')
+      .having('COALESCE(SUM(productOption.quantity), 0) > 0');
+
+    return queryBuilder.getMany();
   }
 
   async findById(storeId: string): Promise<Store | null> {

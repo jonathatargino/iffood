@@ -3,6 +3,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   IsUUID,
 } from 'class-validator';
@@ -27,6 +28,7 @@ export class CreateProductOptionDto {
 export class UpdateProductOptionDto {
   @IsString()
   @IsUUID()
+  @IsOptional()
   id?: string;
 
   @Transform(({ value }) => Number(value))
