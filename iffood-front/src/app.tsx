@@ -6,6 +6,9 @@ import { MinhaLojaPage } from "./pages/minha-loja";
 import Home from "./pages/home";
 import SearchPage from "./pages/busca";
 import ViewAllPage from "./pages/ver-todos";
+import { ProductFormWrapper } from "./pages/produto/wrapper";
+import { ProductDetail } from "./pages/produto-detalhes";
+import { RestaurantView } from "./pages/loja";
 import { AuthProvider } from "./contexts/auth";
 import { QueryProvider } from "./contexts/query";
 import { createBrowserRouter, RouterProvider } from "react-router";
@@ -27,6 +30,18 @@ const router = createBrowserRouter([
   {
     path: "minha-loja",
     element: <MinhaLojaPage />,
+  },
+  {
+    path: "produto/:productId",
+    element: <ProductFormWrapper />,
+  },
+  {
+    path: "produto-detalhes/:productId",
+    element: <ProductDetail />,
+  },
+  {
+    path: "loja/:storeId",
+    element: <RestaurantView />,
   },
   {
     path: "busca",

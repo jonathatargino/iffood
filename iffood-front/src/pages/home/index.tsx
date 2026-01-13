@@ -106,11 +106,11 @@ export default function Home() {
   };
 
   const handleProductClick = (id: string) => {
-    navigate(`/produto/${id}`);
+    navigate(`/produto-detalhes/${id}`);
   };
 
   const handleStoreClick = (id: string) => {
-    navigate(`/restaurante/${id}`);
+    navigate(`/loja/${id}`);
   };
 
   const handleViewAllProducts = () => {

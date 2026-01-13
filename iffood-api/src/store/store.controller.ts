@@ -14,7 +14,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CreateStoreDto } from './store.dto';
+import { CreateStoreDto, UpdateStoreDto } from './store.dto';
 import { StoreService } from './store.service';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { UserId } from '../common/decorators/user-id';
@@ -84,7 +84,7 @@ export class StoreController {
   @Put(':id')
   @UseGuards(AuthGuard)
   async update(
-    @Body() body: CreateStoreDto,
+    @Body() body: UpdateStoreDto,
     @UserId() userId: string,
     @Param('id') storeId: string,
   ) {
@@ -92,6 +92,7 @@ export class StoreController {
       description: body.description,
       name: body.name,
       whatsapp: body.whatsapp,
+      status: body.status,
       storeId,
       userId,
     });

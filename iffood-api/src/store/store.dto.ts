@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateStoreDto {
   @IsString()
@@ -12,6 +12,24 @@ export class CreateStoreDto {
   @IsString()
   @IsNotEmpty()
   whatsapp: string;
+}
+
+export class UpdateStoreDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  description: string;
+
+  @IsString()
+  @IsNotEmpty()
+  whatsapp: string;
+
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
 }
 
 export interface FindAllStoreFilters {

@@ -22,6 +22,7 @@ import { ProductService } from './product.service';
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
+  @Get(':id')
   async findById(@Param('id') productId: string) {
     const result = await this.productService.findById({ productId });
     if (!result) {

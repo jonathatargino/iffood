@@ -133,11 +133,11 @@ export default function ViewAllPage() {
   };
 
   const handleStoreClick = (id: string) => {
-    navigate(`/restaurante/${id}`);
+    navigate(`/loja/${id}`);
   };
 
   const handleProductClick = (id: string) => {
-    navigate(`/produto/${id}`);
+    navigate(`/produto-detalhes/${id}`);
   };
 
   const handleMenuClick = () => {

@@ -59,11 +59,13 @@ export class StoreService {
     storeId,
     whatsapp,
     userId,
+    status,
   }: {
     storeId: string;
-    name: string;
-    description: string;
-    whatsapp: string;
+    name?: string;
+    description?: string;
+    whatsapp?: string;
+    status?: boolean;
     userId: string;
   }) {
     const isUpdated = await this.storeRepository.update({
@@ -71,6 +73,7 @@ export class StoreService {
         name,
         description,
         whatsapp,
+        status,
       },
       storeId,
       userId,

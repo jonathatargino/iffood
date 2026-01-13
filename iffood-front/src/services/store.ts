@@ -6,6 +6,7 @@ export interface Store {
   description: string;
   whatsapp: string;
   photoUrl: string;
+  status: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +22,7 @@ export interface UpdateStoreData {
   name: string;
   description: string;
   whatsapp: string;
+  status?: boolean;
 }
 
 export const storeService = {

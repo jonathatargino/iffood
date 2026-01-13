@@ -121,11 +121,11 @@ export default function SearchPage() {
   };
 
   const handleStoreClick = (id: string) => {
-    navigate(`/restaurante/${id}`);
+    navigate(`/loja/${id}`);
   };
 
   const handleProductClick = (id: string) => {
-    navigate(`/produto/${id}`);
+    navigate(`/produto-detalhes/${id}`);
   };
 
   const results = searchType === "stores" ? stores : products;
