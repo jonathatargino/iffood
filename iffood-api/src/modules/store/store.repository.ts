@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DataSource, ILike, Repository } from 'typeorm';
 import { Store } from './store.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { StoreUser } from '../store-user/store-user.entity';
+import { StoreUser } from './store-user/store-user.entity';
 import { FindAllStoreFilters } from './store.dto';
 
 @Injectable()

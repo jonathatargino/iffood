@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { StoreUser } from '../store-user/store-user.entity';
+import { StoreUser } from '../store/store-user/store-user.entity';
 
 @Entity({
   name: 'user_profiles',

@@ -5,7 +5,7 @@ import {
   UpdateProductWithPhotoAndUserIdDto,
 } from './product.dto';
 import { ProductRepository } from './product.repository';
-import { StoreUserService } from '../store-user/store-user.service';
+import { StoreUserService } from '../store/store-user/store-user.service';
 import { DataSource } from 'typeorm';
 import { Product } from './product.entity';
 import {

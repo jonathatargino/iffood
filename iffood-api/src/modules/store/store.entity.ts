@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { StoreUser } from '../store-user/store-user.entity';
+import { StoreUser } from './store-user/store-user.entity';
 import { Product } from '../product/product.entity';
 import { StoreAvailability } from './store-availability/store-availability.entity';
 
