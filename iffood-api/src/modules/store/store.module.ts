@@ -8,7 +8,11 @@ import { StoreAvailabilityModule } from './store-availability/store-availability
 import { ImagesModule } from '../../infra/images/images.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Store]), ImagesModule],
+  imports: [
+    TypeOrmModule.forFeature([Store]),
+    ImagesModule,
+    StoreAvailabilityModule,
+  ],
   controllers: [StoreController],
   providers: [StoreService, StoreRepository],
   exports: [StoreAvailabilityModule],

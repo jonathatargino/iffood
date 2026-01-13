@@ -4,7 +4,6 @@ import { ConfigModule } from '@nestjs/config';
 import { StoreModule } from './modules/store/store.module';
 import { ProductsModule } from './modules/product/product.module';
 import { StoreUserModule } from './modules/store-user/store-user.module';
-import { StoreAvailabilityModule } from './modules/store/store-availability/store-availability.module';
 
 @Module({
   imports: [
@@ -15,8 +14,6 @@ import { StoreAvailabilityModule } from './modules/store/store-availability/stor
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false,
     }),
-
-    StoreAvailabilityModule,
     StoreModule,
     ProductsModule,
     StoreUserModule,

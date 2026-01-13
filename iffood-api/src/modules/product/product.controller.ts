@@ -22,16 +22,6 @@ import { ProductService } from './product.service';
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
-  @Get(':id')
-  async findById(@Param('id') productId: string) {
-    const result = await this.productService.findById({ productId });
-    if (!result) {
-      throw new NotFoundException();
-    }
-
-    return result;
-  }
-
   @Get()
   async findAll(
     @Query('storeId') storeId: string,
@@ -95,5 +85,15 @@ export class ProductController {
       userId,
       category: body.category,
     });
+  }
+
+  @Get(':id')
+  async findById(@Param('id') productId: string) {
+    const result = await this.productService.findById({ productId });
+    if (!result) {
+      throw new NotFoundException();
+    }
+
+    return result;
   }
 }
