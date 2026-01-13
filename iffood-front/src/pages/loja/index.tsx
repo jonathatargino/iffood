@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { storeService } from "@/services/store";
 import { productService, type Product } from "@/services/product";
+import { formatCentsToReaisWithSymbol } from "@/utils/currency";
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
@@ -44,7 +45,7 @@ function ProductCard({
       </div>
       <div className="p-3 pb-4">
         <div className="text-sm mb-1 text-[#FF7622]">
-          R$ {(product.value / 100).toFixed(2)}
+          {formatCentsToReaisWithSymbol(product.value)}
         </div>
         <div className="text-sm line-clamp-1 text-[#2e2e2e]">
           {product.name}

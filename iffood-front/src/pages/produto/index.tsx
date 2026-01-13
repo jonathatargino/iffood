@@ -5,6 +5,12 @@ import { Upload, X, Trash2, Plus, Minus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { productService } from "@/services/product";
 import { ConfirmationModal } from "@/components/confirmation-modal";
+import { PRODUCT_CATEGORIES, MAX_FLAVORS } from "./utils";
+import {
+  formatPriceInput,
+  parsePriceInputToCents,
+  formatCentsToReais,
+} from "@/utils/currency";
 
 type ProductFormProps = {
   storeId: string;
@@ -149,7 +155,7 @@ export function ProductForm({ storeId }: ProductFormProps) {
     if (product && isEditMode) {
       setProductName(product.name);
       setProductDescription(product.description);
-      setProductPrice((product.value / 100).toFixed(2));
+      setProductPrice(formatCentsToReais(product.value));
       setProductCategory(product.category as "sweet" | "savory");
       setProductImage(product.photoUrl);
 
@@ -168,16 +174,11 @@ export function ProductForm({ storeId }: ProductFormProps) {
     }
   }, [product, isEditMode]);
 
-  const categories = [
-    { id: "savory", name: "Salgado" },
-    { id: "sweet", name: "Doce" },
-  ];
-
   const totalStock = flavors
     .filter((f) => f.status !== "deleted")
     .reduce((sum, flavor) => sum + flavor.quantity, 0);
   const canAddFlavor =
-    flavors.filter((f) => f.status !== "deleted").length < 10;
+    flavors.filter((f) => f.status !== "deleted").length < MAX_FLAVORS;
   const canDeleteFlavor =
     flavors.filter((f) => f.status !== "deleted").length > 1;
 
@@ -291,7 +292,7 @@ export function ProductForm({ storeId }: ProductFormProps) {
       return;
     }
 
-    const priceInCents = Math.round(parseFloat(productPrice) * 100);
+    const priceInCents = parsePriceInputToCents(productPrice);
 
     const activeFlavors = flavors.filter((f) => f.status !== "deleted");
 
@@ -440,11 +441,12 @@ export function ProductForm({ storeId }: ProductFormProps) {
               Preço (R$)
             </label>
             <input
-              type="number"
-              step="0.01"
+              type="text"
               value={productPrice}
-              onChange={(e) => setProductPrice(e.target.value)}
-              placeholder="0.00"
+              onChange={(e) =>
+                setProductPrice(formatPriceInput(e.target.value))
+              }
+              placeholder="0,00"
               className="w-full px-4 py-3 border border-gray-200 rounded-2xl outline-none focus:border-[#FF7622] transition-colors"
             />
           </div>
@@ -460,7 +462,7 @@ export function ProductForm({ storeId }: ProductFormProps) {
               }
               className="w-full px-4 py-3 border border-gray-200 rounded-2xl outline-none focus:border-[#FF7622] transition-colors bg-white"
             >
-              {categories.map((cat) => (
+              {PRODUCT_CATEGORIES.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
                 </option>

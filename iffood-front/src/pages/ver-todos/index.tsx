@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { productService, type Product } from "@/services/product";
 import { storeService, type Store } from "@/services/store";
 import { useNavigate, useParams } from "react-router";
+import { formatCentsToReaisWithSymbol } from "@/utils/currency";
 
 type ViewType = "products" | "stores";
 
@@ -83,7 +84,7 @@ function ProductCard({ product, onClick }: ProductCardProps) {
           className="w-full h-full object-cover"
         />
         <div className="absolute top-2 right-2 bg-[#FF7622] text-white text-xs px-2.5 py-1 rounded-full shadow-md">
-          R$ {(product.value / 100).toFixed(2)}
+          {formatCentsToReaisWithSymbol(product.value)}
         </div>
       </div>
       <div className="p-3 pb-4">

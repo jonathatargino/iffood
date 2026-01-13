@@ -3,6 +3,10 @@ import { useNavigate, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Minus, Plus, MessageCircle, Package } from "lucide-react";
 import { productService } from "@/services/product";
+import {
+  formatCentsToReaisWithSymbol,
+  formatCentsToReais,
+} from "@/utils/currency";
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
@@ -64,10 +68,9 @@ export function ProductDetail() {
 
     const message = `Olá! Gostaria de pedir:\n\n${product.name}${
       selectedFlavor ? ` - ${selectedFlavor.name}` : ""
-    }\nQuantidade: ${quantity}\nValor: R$ ${(
-      (product.value / 100) *
-      quantity
-    ).toFixed(2)}`;
+    }\nQuantidade: ${quantity}\nValor: R$ ${formatCentsToReais(
+      product.value * quantity
+    )}`;
     const whatsappUrl = `https://wa.me/55${
       product.store?.whatsapp
     }?text=${encodeURIComponent(message)}`;
@@ -93,7 +96,7 @@ export function ProductDetail() {
     );
   }
 
-  const totalPrice = (product.value / 100) * quantity;
+  const totalPrice = product.value * quantity;
   const canOrder = selectedFlavor && selectedFlavor.quantity > 0;
 
   return (
@@ -142,7 +145,7 @@ export function ProductDetail() {
             {product.description}
           </p>
           <div className="text-2xl text-[#FF7622]">
-            R$ {(product.value / 100).toFixed(2)}
+            {formatCentsToReaisWithSymbol(product.value)}
           </div>
         </div>
 
@@ -266,7 +269,7 @@ export function ProductDetail() {
           <div>
             <div className="text-xs text-gray-400 mb-1">Total</div>
             <div className="text-2xl text-[#FF7622]">
-              R$ {totalPrice.toFixed(2)}
+              R$ {formatCentsToReais(totalPrice)}
             </div>
           </div>
           <button

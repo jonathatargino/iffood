@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { productService, type Product } from "@/services/product";
 import { storeService, type Store } from "@/services/store";
 import { useNavigate } from "react-router";
+import { formatCentsToReaisWithSymbol } from "@/utils/currency";
 
 type SearchType = "stores" | "products";
 
@@ -81,7 +82,7 @@ function ProductResultCard({ product, onClick }: ProductResultCardProps) {
             {product.description}
           </div>
           <div className="text-[#FF7622]">
-            R$ {(product.value / 100).toFixed(2)}
+            {formatCentsToReaisWithSymbol(product.value)}
           </div>
         </div>
       </div>

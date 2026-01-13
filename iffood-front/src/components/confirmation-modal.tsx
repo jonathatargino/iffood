@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 
-interface ConfirmationModalProps {
+type ConfirmationModalProps = {
   isOpen: boolean;
   title: string;
   message: string;
@@ -10,7 +10,7 @@ interface ConfirmationModalProps {
   onCancel: () => void;
   variant?: "danger" | "default";
   isLoading?: boolean;
-}
+};
 
 export function ConfirmationModal({
   isOpen,

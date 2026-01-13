@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { X, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { MAX_FILE_SIZE, MIN_WIDTH, MIN_HEIGHT } from "./utils";
 
-interface PhotoUploadModalProps {
+type PhotoUploadModalProps = {
   isOpen: boolean;
   title: string;
   onUpload: (file: File) => void;
   onClose: () => void;
   isLoading?: boolean;
-}
+};
 
 export function PhotoUploadModal({
   isOpen,
@@ -26,15 +27,13 @@ export function PhotoUploadModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tamanho do arquivo (5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > MAX_FILE_SIZE) {
       toast.error("Arquivo muito grande", {
         description: "A imagem deve ter no máximo 5MB.",
       });
       return;
     }
 
-    // Validar tipo de arquivo
     if (!file.type.startsWith("image/")) {
       toast.error("Arquivo inválido", {
         description: "Apenas imagens são permitidas.",
@@ -48,7 +47,7 @@ export function PhotoUploadModal({
 
     img.onload = () => {
       const { width, height } = img;
-      if (width < 800 || height < 600) {
+      if (width < MIN_WIDTH || height < MIN_HEIGHT) {
         toast.error("Resolução muito baixa", {
           description: "A imagem deve ter no mínimo 800x600 pixels.",
         });
@@ -83,6 +82,14 @@ export function PhotoUploadModal({
     onClose();
   };
 
+  const handleRemovePreview = () => {
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+    setPreview("");
+    setSelectedFile(null);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm animate-in fade-in">
       <div className="bg-white rounded-t-3xl w-full max-w-md p-6 animate-in slide-in-from-bottom duration-300 max-h-[90vh] overflow-y-auto">
@@ -96,7 +103,6 @@ export function PhotoUploadModal({
           </button>
         </div>
 
-        {/* Upload Area / Preview */}
         <div className="mb-6">
           <div className="relative aspect-square bg-gray-50 rounded-2xl overflow-hidden border-2 border-dashed border-gray-200 hover:border-[#FF7622] transition-colors">
             {selectedFile ? (
@@ -108,10 +114,7 @@ export function PhotoUploadModal({
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    setPreview("");
-                    setSelectedFile(null);
-                  }}
+                  onClick={handleRemovePreview}
                   className="absolute top-3 right-3 size-8 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-colors shadow-lg"
                 >
                   <X className="w-4 h-4 text-white" />
@@ -142,7 +145,6 @@ export function PhotoUploadModal({
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-3">
           <button
             onClick={handleClose}
