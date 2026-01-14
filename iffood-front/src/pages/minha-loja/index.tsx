@@ -21,7 +21,6 @@ export function MinhaLojaPage() {
 
   // Determinar qual view mostrar
   useEffect(() => {
-    console.log("running");
     if (!isLoading && view === "check") {
       if (stores?.length) {
         setView("my-store");

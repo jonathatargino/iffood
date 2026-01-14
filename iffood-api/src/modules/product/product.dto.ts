@@ -15,6 +15,7 @@ import {
   CreateProductOptionDto,
   UpdateProductOptionDto,
 } from './product-option/product-option.dto';
+import { logger } from '../../common/logger';
 
 export class CreateProductDto {
   @Transform(({ value }) => Number(value))
@@ -47,7 +48,7 @@ export class CreateProductDto {
         const parsed: unknown = JSON.parse(value);
         return plainToInstance(CreateProductOptionDto, parsed);
       } catch (error) {
-        console.error('Failed to parse productOptions:', error);
+        logger.error(error);
         return [];
       }
     }
@@ -89,7 +90,7 @@ export class UpdateProductDto {
         const parsed: unknown = JSON.parse(value);
         return plainToInstance(UpdateProductOptionDto, parsed);
       } catch (error) {
-        console.error('Failed to parse productOptions:', error);
+        logger.error(error);
         return [];
       }
     }

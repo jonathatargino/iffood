@@ -96,7 +96,6 @@ export function ConfiguracoesPage() {
 
   const handleLogout = async () => {
     await signOut();
-    console.log("Logout realizado");
   };
 
   const handleLogin = async () => {

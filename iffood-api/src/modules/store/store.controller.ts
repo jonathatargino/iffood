@@ -18,6 +18,7 @@ import { CreateStoreDto, UpdateStoreDto } from './store.dto';
 import { StoreService } from './store.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { UserId } from '../../common/decorators/user-id';
+import { logger } from '../../common/logger';
 
 @Controller({
   path: 'store',
@@ -65,7 +66,7 @@ export class StoreController {
 
       return result;
     } catch (error) {
-      console.log(error);
+      logger.error(error);
       throw new InternalServerErrorException();
     }
   }
@@ -76,7 +77,7 @@ export class StoreController {
     try {
       await this.storeService.delete({ userId, storeId });
     } catch (error) {
-      console.log(error);
+      logger.error(error);
       throw new InternalServerErrorException();
     }
   }

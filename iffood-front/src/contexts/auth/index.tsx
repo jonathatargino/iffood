@@ -14,8 +14,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error,
       } = await supabaseClient.auth.getSession();
 
-      console.log({ session, error });
-
       if (error) {
         console.error(error);
         return;

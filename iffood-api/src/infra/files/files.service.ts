@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { logger } from '../../common/logger';
 
 @Injectable()
 export class FilesService {
@@ -29,7 +30,7 @@ export class FilesService {
     try {
       await this.s3Client.send(command);
     } catch (error) {
-      console.log(error);
+      logger.error(error);
       throw new InternalServerErrorException();
     }
 

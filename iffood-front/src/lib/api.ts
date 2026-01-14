@@ -24,8 +24,6 @@ api.interceptors.request.use(
     // Para desabilitar, use: api.get(url, { skipAuth: true })
     const skipAuth = config.skipAuth;
 
-    console.log("skipAuth", skipAuth);
-
     if (!skipAuth) {
       // Pegar token do Supabase
       const token = JSON.parse(
