@@ -19,7 +19,7 @@ export class StoreService {
     private imageService: ImagesService,
   ) {}
 
-  async findAll(filters: FindAllStoreFilters): Promise<Store[]> {
+  async findAll(filters: FindAllStoreFilters) {
     const stores = await this.storeRepository.findAll(filters);
     return stores;
   }

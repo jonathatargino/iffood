@@ -36,4 +36,6 @@ export interface FindAllStoreFilters {
   name?: string;
   pageSize: number;
   page: number;
+  weekday?: number;
+  hours?: string;
 }

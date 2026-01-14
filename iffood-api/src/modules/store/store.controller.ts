@@ -31,8 +31,16 @@ export class StoreController {
     @Query('name') name?: string,
     @Query('pageSize') pageSize: number = 20,
     @Query('page') page: number = 1,
+    @Query('weekday') weekday?: string,
+    @Query('hours') hours?: string,
   ) {
-    return this.storeService.findAll({ name, pageSize, page });
+    return this.storeService.findAll({
+      name,
+      pageSize,
+      page,
+      weekday: weekday !== undefined ? Number(weekday) : undefined,
+      hours,
+    });
   }
 
   @Get('me')

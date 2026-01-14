@@ -12,7 +12,7 @@ export class StoreRepository {
     private readonly dataSource: DataSource,
   ) {}
 
-  async findAll(filters: FindAllStoreFilters): Promise<Store[]> {
+  async findAll(filters: FindAllStoreFilters) {
     const queryBuilder = this.typeormStoreRepository
       .createQueryBuilder('store')
       .leftJoin('store.products', 'product')
@@ -25,11 +25,32 @@ export class StoreRepository {
       });
     }
 
+    if (filters.weekday !== undefined && filters.hours) {
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1
+          FROM store_availabilities sa
+          WHERE sa.store_id = store.id
+          AND sa.weekday = :weekday
+          AND sa.start <= :hours
+          AND sa.end >= :hours
+        )`,
+        {
+          weekday: filters.weekday,
+          hours: filters.hours,
+        },
+      );
+    }
+
     queryBuilder
       .groupBy('store.id')
-      .having('COALESCE(SUM(productOption.quantity), 0) > 0');
+      .having('COALESCE(SUM(productOption.quantity), 0) > 0')
+      .take(filters.pageSize)
+      .skip((filters.page - 1) * filters.pageSize);
 
-    return queryBuilder.getMany();
+    const [stores, count] = await queryBuilder.getManyAndCount();
+
+    return { stores, count };
   }
 
   async findById(storeId: string): Promise<Store | null> {
