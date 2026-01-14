@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Search, X } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { productService, type Product } from "@/services/product";
 import { storeService, type Store } from "@/services/store";
 import { useNavigate } from "react-router";
@@ -95,25 +95,101 @@ export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchType, setSearchType] = useState<SearchType>("stores");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const observerTarget = useRef<HTMLDivElement>(null);
 
-  const { data: stores = [], isLoading: loadingStores } = useQuery({
-    queryKey: ["stores", searchQuery],
-    queryFn: () =>
+  const now = new Date();
+  const hours = now.toTimeString().slice(0, 5);
+  const weekday = now.getDay();
+
+  const {
+    data: storesData,
+    fetchNextPage: fetchNextStores,
+    hasNextPage: hasNextStores,
+    isFetchingNextPage: isFetchingNextStores,
+    isLoading: loadingStores,
+  } = useInfiniteQuery({
+    queryKey: ["stores", searchQuery, weekday, hours],
+    queryFn: ({ pageParam = 1 }) =>
       storeService.getAllStores({
         name: searchQuery || undefined,
-        pageSize: 100,
+        page: pageParam,
+        pageSize: 20,
+        weekday,
+        hours,
       }),
+    getNextPageParam: (lastPage, pages) => {
+      return lastPage.hasMore ? pages.length + 1 : undefined;
+    },
+    initialPageParam: 1,
   });
 
-  const { data: products = [], isLoading: loadingProducts } = useQuery({
-    queryKey: ["products", searchQuery, selectedCategory],
-    queryFn: () =>
+  const {
+    data: productsData,
+    fetchNextPage: fetchNextProducts,
+    hasNextPage: hasNextProducts,
+    isFetchingNextPage: isFetchingNextProducts,
+    isLoading: loadingProducts,
+  } = useInfiniteQuery({
+    queryKey: ["products", searchQuery, selectedCategory, weekday, hours],
+    queryFn: ({ pageParam = 1 }) =>
       productService.getProductsByStore(undefined, {
-        pageSize: 100,
+        page: pageParam,
+        pageSize: 20,
         name: searchQuery || undefined,
         category: selectedCategory || undefined,
+        weekday,
+        hours,
       }),
+    getNextPageParam: (lastPage, pages) => {
+      return lastPage.hasMore ? pages.length + 1 : undefined;
+    },
+    initialPageParam: 1,
   });
+
+  const stores = storesData?.pages.flatMap((page) => page.data) ?? [];
+  const products = productsData?.pages.flatMap((page) => page.data) ?? [];
+
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [target] = entries;
+      if (target.isIntersecting) {
+        if (
+          searchType === "stores" &&
+          hasNextStores &&
+          !isFetchingNextStores
+        ) {
+          fetchNextStores();
+        } else if (
+          searchType === "products" &&
+          hasNextProducts &&
+          !isFetchingNextProducts
+        ) {
+          fetchNextProducts();
+        }
+      }
+    },
+    [
+      searchType,
+      hasNextStores,
+      hasNextProducts,
+      isFetchingNextStores,
+      isFetchingNextProducts,
+      fetchNextStores,
+      fetchNextProducts,
+    ]
+  );
+
+  useEffect(() => {
+    const element = observerTarget.current;
+    const option = { threshold: 0 };
+
+    const observer = new IntersectionObserver(handleObserver, option);
+    if (element) observer.observe(element);
+
+    return () => {
+      if (element) observer.unobserve(element);
+    };
+  }, [handleObserver]);
 
   const handleClearSearch = () => {
     setSearchQuery("");
@@ -251,23 +327,37 @@ export default function SearchPage() {
             ))}
           </div>
         ) : (
-          <div className="space-y-0">
-            {searchType === "stores"
-              ? stores.map((store) => (
-                  <StoreResultCard
-                    key={store.id}
-                    store={store}
-                    onClick={() => handleStoreClick(store.id)}
-                  />
-                ))
-              : products.map((product) => (
-                  <ProductResultCard
-                    key={product.id}
-                    product={product}
-                    onClick={() => handleProductClick(product.id)}
-                  />
-                ))}
-          </div>
+          <>
+            <div className="space-y-0">
+              {searchType === "stores"
+                ? stores.map((store) => (
+                    <StoreResultCard
+                      key={store.id}
+                      store={store}
+                      onClick={() => handleStoreClick(store.id)}
+                    />
+                  ))
+                : products.map((product) => (
+                    <ProductResultCard
+                      key={product.id}
+                      product={product}
+                      onClick={() => handleProductClick(product.id)}
+                    />
+                  ))}
+            </div>
+            {searchType === "stores" &&
+              (hasNextStores || isFetchingNextStores) && (
+                <div ref={observerTarget} className="py-8 text-center">
+                  <div className="inline-block w-8 h-8 border-4 border-[#FF7622] border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            {searchType === "products" &&
+              (hasNextProducts || isFetchingNextProducts) && (
+                <div ref={observerTarget} className="py-8 text-center">
+                  <div className="inline-block w-8 h-8 border-4 border-[#FF7622] border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+          </>
         )}
 
         {resultCount === 0 && !isLoading && (

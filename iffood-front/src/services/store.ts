@@ -25,6 +25,17 @@ export interface UpdateStoreData {
   status?: boolean;
 }
 
+export interface PaginatedStoresResponse {
+  data: Store[];
+  hasMore: boolean;
+  total: number;
+}
+
+export interface BackendStoresResponse {
+  stores: Store[];
+  count: number;
+}
+
 export const storeService = {
   async getMyStore(): Promise<Store[]> {
     const response = await api.get<Store[]>("/store/me");
@@ -35,9 +46,18 @@ export const storeService = {
     name?: string;
     pageSize?: number;
     page?: number;
-  }): Promise<Store[]> {
-    const response = await api.get<Store[]>("/store", { params });
-    return response.data;
+    weekday?: number;
+    hours?: string;
+  }): Promise<PaginatedStoresResponse> {
+    const response = await api.get<BackendStoresResponse>("/store", { params });
+    const { stores, count } = response.data;
+    const pageSize = params?.pageSize || 20;
+    const hasMore = stores.length === pageSize;
+    return {
+      data: stores,
+      hasMore,
+      total: count,
+    };
   },
 
   async createStore(data: CreateStoreData): Promise<Store> {

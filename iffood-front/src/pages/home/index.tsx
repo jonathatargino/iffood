@@ -5,6 +5,7 @@ import { storeService, type Store } from "@/services/store";
 import { useNavigate } from "react-router";
 import { formatCentsToReaisWithSymbol } from "@/utils/currency";
 import { useAuth } from "@/contexts/auth/context";
+import { useEffect } from "react";
 
 function MenuIcon({ onClick }: { onClick?: () => void }) {
   return (
@@ -89,25 +90,39 @@ export default function Home() {
   const navigate = useNavigate();
   const { session } = useAuth();
 
-  console.log(session);
-
   const username =
     session?.user.user_metadata.name?.split(" ")[0] || "Convidado";
 
+  const now = new Date();
+  const hours = now.toTimeString().slice(0, 5);
+  const weekday = now.getDay();
+
   // Fetch products (all stores)
-  const { data: products = [], isLoading: loadingProducts } = useQuery({
-    queryKey: ["featured-products"],
+  const { data: productsResponse, isLoading: loadingProducts } = useQuery({
+    queryKey: ["featured-products", weekday, hours],
     queryFn: () =>
       productService.getProductsByStore(undefined, {
         pageSize: 4,
+        weekday,
+        hours,
       }),
   });
 
+  const products = productsResponse?.data || [];
+
   // Fetch stores
-  const { data: stores = [], isLoading: loadingStores } = useQuery({
-    queryKey: ["featured-stores"],
-    queryFn: () => storeService.getAllStores({ pageSize: 4 }),
+  const { data: storesResponse, isLoading: loadingStores } = useQuery({
+    queryKey: ["featured-stores", weekday, hours],
+    queryFn: () => storeService.getAllStores({ pageSize: 4, weekday, hours }),
   });
+
+  const stores = storesResponse?.data || [];
+
+  useEffect(() => {
+    if (!loadingStores && !loadingProducts && stores.length === 0 && products.length === 0) {
+      navigate("/sem-lojas-disponiveis");
+    }
+  }, [loadingStores, loadingProducts, stores.length, products.length, navigate]);
 
   const handleSearchClick = () => {
     navigate("/busca");

@@ -47,6 +47,17 @@ export interface FindAllProductsResponse {
   products: ProductWithCounts[];
 }
 
+export interface PaginatedProductsResponse {
+  data: Product[];
+  hasMore: boolean;
+  total: number;
+}
+
+export interface BackendProductsResponse {
+  products: Product[];
+  count: number;
+}
+
 export const productService = {
   async getProductsByStore(
     storeId?: string,
@@ -55,12 +66,21 @@ export const productService = {
       pageSize?: number;
       name?: string;
       category?: string;
+      weekday?: number;
+      hours?: string;
     }
-  ): Promise<Product[]> {
-    const response = await api.get<Product[]>("/product", {
+  ): Promise<PaginatedProductsResponse> {
+    const response = await api.get<BackendProductsResponse>("/product", {
       params: { storeId, ...params },
     });
-    return response.data;
+    const { products, count } = response.data;
+    const pageSize = params?.pageSize || 20;
+    const hasMore = products.length === pageSize;
+    return {
+      data: products,
+      hasMore,
+      total: count,
+    };
   },
 
   async getProductsWithCountsByStore(
