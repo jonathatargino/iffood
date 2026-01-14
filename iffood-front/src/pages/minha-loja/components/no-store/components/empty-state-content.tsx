@@ -44,7 +44,9 @@ function FeatureListItem({ text }: FeatureListItemProps) {
 export function FeaturesList() {
   return (
     <div className="mt-8 pt-8 border-t border-gray-200">
-      <p className="text-sm text-gray-400 mb-4">Com sua loja você poderá:</p>
+      <p className="text-sm text-gray-400 mb-4 text-left">
+        Com sua loja você poderá:
+      </p>
       <div className="space-y-3 text-left">
         <FeatureListItem text="Adicionar produtos ilimitados" />
         <FeatureListItem text="Gerenciar estoque e sabores" />

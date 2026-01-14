@@ -9,6 +9,7 @@ import {
   storeAvailabilityService,
   type UpdateStoreAvailabilityUnit,
 } from "@/services/store-availability";
+import { useNavigate } from "react-router";
 
 export const useUpdateStore = (storeId: string, onSuccess?: () => void) => {
   const queryClient = useQueryClient();
@@ -56,6 +57,7 @@ export const useUpdateStorePhoto = (
 };
 
 export const useDeleteStore = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -65,6 +67,7 @@ export const useDeleteStore = () => {
       toast.success("Loja deletada", {
         description: "Sua loja foi deletada com sucesso.",
       });
+      navigate("/");
     },
     onError: () => {
       toast.error("Erro ao deletar loja", {

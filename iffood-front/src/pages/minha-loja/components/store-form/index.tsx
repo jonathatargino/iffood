@@ -18,10 +18,11 @@ export function StoreForm({ onBack, onSave }: StoreFormProps) {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors, isValid },
+    formState: { errors },
   } = useForm<StoreFormData>({
     resolver: zodResolver(storeFormSchema),
     mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       name: "",
       description: "",
@@ -75,10 +76,7 @@ export function StoreForm({ onBack, onSave }: StoreFormProps) {
 
         <InfoCard />
 
-        <SubmitButton
-          isValid={isValid}
-          isSubmitting={createStoreMutation.isPending}
-        />
+        <SubmitButton isSubmitting={createStoreMutation.isPending} />
       </form>
     </div>
   );

@@ -135,7 +135,6 @@ export const productService = {
       id?: string;
       name: string;
       quantity: number;
-      status: "new" | "updated" | "deleted";
     }[];
   }): Promise<Product> {
     const formData = new FormData();

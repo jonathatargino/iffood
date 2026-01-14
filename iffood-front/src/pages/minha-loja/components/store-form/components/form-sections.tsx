@@ -49,16 +49,15 @@ export function InfoCard() {
 }
 
 type SubmitButtonProps = {
-  isValid: boolean;
   isSubmitting: boolean;
 };
 
-export function SubmitButton({ isValid, isSubmitting }: SubmitButtonProps) {
+export function SubmitButton({ isSubmitting }: SubmitButtonProps) {
   return (
     <>
       <button
         type="submit"
-        disabled={!isValid || isSubmitting}
+        disabled={isSubmitting}
         className="w-full bg-linear-to-r from-[#FF7622] to-[#E6661A] text-white py-4 rounded-full uppercase transition-all shadow-lg hover:shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {isSubmitting ? (
@@ -73,12 +72,6 @@ export function SubmitButton({ isValid, isSubmitting }: SubmitButtonProps) {
           </>
         )}
       </button>
-
-      {!isValid && (
-        <p className="text-center text-sm text-gray-400">
-          Preencha todos os campos obrigatórios (*)
-        </p>
-      )}
     </>
   );
 }

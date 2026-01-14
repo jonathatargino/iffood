@@ -49,8 +49,8 @@ export function NoStore({ onBack, onCreateStore }: NoStoreProps) {
             Você ainda não tem uma loja
           </h2>
           <p className="text-gray-500 leading-relaxed mb-8">
-            Crie sua loja agora e comece a vender seus produtos para milhares de
-            clientes em nossa plataforma.
+            Crie sua loja agora e comece a vender seus produtos para os alunos
+            da sua instituição e clientes em nossa plataforma.
           </p>
 
           <CreateStoreButton onClick={onCreateStore} />

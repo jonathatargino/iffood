@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Upload, X, Trash2, Plus, Minus, AlertCircle } from "lucide-react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Upload, X, Trash2, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { productService } from "@/services/product";
 import { ConfirmationModal } from "@/components/confirmation-modal";
@@ -11,17 +14,38 @@ import {
   parsePriceInputToCents,
   formatCentsToReais,
 } from "@/utils/currency";
+import {
+  MAX_FILE_SIZE,
+  MAX_HEIGHT,
+  MAX_WIDTH,
+  MIN_HEIGHT,
+  MIN_WIDTH,
+} from "@/components/utils";
 
 type ProductFormProps = {
   storeId: string;
 };
 
-type Flavor = {
-  id?: string;
-  name: string;
-  quantity: number;
-  status?: "new" | "updated" | "deleted";
-};
+const flavorSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, "Nome do sabor é obrigatório"),
+  quantity: z.number().min(0, "Quantidade não pode ser negativa"),
+  status: z.enum(["new", "updated", "deleted"]).optional(),
+});
+
+const productFormSchema = z.object({
+  name: z.string().min(1, "Nome do produto é obrigatório"),
+  description: z.string().min(1, "Descrição é obrigatória"),
+  price: z.string().min(1, "Preço é obrigatório"),
+  category: z.enum(["sweet", "savory"]),
+  image: z.file().optional(),
+  flavors: z
+    .array(flavorSchema)
+    .min(1, "Adicione pelo menos um sabor")
+    .max(MAX_FLAVORS, `Máximo de ${MAX_FLAVORS} sabores`),
+});
+
+type ProductFormData = z.infer<typeof productFormSchema>;
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
@@ -43,29 +67,25 @@ function BackButton({ onClick }: { onClick: () => void }) {
 }
 
 function FlavorCard({
-  flavor,
+  index,
   canDelete,
-  onUpdate,
+  register,
+  errors,
+  quantity,
+  onDecrease,
+  onIncrease,
   onDelete,
 }: {
-  flavor: Flavor;
+  index: number;
   canDelete: boolean;
-  onUpdate: (flavor: Flavor) => void;
+  register: any;
+  errors: any;
+  quantity: number;
+  onDecrease: () => void;
+  onIncrease: () => void;
   onDelete: () => void;
 }) {
-  const decreaseStock = () => {
-    if (flavor.quantity > 0) {
-      onUpdate({ ...flavor, quantity: flavor.quantity - 1 });
-    }
-  };
-
-  const increaseStock = () => {
-    onUpdate({ ...flavor, quantity: flavor.quantity + 1 });
-  };
-
-  const handleNameChange = (name: string) => {
-    onUpdate({ ...flavor, name });
-  };
+  const error = errors?.flavors?.[index];
 
   return (
     <div className="bg-gray-50 rounded-2xl p-4 border-2 border-gray-200">
@@ -76,14 +96,19 @@ function FlavorCard({
           </label>
           <input
             type="text"
-            value={flavor.name}
-            onChange={(e) => handleNameChange(e.target.value)}
+            {...register(`flavors.${index}.name`)}
             placeholder="Ex: Chocolate, Morango..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-xl outline-none focus:border-[#FF7622] transition-colors text-sm bg-white"
+            className={`w-full px-3 py-2 border rounded-xl outline-none focus:border-[#FF7622] transition-colors text-sm bg-white ${
+              error?.name ? "border-red-500" : "border-gray-300"
+            }`}
           />
+          {error?.name && (
+            <p className="text-xs text-red-500 mt-1">{error.name.message}</p>
+          )}
         </div>
         {canDelete && (
           <button
+            type="button"
             onClick={onDelete}
             className="size-8 bg-red-50 hover:bg-red-100 rounded-lg flex items-center justify-center transition-colors mt-6 shrink-0"
           >
@@ -97,14 +122,15 @@ function FlavorCard({
           <div className="text-xs text-gray-400 mb-1 uppercase tracking-wider">
             Estoque
           </div>
-          <div className="text-2xl text-[#2e2e2e]">{flavor.quantity}</div>
+          <div className="text-2xl text-[#2e2e2e]">{quantity}</div>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={decreaseStock}
-            disabled={flavor.quantity <= 0}
+            type="button"
+            onClick={onDecrease}
+            disabled={quantity <= 0}
             className={`size-9 rounded-lg flex items-center justify-center transition-all ${
-              flavor.quantity <= 0
+              quantity <= 0
                 ? "bg-gray-100 text-gray-300 cursor-not-allowed"
                 : "bg-[#FF7622] text-white hover:bg-[#E6661A] active:scale-95"
             }`}
@@ -112,7 +138,8 @@ function FlavorCard({
             <Minus className="w-4 h-4" />
           </button>
           <button
-            onClick={increaseStock}
+            type="button"
+            onClick={onIncrease}
             className="size-9 bg-[#FF7622] text-white rounded-lg flex items-center justify-center hover:bg-[#E6661A] transition-all active:scale-95"
           >
             <Plus className="w-4 h-4" />
@@ -126,22 +153,37 @@ function FlavorCard({
 export function ProductForm({ storeId }: ProductFormProps) {
   const navigate = useNavigate();
   const { productId } = useParams<{ productId: string }>();
+  const [preview, setPreview] = useState<string>();
   const queryClient = useQueryClient();
   const isEditMode = productId !== "novo";
 
-  const [productName, setProductName] = useState("");
-  const [productDescription, setProductDescription] = useState("");
-  const [productPrice, setProductPrice] = useState("");
-  const [productCategory, setProductCategory] = useState<"sweet" | "savory">(
-    "savory"
-  );
-  const [productImage, setProductImage] = useState<string>("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting, isLoading },
+  } = useForm<ProductFormData>({
+    resolver: zodResolver(productFormSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      price: "",
+      category: "savory",
+      image: undefined,
+      flavors: [{ name: "", quantity: 0, status: "new" }],
+    },
+  });
+
+  const { fields, append, remove, update } = useFieldArray({
+    control,
+    name: "flavors",
+  });
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const [flavors, setFlavors] = useState<Flavor[]>([
-    { name: "", quantity: 0, status: "new" },
-  ]);
+  const flavorsData = watch("flavors");
 
   // Fetch product data if editing
   const { data: product, isLoading: loadingProduct } = useQuery({
@@ -153,14 +195,15 @@ export function ProductForm({ storeId }: ProductFormProps) {
   // Load product data into form
   useEffect(() => {
     if (product && isEditMode) {
-      setProductName(product.name);
-      setProductDescription(product.description);
-      setProductPrice(formatCentsToReais(product.value));
-      setProductCategory(product.category as "sweet" | "savory");
-      setProductImage(product.photoUrl);
+      setValue("name", product.name);
+      setValue("description", product.description);
+      setValue("price", formatCentsToReais(product.value));
+      setValue("category", product.category as "sweet" | "savory");
+      setPreview(product.photoUrl);
 
       if (product.productOptions && product.productOptions.length > 0) {
-        setFlavors(
+        setValue(
+          "flavors",
           product.productOptions.map((opt) => ({
             id: opt.id,
             name: opt.name,
@@ -168,64 +211,100 @@ export function ProductForm({ storeId }: ProductFormProps) {
             status: "updated" as const,
           }))
         );
-      } else {
-        setFlavors([{ name: "", quantity: 0, status: "new" }]);
       }
     }
-  }, [product, isEditMode]);
+  }, [product, isEditMode, setValue]);
 
-  const totalStock = flavors
+  console.log(preview);
+
+  const totalStock = flavorsData
     .filter((f) => f.status !== "deleted")
     .reduce((sum, flavor) => sum + flavor.quantity, 0);
-  const canAddFlavor =
-    flavors.filter((f) => f.status !== "deleted").length < MAX_FLAVORS;
-  const canDeleteFlavor =
-    flavors.filter((f) => f.status !== "deleted").length > 1;
+  const activeFlavors = fields.filter(
+    (_, index) => flavorsData[index]?.status !== "deleted"
+  );
+  const canAddFlavor = activeFlavors.length < MAX_FLAVORS;
+  const canDeleteFlavor = activeFlavors.length > 1;
 
   const addFlavor = () => {
     if (canAddFlavor) {
-      const newFlavor: Flavor = {
-        name: "",
-        quantity: 0,
-        status: "new",
-      };
-      setFlavors([...flavors, newFlavor]);
+      append({ name: "", quantity: 0, status: "new" });
     }
   };
 
-  const updateFlavor = (index: number, updatedFlavor: Flavor) => {
-    const newFlavors = [...flavors];
-    newFlavors[index] = {
-      ...updatedFlavor,
-      status: updatedFlavor.id ? "updated" : "new",
-    };
-    setFlavors(newFlavors);
+  const updateFlavorQuantity = (index: number, newQuantity: number) => {
+    const currentFlavor = flavorsData[index];
+    update(index, {
+      ...currentFlavor,
+      quantity: newQuantity,
+      status: currentFlavor.id ? "updated" : "new",
+    });
   };
 
   const deleteFlavor = (index: number) => {
     if (!canDeleteFlavor) return;
 
-    const newFlavors = [...flavors];
-    if (newFlavors[index].id) {
-      // Mark as deleted if it has an ID (exists in DB)
-      newFlavors[index] = { ...newFlavors[index], status: "deleted" };
+    const currentFlavor = flavorsData[index];
+    if (currentFlavor.id) {
+      update(index, { ...currentFlavor, status: "deleted" });
     } else {
-      // Remove completely if it's new
-      newFlavors.splice(index, 1);
+      remove(index);
     }
-    setFlavors(newFlavors);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProductImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("Arquivo muito grande", {
+        description: "A imagem deve ter no máximo 5MB.",
+      });
+      return;
     }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Arquivo inválido", {
+        description: "Apenas imagens são permitidas.",
+      });
+      return;
+    }
+
+    const img = new Image();
+    const imageUrl = URL.createObjectURL(file);
+    img.src = imageUrl;
+
+    img.onload = async () => {
+      const { width, height } = img;
+      if (width < MIN_WIDTH || height < MIN_HEIGHT) {
+        toast.error("Resolução muito baixa", {
+          description: "A imagem deve ter no mínimo 800x600 pixels.",
+        });
+        URL.revokeObjectURL(imageUrl);
+        return;
+      }
+
+      if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+        toast.error("Resolução muito alta", {
+          description: "A imagem deve ter no máximo 5000x5000 pixels.",
+        });
+        URL.revokeObjectURL(imageUrl);
+        return;
+      }
+
+      setPreview(imageUrl);
+      setValue("image", file);
+      toast.success("Imagem selecionada", {
+        description: "Clique em salvar para atualizar a foto.",
+      });
+    };
+
+    img.onerror = () => {
+      toast.error("Erro ao carregar imagem", {
+        description: "O arquivo selecionado não é uma imagem válida.",
+      });
+      URL.revokeObjectURL(imageUrl);
+    };
   };
 
   const createProductMutation = useMutation({
@@ -286,25 +365,25 @@ export function ProductForm({ storeId }: ProductFormProps) {
     },
   });
 
-  const handleSave = () => {
-    if (!imageFile && !isEditMode) {
+  const onSubmit = (data: ProductFormData) => {
+    if (!data.image && !isEditMode) {
       toast.error("Adicione uma imagem do produto");
       return;
     }
 
-    const priceInCents = parsePriceInputToCents(productPrice);
+    const priceInCents = parsePriceInputToCents(data.price);
 
-    const activeFlavors = flavors.filter((f) => f.status !== "deleted");
+    const activeFlavors = data.flavors.filter((f) => f.status !== "deleted");
 
     if (isEditMode) {
       updateProductMutation.mutate({
         id: productId!,
-        name: productName,
-        description: productDescription,
+        name: data.name,
+        description: data.description,
         value: priceInCents,
-        category: productCategory,
-        photo: imageFile || undefined,
-        productOptions: flavors.map((f) => ({
+        category: data.category,
+        photo: data.image || undefined,
+        productOptions: data.flavors.map((f) => ({
           id: f.id,
           name: f.name,
           quantity: f.quantity,
@@ -313,12 +392,12 @@ export function ProductForm({ storeId }: ProductFormProps) {
       });
     } else {
       createProductMutation.mutate({
-        name: productName,
-        description: productDescription,
+        name: data.name,
+        description: data.description,
         value: priceInCents,
-        category: productCategory,
+        category: data.category,
         storeId,
-        photo: imageFile!,
+        photo: data.image!,
         productOptions: activeFlavors.map((f) => ({
           name: f.name,
           quantity: f.quantity,
@@ -332,18 +411,6 @@ export function ProductForm({ storeId }: ProductFormProps) {
     setShowDeleteModal(false);
   };
 
-  const hasEmptyFlavors = flavors
-    .filter((f) => f.status !== "deleted")
-    .some((f) => !f.name.trim());
-
-  const isSaveDisabled =
-    hasEmptyFlavors ||
-    !productName ||
-    !productPrice ||
-    (!imageFile && !isEditMode) ||
-    createProductMutation.isPending ||
-    updateProductMutation.isPending;
-
   if (loadingProduct && isEditMode) {
     return (
       <div className="bg-[#fafafa] min-h-screen flex items-center justify-center">
@@ -354,6 +421,8 @@ export function ProductForm({ storeId }: ProductFormProps) {
       </div>
     );
   }
+
+  console.log({ isSubmitting, isLoading });
 
   return (
     <div className="bg-[#fafafa] min-h-screen pb-8">
@@ -367,24 +436,25 @@ export function ProductForm({ storeId }: ProductFormProps) {
         </div>
       </div>
 
-      <div className="px-6 py-6 space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-6 space-y-6">
         {/* Image Upload */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
           <label className="text-xs text-gray-400 mb-3 block uppercase tracking-wider">
             Imagem do Produto
           </label>
-          <div className="relative aspect-video bg-gray-50 rounded-2xl overflow-hidden border-2 border-dashed border-gray-200 hover:border-[#FF7622] transition-colors">
-            {productImage ? (
+          <div className="relative aspect-square bg-gray-50 rounded-2xl overflow-hidden border-2 border-dashed border-gray-200 hover:border-[#FF7622] transition-colors">
+            {preview ? (
               <>
                 <img
-                  src={productImage}
+                  src={preview}
                   alt="Product"
                   className="w-full h-full object-cover"
                 />
                 <button
+                  type="button"
                   onClick={() => {
-                    setProductImage("");
-                    setImageFile(null);
+                    setValue("image", undefined);
+                    setPreview(undefined);
                   }}
                   className="absolute top-3 right-3 size-8 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-colors"
                 >
@@ -400,67 +470,83 @@ export function ProductForm({ storeId }: ProductFormProps) {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={handleImageChange}
+                  onChange={handleFileChange}
                   className="hidden"
                 />
               </label>
             )}
           </div>
         </div>
-
         {/* Product Info */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
           <div>
             <label className="text-xs text-gray-400 mb-2 block uppercase tracking-wider">
-              Nome do Produto
+              Nome do Produto*
             </label>
             <input
               type="text"
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
+              {...register("name")}
               placeholder="Ex: Pizza Margherita"
-              className="w-full px-4 py-3 border border-gray-200 rounded-2xl outline-none focus:border-[#FF7622] transition-colors"
+              className={`w-full px-4 py-3 border rounded-2xl outline-none focus:border-[#FF7622] transition-colors ${
+                errors.name ? "border-red-500" : "border-gray-200"
+              }`}
             />
+            {errors.name && (
+              <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>
+            )}
           </div>
 
           <div>
             <label className="text-xs text-gray-400 mb-2 block uppercase tracking-wider">
-              Descrição
+              Descrição*
             </label>
             <textarea
-              value={productDescription}
-              onChange={(e) => setProductDescription(e.target.value)}
+              {...register("description")}
               placeholder="Descreva seu produto..."
               rows={3}
-              className="w-full px-4 py-3 border border-gray-200 rounded-2xl outline-none focus:border-[#FF7622] transition-colors resize-none"
+              className={`w-full px-4 py-3 border rounded-2xl outline-none focus:border-[#FF7622] transition-colors resize-none ${
+                errors.description ? "border-red-500" : "border-gray-200"
+              }`}
             />
+            {errors.description && (
+              <p className="text-xs text-red-500 mt-1">
+                {errors.description.message}
+              </p>
+            )}
           </div>
 
           <div>
             <label className="text-xs text-gray-400 mb-2 block uppercase tracking-wider">
-              Preço (R$)
+              Preço (R$)*
             </label>
             <input
               type="text"
-              value={productPrice}
-              onChange={(e) =>
-                setProductPrice(formatPriceInput(e.target.value))
-              }
+              {...register("price")}
+              onChange={(e) => {
+                const formatted = formatPriceInput(e.target.value);
+                setValue("price", formatted);
+              }}
               placeholder="0,00"
-              className="w-full px-4 py-3 border border-gray-200 rounded-2xl outline-none focus:border-[#FF7622] transition-colors"
+              className={`w-full px-4 py-3 border rounded-2xl outline-none focus:border-[#FF7622] transition-colors ${
+                errors.price ? "border-red-500" : "border-gray-200"
+              }`}
             />
+            {errors.price && (
+              <p className="text-xs text-red-500 mt-1">
+                {errors.price.message}
+              </p>
+            )}
           </div>
 
           <div>
             <label className="text-xs text-gray-400 mb-2 block uppercase tracking-wider">
-              Categoria
+              Categoria*
             </label>
             <select
-              value={productCategory}
-              onChange={(e) =>
-                setProductCategory(e.target.value as "sweet" | "savory")
-              }
-              className="w-full px-4 py-3 border border-gray-200 rounded-2xl outline-none focus:border-[#FF7622] transition-colors bg-white"
+              {...register("category")}
+              className={`w-full px-4 py-3 border rounded-2xl outline-none focus:border-[#FF7622] transition-colors bg-white ${
+                errors.category ? "border-red-500" : "border-gray-200"
+              }`}
             >
               {PRODUCT_CATEGORIES.map((cat) => (
                 <option key={cat.id} value={cat.id}>
@@ -468,9 +554,13 @@ export function ProductForm({ storeId }: ProductFormProps) {
                 </option>
               ))}
             </select>
+            {errors.category && (
+              <p className="text-xs text-red-500 mt-1">
+                {errors.category.message}
+              </p>
+            )}
           </div>
         </div>
-
         {/* Total Stock Display */}
         <div className="bg-gradient-to-r from-[#FF7622] to-[#E6661A] rounded-3xl p-6 shadow-lg text-white">
           <div className="flex items-center justify-between">
@@ -494,97 +584,89 @@ export function ProductForm({ storeId }: ProductFormProps) {
             </div>
           </div>
         </div>
-
         {/* Flavors Section */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-[#2e2e2e] mb-1">Sabores</h3>
-              <p className="text-xs text-gray-400">
-                {flavors.filter((f) => f.status !== "deleted").length}/10
-                sabores • Estoque por sabor
-              </p>
-            </div>
-            <button
-              onClick={addFlavor}
-              disabled={!canAddFlavor}
-              className={`px-4 py-2 rounded-full flex items-center gap-2 transition-all text-sm ${
-                canAddFlavor
-                  ? "bg-[#FF7622] text-white hover:bg-[#E6661A] active:scale-95"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              <Plus className="w-4 h-4" />
-              Adicionar
-            </button>
+            <label className="text-xs text-gray-400 uppercase tracking-wider">
+              Sabores
+            </label>
+            {flavorsData.length < 10 && (
+              <button
+                type="button"
+                onClick={addFlavor}
+                className="flex items-center gap-1.5 text-[#FF7622] text-sm hover:bg-orange-50 px-3 py-1.5 rounded-xl transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Adicionar
+              </button>
+            )}
           </div>
-
-          {!canAddFlavor && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 mb-4 flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-sm text-amber-700">
-                Limite máximo de 10 sabores atingido.
-              </p>
-            </div>
-          )}
 
           <div className="space-y-3">
-            {flavors
-              .map((flavor, index) => ({ flavor, index }))
-              .filter(({ flavor }) => flavor.status !== "deleted")
-              .map(({ flavor, index }) => (
-                <FlavorCard
-                  key={index}
-                  flavor={flavor}
-                  canDelete={canDeleteFlavor}
-                  onUpdate={(updated) => updateFlavor(index, updated)}
-                  onDelete={() => deleteFlavor(index)}
-                />
-              ))}
+            {flavorsData.map((flavor, index) => (
+              <>
+                {flavor.status !== "deleted" && (
+                  <FlavorCard
+                    key={flavor.id}
+                    index={index}
+                    canDelete={flavorsData.length > 1}
+                    register={register}
+                    errors={errors}
+                    quantity={flavor.quantity}
+                    onDecrease={() =>
+                      updateFlavorQuantity(index, flavor.quantity - 1)
+                    }
+                    onIncrease={() =>
+                      updateFlavorQuantity(index, flavor.quantity + 1)
+                    }
+                    onDelete={() => deleteFlavor(index)}
+                  />
+                )}
+              </>
+            ))}
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="space-y-3">
-          <button
-            onClick={handleSave}
-            disabled={isSaveDisabled}
-            className="w-full bg-gradient-to-r from-[#FF7622] to-[#E6661A] text-white py-4 rounded-full uppercase transition-all shadow-lg hover:shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {createProductMutation.isPending || updateProductMutation.isPending
-              ? "Salvando..."
-              : isEditMode
-              ? "Salvar Alterações"
-              : "Criar Produto"}
-          </button>
-
-          {isEditMode && (
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              disabled={deleteProductMutation.isPending}
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-full uppercase transition-all shadow-lg hover:shadow-xl active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <Trash2 className="w-5 h-5" />
-              {deleteProductMutation.isPending
-                ? "Deletando..."
-                : "Deletar Produto"}
-            </button>
+          {errors.flavors && (
+            <p className="text-xs text-red-500 mt-2">
+              {errors.flavors.message}
+            </p>
           )}
         </div>
-      </div>
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/minha-loja")}
+            className="flex-1 py-4 border-2 border-gray-200 text-gray-700 rounded-2xl hover:bg-gray-50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={
+              updateProductMutation.isPending || createProductMutation.isPending
+            }
+            className="flex-1 py-4 bg-gradient-to-br from-[#FF7622] to-[#E6661A] text-white rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {updateProductMutation.isPending || createProductMutation.isPending
+              ? "Salvando..."
+              : "Salvar Produto"}
+          </button>
+        </div>
+      </form>
 
       {/* Delete Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showDeleteModal}
-        title="Deletar Produto"
-        message="Tem certeza que deseja deletar este produto? Esta ação não pode ser desfeita."
-        confirmText="Deletar"
-        cancelText="Cancelar"
-        onConfirm={handleDelete}
-        onCancel={() => setShowDeleteModal(false)}
-        variant="danger"
-        isLoading={deleteProductMutation.isPending}
-      />
+      {isEditMode && (
+        <ConfirmationModal
+          isOpen={showDeleteModal}
+          title="Deletar Produto"
+          message="Tem certeza que deseja deletar este produto? Esta ação não pode ser desfeita."
+          confirmText="Deletar"
+          cancelText="Cancelar"
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteModal(false)}
+        />
+      )}
     </div>
   );
 }
