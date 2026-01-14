@@ -1,47 +1,67 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Edit2 } from "lucide-react";
 import type { Store, UpdateStoreData } from "@/services/store";
 import { formatWhatsApp } from "./utils";
 
+const storeInfoSchema = z.object({
+  name: z.string().min(1, "Nome da loja é obrigatório"),
+  description: z.string().min(1, "Descrição é obrigatória"),
+  whatsapp: z
+    .string()
+    .regex(/^\d{11}$/, "WhatsApp deve ter 11 dígitos (DDD + número)"),
+});
+
+type StoreInfoFormData = z.infer<typeof storeInfoSchema>;
+
 type EditableStoreInfoProps = {
   store: Store;
   onSave: (data: UpdateStoreData) => void;
-  isSaving: boolean;
+  isLoading: boolean;
+  isEditing: boolean;
+  setIsEditing: (isEditing: boolean) => void;
 };
 
 export function EditableStoreInfo({
   store,
   onSave,
-  isSaving,
+  isLoading,
+  isEditing,
+  setIsEditing,
 }: EditableStoreInfoProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<UpdateStoreData>({
-    name: store.name,
-    description: store.description,
-    whatsapp: store.whatsapp,
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<StoreInfoFormData>({
+    resolver: zodResolver(storeInfoSchema),
+    defaultValues: {
+      name: store.name,
+      description: store.description,
+      whatsapp: store.whatsapp,
+    },
   });
 
-  const [whatsappDisplay, setWhatsappDisplay] = useState(() => {
-    const numbers = store.whatsapp;
-    if (numbers.length === 11) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(
-        7,
-        11
-      )}`;
-    }
-    return numbers;
-  });
+  const whatsappValue = watch("whatsapp");
+  const whatsappDisplay =
+    whatsappValue?.length === 11
+      ? `(${whatsappValue.slice(0, 2)}) ${whatsappValue.slice(
+          2,
+          7
+        )}-${whatsappValue.slice(7, 11)}`
+      : whatsappValue || "";
 
   const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatWhatsApp(e.target.value);
     const numbers = e.target.value.replace(/\D/g, "");
-    setWhatsappDisplay(formatted);
-    setFormData({ ...formData, whatsapp: numbers });
+    setValue("whatsapp", numbers);
   };
 
-  const handleSave = () => {
-    onSave(formData);
-    setIsEditing(false);
+  const onSubmit = async (data: StoreInfoFormData) => {
+    onSave(data);
   };
 
   return (
@@ -57,35 +77,38 @@ export function EditableStoreInfo({
       </div>
 
       {isEditing ? (
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="text-xs text-gray-400 mb-2 block uppercase tracking-wider">
               Nome da Loja
             </label>
             <input
               type="text"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className="w-full px-4 py-3 border border-gray-200 rounded-2xl outline-none focus:border-[#FF7622] transition-colors"
+              {...register("name")}
+              className={`w-full px-4 py-3 border rounded-2xl outline-none focus:border-[#FF7622] transition-colors ${
+                errors.name ? "border-red-500" : "border-gray-200"
+              }`}
             />
+            {errors.name && (
+              <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>
+            )}
           </div>
           <div>
             <label className="text-xs text-gray-400 mb-2 block uppercase tracking-wider">
               Descrição
             </label>
             <textarea
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  description: e.target.value,
-                })
-              }
+              {...register("description")}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-200 rounded-2xl outline-none focus:border-[#FF7622] transition-colors resize-none"
+              className={`w-full px-4 py-3 border rounded-2xl outline-none focus:border-[#FF7622] transition-colors resize-none ${
+                errors.description ? "border-red-500" : "border-gray-200"
+              }`}
             />
+            {errors.description && (
+              <p className="text-xs text-red-500 mt-1">
+                {errors.description.message}
+              </p>
+            )}
           </div>
           <div>
             <label className="text-xs text-gray-400 mb-2 block uppercase tracking-wider">
@@ -96,17 +119,24 @@ export function EditableStoreInfo({
               value={whatsappDisplay}
               onChange={handleWhatsAppChange}
               placeholder="(XX) XXXXX-XXXX"
-              className="w-full px-4 py-3 border border-gray-200 rounded-2xl outline-none focus:border-[#FF7622] transition-colors"
+              className={`w-full px-4 py-3 border rounded-2xl outline-none focus:border-[#FF7622] transition-colors ${
+                errors.whatsapp ? "border-red-500" : "border-gray-200"
+              }`}
             />
+            {errors.whatsapp && (
+              <p className="text-xs text-red-500 mt-1">
+                {errors.whatsapp.message}
+              </p>
+            )}
           </div>
           <button
-            onClick={handleSave}
-            disabled={isSaving}
+            type="submit"
+            disabled={isLoading}
             className="w-full bg-gradient-to-r from-[#FF7622] to-[#E6661A] text-white py-3 rounded-full uppercase transition-all shadow-lg hover:shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSaving ? "Salvando..." : "Salvar"}
+            {isLoading ? "Salvando..." : "Salvar"}
           </button>
-        </div>
+        </form>
       ) : (
         <div>
           <div className="mb-3">

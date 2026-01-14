@@ -13,8 +13,11 @@ type GeneralTabProps = {
 
 export function GeneralTab({ store }: GeneralTabProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-  const updateStoreMutation = useUpdateStore(store.id);
+  const updateStoreMutation = useUpdateStore(store.id, () =>
+    setIsEditing(false)
+  );
   const deleteStoreMutation = useDeleteStore();
 
   const handleSaveGeneralInfo = (data: UpdateStoreData) => {
@@ -32,7 +35,9 @@ export function GeneralTab({ store }: GeneralTabProps) {
         <EditableStoreInfo
           store={store}
           onSave={handleSaveGeneralInfo}
-          isSaving={updateStoreMutation.isPending}
+          isLoading={updateStoreMutation.isPending}
+          isEditing={isEditing}
+          setIsEditing={setIsEditing}
         />
 
         <button
