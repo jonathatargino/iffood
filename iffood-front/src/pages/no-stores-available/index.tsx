@@ -52,7 +52,8 @@ export default function NoStoresAvailable() {
           <h1 className="text-white text-3xl font-bold mb-4">{message}</h1>
 
           <p className="text-white/90 text-lg mb-3 max-w-md leading-relaxed">
-            No momento não há nenhum restaurante em funcionamento
+            No momento não há nenhum restaurante em funcionamento ou com
+            produtos disponíveis.
           </p>
 
           <p className="text-white/70 text-sm max-w-sm leading-relaxed">
