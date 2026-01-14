@@ -130,6 +130,8 @@ export interface FindAllProductFilters {
   page: number;
   withDeleted?: boolean;
   category?: ProductCategory;
+  weekday?: number;
+  hours?: string;
 }
 
 export interface ProductWithCounts {

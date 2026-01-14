@@ -30,6 +30,8 @@ export class ProductController {
     @Query('pageSize') pageSize: number = 20,
     @Query('name') name?: string,
     @Query('category') category?: ProductCategory,
+    @Query('weekday') weekday?: string,
+    @Query('hours') hours?: string,
   ) {
     return await this.productService.findAllByStoreId({
       page,
@@ -37,6 +39,8 @@ export class ProductController {
       name,
       storeId,
       category,
+      weekday: weekday ? parseInt(weekday, 10) : undefined,
+      hours,
     });
   }
 

@@ -6,7 +6,7 @@ import {
 } from './product.dto';
 import { Product } from './product.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, MoreThan, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class ProductRepository {
@@ -45,25 +45,55 @@ export class ProductRepository {
   }
 
   async findAll(filters: FindAllProductFilters) {
-    const result = await this.typeormProductRepository.find({
-      where: {
-        store: { id: filters.storeId },
-        name: filters.name ? ILike(`%${filters.name}%`) : undefined,
-        productOptions: {
-          quantity: MoreThan(0),
-        },
-        category: filters.category,
-      },
-      take: filters.pageSize,
-      skip: filters.pageSize * (filters.page - 1),
-      relations: {
-        productOptions: true,
-        store: true,
-      },
-      withDeleted: filters.withDeleted || false,
-    });
+    const queryBuilder = this.typeormProductRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.productOptions', 'productOption')
+      .leftJoinAndSelect('product.store', 'store')
+      .where('store.status = :status', { status: true });
 
-    return result;
+    if (filters.storeId) {
+      queryBuilder.andWhere('product.store_id = :storeId', {
+        storeId: filters.storeId,
+      });
+    }
+
+    if (filters.category) {
+      queryBuilder.andWhere('product.category = :category', {
+        category: filters.category,
+      });
+    }
+
+    if (filters.name) {
+      queryBuilder.andWhere('product.name ILIKE %:name%', {
+        name: filters.name,
+      });
+    }
+
+    if (filters.weekday !== undefined && filters.hours) {
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1
+          FROM store_availabilities sa
+          WHERE sa.store_id = store.id
+          AND sa.weekday = :weekday
+          AND sa.start <= :hours
+          AND sa.end >= :hours
+        )`,
+        {
+          weekday: filters.weekday,
+          hours: filters.hours,
+        },
+      );
+    }
+
+    queryBuilder
+      .groupBy('product.id, productOption.id, store.id')
+      .having('COALESCE(SUM(productOption.quantity), 0) > 0')
+      .take(filters.pageSize)
+      .skip((filters.page - 1) * filters.pageSize);
+
+    const [products, count] = await queryBuilder.getManyAndCount();
+    return { products, count };
   }
 
   async create(data: FullCreateProductDto) {
