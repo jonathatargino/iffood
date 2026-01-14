@@ -50,7 +50,12 @@ export interface FindAllProductsResponse {
 export const productService = {
   async getProductsByStore(
     storeId?: string,
-    params?: { page?: number; pageSize?: number; name?: string }
+    params?: {
+      page?: number;
+      pageSize?: number;
+      name?: string;
+      category?: string;
+    }
   ): Promise<Product[]> {
     const response = await api.get<Product[]>("/product", {
       params: { storeId, ...params },

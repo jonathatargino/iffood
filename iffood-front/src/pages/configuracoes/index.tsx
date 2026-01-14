@@ -1,12 +1,5 @@
 import { useNavigate } from "react-router";
-import {
-  Store,
-  LogOut,
-  LogIn,
-  Heart,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Store, LogOut, LogIn, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/auth/context";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -81,29 +74,26 @@ function MenuOption({
 
 export function ConfiguracoesPage() {
   const navigate = useNavigate();
-  const { session, signOut, signInWithGoogle } = useAuth();
+  const { session, signOut } = useAuth();
   const isLoggedIn = !!session;
 
-  const handleBack = () => {
-    navigate("/");
+  const handleBack = async () => {
+    await navigate("/");
   };
 
-  const handleMyStoreClick = () => {
+  const handleMyStoreClick = async () => {
     if (isLoggedIn) {
-      navigate("/minha-loja");
+      await navigate("/minha-loja");
     }
   };
 
   const handleLogout = async () => {
     await signOut();
+    await navigate("/login");
   };
 
   const handleLogin = async () => {
-    await signInWithGoogle();
-  };
-
-  const handleDonationClick = () => {
-    console.log("Fazer doação clicado");
+    await navigate("/login");
   };
 
   return (
@@ -160,7 +150,7 @@ export function ConfiguracoesPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-0 shadow-lg p-4">
+        {/* <Card className="rounded-3xl border-0 shadow-lg p-4">
           <CardContent className="p-0">
             <MenuOption
               icon={<Heart className="size-6 text-red-600" />}
@@ -168,7 +158,7 @@ export function ConfiguracoesPage() {
               onClick={handleDonationClick}
             />
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   );

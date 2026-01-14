@@ -94,6 +94,7 @@ export default function SearchPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchType, setSearchType] = useState<SearchType>("stores");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
 
   const { data: stores = [], isLoading: loadingStores } = useQuery({
     queryKey: ["stores", searchQuery],
@@ -105,11 +106,12 @@ export default function SearchPage() {
   });
 
   const { data: products = [], isLoading: loadingProducts } = useQuery({
-    queryKey: ["products", searchQuery],
+    queryKey: ["products", searchQuery, selectedCategory],
     queryFn: () =>
       productService.getProductsByStore(undefined, {
         pageSize: 100,
         name: searchQuery || undefined,
+        category: selectedCategory || undefined,
       }),
   });
 
@@ -193,6 +195,42 @@ export default function SearchPage() {
             Pratos
           </button>
         </div>
+
+        {/* Category Filter - Only for products */}
+        {searchType === "products" && (
+          <div className="flex gap-3 mb-5">
+            <button
+              onClick={() => setSelectedCategory("")}
+              className={`flex-1 py-2.5 rounded-xl transition-all text-sm ${
+                selectedCategory === ""
+                  ? "bg-[#FF7622] text-white shadow-md"
+                  : "bg-white text-[#2e2e2e] border border-gray-200 hover:border-[#FF7622]"
+              }`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setSelectedCategory("savory")}
+              className={`flex-1 py-2.5 rounded-xl transition-all text-sm ${
+                selectedCategory === "savory"
+                  ? "bg-[#FF7622] text-white shadow-md"
+                  : "bg-white text-[#2e2e2e] border border-gray-200 hover:border-[#FF7622]"
+              }`}
+            >
+              Salgado
+            </button>
+            <button
+              onClick={() => setSelectedCategory("sweet")}
+              className={`flex-1 py-2.5 rounded-xl transition-all text-sm ${
+                selectedCategory === "sweet"
+                  ? "bg-[#FF7622] text-white shadow-md"
+                  : "bg-white text-[#2e2e2e] border border-gray-200 hover:border-[#FF7622]"
+              }`}
+            >
+              Doce
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Results */}

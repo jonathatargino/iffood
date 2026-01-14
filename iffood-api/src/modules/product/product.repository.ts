@@ -52,6 +52,7 @@ export class ProductRepository {
         productOptions: {
           quantity: MoreThan(0),
         },
+        category: filters.category,
       },
       take: filters.pageSize,
       skip: filters.pageSize * (filters.page - 1),

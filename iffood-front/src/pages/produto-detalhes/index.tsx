@@ -100,7 +100,7 @@ export function ProductDetail() {
   const canOrder = selectedFlavor && selectedFlavor.quantity > 0;
 
   return (
-    <div className="bg-[#fafafa] min-h-screen pb-24">
+    <div className="bg-[#fafafa] min-h-screen pb-48">
       {/* Product Image */}
       <div className="relative h-[321px] w-full overflow-hidden">
         <img
@@ -137,9 +137,6 @@ export function ProductDetail() {
       <div className="px-6 py-6">
         {/* Product Info */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
-          <div className="text-sm text-gray-500 mb-2">
-            {product.store?.name}
-          </div>
           <h1 className="text-[#181c2e] mb-3">{product.name}</h1>
           <p className="text-sm text-[#93969a] leading-relaxed mb-4">
             {product.description}
@@ -265,7 +262,7 @@ export function ProductDetail() {
 
       {/* Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-6 shadow-2xl">
-        <div className="max-w-md mx-auto flex items-center justify-between gap-4">
+        <div className="max-w-md mx-auto flex flex-col justify-between gap-4">
           <div>
             <div className="text-xs text-gray-400 mb-1">Total</div>
             <div className="text-2xl text-[#FF7622]">
@@ -275,7 +272,7 @@ export function ProductDetail() {
           <button
             onClick={handleWhatsAppOrder}
             disabled={!canOrder}
-            className="flex-1 bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white py-4 px-6 rounded-full flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:from-gray-300 disabled:to-gray-400"
+            className="w-full flex-1 bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white py-4 px-6 rounded-full flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:from-gray-300 disabled:to-gray-400"
           >
             <MessageCircle className="w-5 h-5" />
             {!selectedFlavor

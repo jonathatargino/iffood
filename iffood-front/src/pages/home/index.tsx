@@ -4,6 +4,7 @@ import { productService, type Product } from "@/services/product";
 import { storeService, type Store } from "@/services/store";
 import { useNavigate } from "react-router";
 import { formatCentsToReaisWithSymbol } from "@/utils/currency";
+import { useAuth } from "@/contexts/auth/context";
 
 function MenuIcon({ onClick }: { onClick?: () => void }) {
   return (
@@ -86,6 +87,12 @@ function StoreCard({ store, onClick }: StoreCardProps) {
 
 export default function Home() {
   const navigate = useNavigate();
+  const { session } = useAuth();
+
+  console.log(session);
+
+  const username =
+    session?.user.user_metadata.name?.split(" ")[0] || "Convidado";
 
   // Fetch products (all stores)
   const { data: products = [], isLoading: loadingProducts } = useQuery({
@@ -134,7 +141,7 @@ export default function Home() {
         <div className="flex items-center gap-3 mb-8">
           <MenuIcon onClick={handleMenuClick} />
           <div className="flex-1">
-            <h1 className="text-white text-lg">Olá! 👋</h1>
+            <h1 className="text-white text-lg">Olá, {username}! 👋</h1>
             <p className="text-white/80 text-sm">O que vai pedir hoje?</p>
           </div>
         </div>
@@ -199,7 +206,7 @@ export default function Home() {
       {/* Stores List */}
       <div className="px-6 pb-8">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-[#2e2e2e]">Restaurantes próximos</h2>
+          <h2 className="text-[#2e2e2e]">Restaurantes</h2>
           <button
             className="text-[#FF7622] text-sm flex items-center gap-1 hover:gap-2 transition-all"
             onClick={handleViewAllStores}

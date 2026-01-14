@@ -17,6 +17,7 @@ import { AuthGuard } from '../../common/guards/auth.guard';
 import { UserId } from '../../common/decorators/user-id';
 import { CreateProductDto, UpdateProductDto } from './product.dto';
 import { ProductService } from './product.service';
+import { ProductCategory } from './product.entity';
 
 @Controller('product')
 export class ProductController {
@@ -28,12 +29,14 @@ export class ProductController {
     @Query('page') page: number = 1,
     @Query('pageSize') pageSize: number = 20,
     @Query('name') name?: string,
+    @Query('category') category?: ProductCategory,
   ) {
     return await this.productService.findAllByStoreId({
       page,
       pageSize,
       name,
       storeId,
+      category,
     });
   }
 

@@ -5,9 +5,11 @@ import { cn } from "@/lib/utils";
 import { GoogleIcon } from "./components/google-icon";
 import { BgAsset, BottomDecoration } from "./components/login-background";
 import { useAuth } from "@/contexts/auth/context";
+import { useNavigate } from "react-router";
 
 export function LoginPage() {
   const { signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
     try {
@@ -18,15 +20,7 @@ export function LoginPage() {
   };
 
   const handleGuestContinue = () => {
-    console.log("Continuar como visitante clicado");
-  };
-
-  const handleTermsClick = () => {
-    console.log("Termos de Serviço clicado");
-  };
-
-  const handlePrivacyClick = () => {
-    console.log("Política de Privacidade clicada");
+    navigate("/");
   };
 
   return (
@@ -83,23 +77,15 @@ export function LoginPage() {
           </CardContent>
 
           <p className="text-center text-xs leading-relaxed text-gray-400">
-            Ao continuar, você concorda com nossos
-            <br />
-            <a
-              type="button"
-              className="text-[#FF7622] hover:underline"
-              onClick={handleTermsClick}
-            >
-              Termos de Serviço
-            </a>{" "}
-            e{" "}
-            <a
-              type="button"
-              className="text-[#FF7622] hover:underline"
-              onClick={handlePrivacyClick}
-            >
-              Política de Privacidade
-            </a>
+            O login so é permitido para{" "}
+            <span className="text-[#FF7622] hover:underline">
+              alunos do Instituto Federal de Educação, Ciência e Tecnologia do
+              Estado do Ceará (IFCE)
+            </span>{" "}
+            Portanto, faça login com seu email institucional{" "}
+            <span className="text-[#FF7622] hover:underline">
+              email institucional.
+            </span>{" "}
           </p>
         </Card>
       </div>

@@ -57,8 +57,10 @@ function StoreCard({ store, onClick }: StoreCardProps) {
         />
       </div>
       <div className="p-4">
-        <h3 className="text-[#2e2e2e] mb-1 line-clamp-1">{store.name}</h3>
-        <div className="text-xs text-gray-400 line-clamp-2">
+        <h3 className="text-[#2e2e2e] mb-1 line-clamp-1 text-left">
+          {store.name}
+        </h3>
+        <div className="text-xs text-gray-400 line-clamp-2 text-left">
           {store.description}
         </div>
       </div>
@@ -103,6 +105,7 @@ export default function ViewAllPage() {
   const navigate = useNavigate();
   const { type } = useParams<{ type: "produtos" | "restaurantes" }>();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
 
   const viewType: ViewType = type === "produtos" ? "products" : "stores";
 
@@ -116,11 +119,12 @@ export default function ViewAllPage() {
   });
 
   const { data: products = [], isLoading: loadingProducts } = useQuery({
-    queryKey: ["all-products", searchQuery],
+    queryKey: ["all-products", searchQuery, selectedCategory],
     queryFn: () =>
       productService.getProductsByStore(undefined, {
         pageSize: 100,
         name: searchQuery || undefined,
+        category: selectedCategory || undefined,
       }),
     enabled: viewType === "products",
   });
@@ -187,6 +191,42 @@ export default function ViewAllPage() {
             </button>
           )}
         </div>
+
+        {/* Category Filter - Only for products */}
+        {viewType === "products" && (
+          <div className="flex gap-3 mt-4">
+            <button
+              onClick={() => setSelectedCategory("")}
+              className={`flex-1 py-2.5 rounded-xl transition-all text-sm ${
+                selectedCategory === ""
+                  ? "bg-white text-[#FF7622] shadow-md font-medium"
+                  : "bg-white/20 text-white border border-white/30 hover:bg-white/30"
+              }`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setSelectedCategory("savory")}
+              className={`flex-1 py-2.5 rounded-xl transition-all text-sm ${
+                selectedCategory === "savory"
+                  ? "bg-white text-[#FF7622] shadow-md font-medium"
+                  : "bg-white/20 text-white border border-white/30 hover:bg-white/30"
+              }`}
+            >
+              Salgado
+            </button>
+            <button
+              onClick={() => setSelectedCategory("sweet")}
+              className={`flex-1 py-2.5 rounded-xl transition-all text-sm ${
+                selectedCategory === "sweet"
+                  ? "bg-white text-[#FF7622] shadow-md font-medium"
+                  : "bg-white/20 text-white border border-white/30 hover:bg-white/30"
+              }`}
+            >
+              Doce
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Results */}

@@ -129,6 +129,7 @@ export interface FindAllProductFilters {
   pageSize: number;
   page: number;
   withDeleted?: boolean;
+  category?: ProductCategory;
 }
 
 export interface ProductWithCounts {
