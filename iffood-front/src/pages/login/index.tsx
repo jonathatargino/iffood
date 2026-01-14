@@ -6,11 +6,9 @@ import { GoogleIcon } from "./components/google-icon";
 import { BgAsset, BottomDecoration } from "./components/login-background";
 import { useAuth } from "@/contexts/auth/context";
 import { useNavigate } from "react-router";
-import { useAvailability } from "@/contexts/availability/context";
 
 export function LoginPage() {
   const { signInWithGoogle } = useAuth();
-  const { isThereAvailableStore } = useAvailability();
   const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {

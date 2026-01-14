@@ -5,7 +5,6 @@ import { storeService, type Store } from "@/services/store";
 import { useNavigate } from "react-router";
 import { formatCentsToReaisWithSymbol } from "@/utils/currency";
 import { useAuth } from "@/contexts/auth/context";
-import { useEffect } from "react";
 
 function MenuIcon({ onClick }: { onClick?: () => void }) {
   return (

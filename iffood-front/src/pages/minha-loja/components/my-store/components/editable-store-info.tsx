@@ -1,10 +1,8 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Edit2 } from "lucide-react";
 import type { Store, UpdateStoreData } from "@/services/store";
-import { formatWhatsApp } from "./utils";
 
 const storeInfoSchema = z.object({
   name: z.string().min(1, "Nome da loja é obrigatório"),
