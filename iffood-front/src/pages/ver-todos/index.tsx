@@ -329,7 +329,7 @@ export default function ViewAllPage() {
               {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
-                  className="bg-white rounded-2xl h-[250px] animate-pulse"
+                  className="bg-gray-200 rounded-2xl h-[250px] animate-pulse"
                 />
               ))}
             </div>
@@ -338,7 +338,7 @@ export default function ViewAllPage() {
               {[...Array(8)].map((_, i) => (
                 <div
                   key={i}
-                  className="bg-white rounded-2xl h-[220px] animate-pulse"
+                  className="bg-gray-200 rounded-2xl h-[220px] animate-pulse"
                 />
               ))}
             </div>

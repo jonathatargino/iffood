@@ -318,7 +318,7 @@ export default function SearchPage() {
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
-                className="bg-white rounded-2xl h-[88px] animate-pulse"
+                className="bg-gray-200 rounded-2xl h-[88px] animate-pulse"
               />
             ))}
           </div>

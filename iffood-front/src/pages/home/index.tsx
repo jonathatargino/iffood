@@ -193,7 +193,7 @@ export default function Home() {
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="bg-white rounded-3xl min-w-[170px] h-[200px] animate-pulse"
+                className="bg-gray-200 rounded-3xl min-w-[170px] h-[200px] animate-pulse"
               />
             ))}
           </div>
@@ -238,7 +238,7 @@ export default function Home() {
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="bg-white rounded-3xl h-[200px] animate-pulse"
+                className="bg-gray-200 rounded-3xl h-[200px] animate-pulse"
               />
             ))}
           </div>

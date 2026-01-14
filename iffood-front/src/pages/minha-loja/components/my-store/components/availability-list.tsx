@@ -18,7 +18,7 @@ export function AvailabilityList({
         {[...Array(7)].map((_, i) => (
           <div
             key={i}
-            className="bg-white rounded-2xl h-[60px] animate-pulse"
+            className="bg-gray-200 rounded-2xl h-[60px] animate-pulse"
           />
         ))}
       </div>

@@ -52,7 +52,7 @@ export function ProductsList({
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="bg-white rounded-3xl h-[220px] animate-pulse"
+              className="bg-gray-200 rounded-3xl h-[220px] animate-pulse"
             />
           ))}
         </div>
