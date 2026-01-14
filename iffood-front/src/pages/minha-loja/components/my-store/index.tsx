@@ -8,6 +8,7 @@ import { GeneralTab } from "./components/general-tab";
 import { AvailabilityTab } from "./components/availability-tab";
 import { ProductsTab } from "./components/products-tab";
 import type { TabType } from "./types";
+import { useNavigate } from "react-router";
 
 type MyStoreProps = {
   store: Store;
@@ -16,6 +17,7 @@ type MyStoreProps = {
 export function MyStore({ store }: MyStoreProps) {
   const [activeTab, setActiveTab] = useState<TabType>("general");
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const nagivate = useNavigate();
 
   const updatePhotoMutation = useUpdateStorePhoto(store.id, () =>
     setShowPhotoModal(false)
@@ -29,7 +31,7 @@ export function MyStore({ store }: MyStoreProps) {
     <div className="bg-[#fafafa] min-h-screen pb-8">
       <StoreHeader
         photoUrl={store.photoUrl}
-        onBack={() => window.history.back()}
+        onBack={() => nagivate("/configuracoes")}
         onPhotoUpload={() => setShowPhotoModal(true)}
       />
 

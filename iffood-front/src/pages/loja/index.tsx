@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { storeService } from "@/services/store";
 import { productService, type Product } from "@/services/product";
 import { formatCentsToReaisWithSymbol } from "@/utils/currency";
@@ -58,66 +58,64 @@ function ProductCard({
 export function RestaurantView() {
   const navigate = useNavigate();
   const { storeId } = useParams<{ storeId: string }>();
-  const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const observerRef = useRef<HTMLDivElement>(null);
 
-  const { data: stores, isLoading: loadingStore } = useQuery({
-    queryKey: ["stores"],
-    queryFn: () => storeService.getAllStores(),
+  const now = new Date();
+  const hours = now.toTimeString().slice(0, 5);
+  const weekday = now.getDay();
+
+  const { data: storesResponse, isLoading: loadingStore } = useQuery({
+    queryKey: ["store-detail", storeId, weekday, hours],
+    queryFn: () => storeService.getAllStores({ weekday, hours, pageSize: 100 }),
   });
 
-  const { data: allProducts, isLoading: loadingProducts } = useQuery({
-    queryKey: ["store-products-public", storeId],
-    queryFn: () => productService.getProductsByStore(storeId),
+  const {
+    data: productsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: loadingProducts,
+  } = useInfiniteQuery({
+    queryKey: ["store-products-public", storeId, weekday, hours],
+    queryFn: ({ pageParam = 1 }) =>
+      productService.getProductsByStore(storeId, {
+        page: pageParam,
+        pageSize: 6,
+        weekday,
+        hours,
+      }),
+    getNextPageParam: (lastPage, pages) => {
+      return lastPage.hasMore ? pages.length + 1 : undefined;
+    },
+    initialPageParam: 1,
     enabled: !!storeId,
   });
 
-  const store = stores?.find((s) => s.id === storeId);
+  const store = storesResponse?.data?.find((s) => s.id === storeId);
+  const products = productsData?.pages.flatMap((page) => page.data) ?? [];
+  const productCount = productsData?.pages[0]?.total || 0;
 
-  // Initialize products
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [target] = entries;
+      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage]
+  );
+
   useEffect(() => {
-    if (allProducts) {
-      // Load first batch
-      setDisplayedProducts(allProducts.slice(0, 6));
-    }
-  }, [allProducts]);
+    const element = observerRef.current;
+    const option = { threshold: 0.1 };
 
-  // Infinite scroll observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          !isLoadingMore &&
-          allProducts &&
-          displayedProducts.length < allProducts.length
-        ) {
-          loadMoreProducts();
-        }
-      },
-      { threshold: 0.1 }
-    );
+    const observer = new IntersectionObserver(handleObserver, option);
+    if (element) observer.observe(element);
 
-    if (observerRef.current) {
-      observer.observe(observerRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [displayedProducts, allProducts, isLoadingMore]);
-
-  const loadMoreProducts = () => {
-    if (!allProducts) return;
-
-    setIsLoadingMore(true);
-    // Simulate loading delay
-    setTimeout(() => {
-      const currentLength = displayedProducts.length;
-      const nextProducts = allProducts.slice(currentLength, currentLength + 6);
-      setDisplayedProducts([...displayedProducts, ...nextProducts]);
-      setIsLoadingMore(false);
-    }, 500);
-  };
+    return () => {
+      if (element) observer.unobserve(element);
+    };
+  }, [handleObserver]);
 
   if (loadingStore || loadingProducts) {
     return (
@@ -137,8 +135,6 @@ export function RestaurantView() {
       </div>
     );
   }
-
-  const productCount = allProducts?.length || 0;
 
   return (
     <div className="bg-[#fafafa] min-h-screen">
@@ -200,7 +196,7 @@ export function RestaurantView() {
             <>
               {/* Products Grid */}
               <div className="grid grid-cols-2 gap-4 mb-8">
-                {displayedProducts.map((product) => (
+                {products.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
@@ -210,7 +206,7 @@ export function RestaurantView() {
               </div>
 
               {/* Loading indicator */}
-              {isLoadingMore && (
+              {isFetchingNextPage && (
                 <div className="flex justify-center py-8">
                   <div className="flex gap-2">
                     <div className="w-2 h-2 rounded-full bg-[#FF7622] animate-pulse"></div>
@@ -221,12 +217,10 @@ export function RestaurantView() {
               )}
 
               {/* Infinite scroll trigger */}
-              {displayedProducts.length < productCount && (
-                <div ref={observerRef} className="h-20"></div>
-              )}
+              {hasNextPage && <div ref={observerRef} className="h-20"></div>}
 
               {/* End message */}
-              {displayedProducts.length >= productCount && productCount > 0 && (
+              {!hasNextPage && products.length > 0 && (
                 <div className="text-center py-8 text-gray-400 text-sm">
                   Você viu todos os produtos
                 </div>
