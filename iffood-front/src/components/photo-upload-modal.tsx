@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { X, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { MAX_FILE_SIZE, MIN_WIDTH, MIN_HEIGHT } from "./utils";
+import {
+  MAX_FILE_SIZE,
+  MIN_WIDTH,
+  MIN_HEIGHT,
+  MAX_WIDTH,
+  MAX_HEIGHT,
+} from "./utils";
 
 type PhotoUploadModalProps = {
   isOpen: boolean;
@@ -50,6 +56,14 @@ export function PhotoUploadModal({
       if (width < MIN_WIDTH || height < MIN_HEIGHT) {
         toast.error("Resolução muito baixa", {
           description: "A imagem deve ter no mínimo 800x600 pixels.",
+        });
+        URL.revokeObjectURL(imageUrl);
+        return;
+      }
+
+      if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+        toast.error("Resolução muito alta", {
+          description: "A imagem deve ter no máximo 5000x5000 pixels.",
         });
         URL.revokeObjectURL(imageUrl);
         return;
