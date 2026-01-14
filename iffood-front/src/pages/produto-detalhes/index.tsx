@@ -27,11 +27,15 @@ function BackButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+type SelectedFlavor = {
+  flavor: any;
+  quantity: number;
+};
+
 export function ProductDetail() {
   const navigate = useNavigate();
   const { productId } = useParams<{ productId: string }>();
-  const [quantity, setQuantity] = useState(1);
-  const [selectedFlavor, setSelectedFlavor] = useState<any | null>(null);
+  const [selectedFlavors, setSelectedFlavors] = useState<SelectedFlavor[]>([]);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product-public", productId],
@@ -42,34 +46,56 @@ export function ProductDetail() {
   const productFlavors = product?.productOptions || [];
   const totalStock = productFlavors.reduce((sum, f) => sum + f.quantity, 0);
 
-  const handleDecrease = () => {
-    if (quantity > 1) setQuantity(quantity - 1);
-  };
-
-  const handleIncrease = () => {
-    if (selectedFlavor && quantity < selectedFlavor.quantity) {
-      setQuantity(quantity + 1);
-    } else if (!selectedFlavor) {
-      setQuantity(quantity + 1);
-    }
-  };
-
   const handleFlavorSelect = (flavor: any) => {
-    if (flavor.quantity > 0) {
-      setSelectedFlavor(flavor);
-      if (quantity > flavor.quantity) {
-        setQuantity(1);
-      }
+    if (flavor.quantity === 0) return;
+
+    const existingIndex = selectedFlavors.findIndex(
+      (sf) => sf.flavor.id === flavor.id
+    );
+
+    if (existingIndex >= 0) {
+      // Remove if already selected
+      setSelectedFlavors(selectedFlavors.filter((_, i) => i !== existingIndex));
+    } else {
+      // Add new flavor with quantity 1
+      setSelectedFlavors([...selectedFlavors, { flavor, quantity: 1 }]);
     }
+  };
+
+  const handleQuantityChange = (flavorId: string, delta: number) => {
+    setSelectedFlavors((prev) =>
+      prev.map((sf) => {
+        if (sf.flavor.id === flavorId) {
+          const newQuantity = sf.quantity + delta;
+          if (newQuantity >= 1 && newQuantity <= sf.flavor.quantity) {
+            return { ...sf, quantity: newQuantity };
+          }
+        }
+        return sf;
+      })
+    );
+  };
+
+  const removeFlavor = (flavorId: string) => {
+    setSelectedFlavors((prev) =>
+      prev.filter((sf) => sf.flavor.id !== flavorId)
+    );
   };
 
   const handleWhatsAppOrder = () => {
-    if (!product) return;
+    if (!product || selectedFlavors.length === 0) return;
 
-    const message = `Olá! Gostaria de pedir:\n\n${product.name}${
-      selectedFlavor ? ` - ${selectedFlavor.name}` : ""
-    }\nQuantidade: ${quantity}\nValor: R$ ${formatCentsToReais(
-      product.value * quantity
+    const flavorsList = selectedFlavors
+      .map((sf) => `  • ${sf.flavor.name} (${sf.quantity}x)`)
+      .join("\n");
+
+    const totalQuantity = selectedFlavors.reduce(
+      (sum, sf) => sum + sf.quantity,
+      0
+    );
+
+    const message = `Olá! Gostaria de pedir:\n\n${product.name}\n${flavorsList}\n\nQuantidade total: ${totalQuantity}\nValor: R$ ${formatCentsToReais(
+      product.value * totalQuantity
     )}`;
     const whatsappUrl = `https://wa.me/55${
       product.store?.whatsapp
@@ -96,8 +122,12 @@ export function ProductDetail() {
     );
   }
 
-  const totalPrice = product.value * quantity;
-  const canOrder = selectedFlavor && selectedFlavor.quantity > 0;
+  const totalQuantity = selectedFlavors.reduce(
+    (sum, sf) => sum + sf.quantity,
+    0
+  );
+  const totalPrice = product.value * totalQuantity;
+  const canOrder = selectedFlavors.length > 0;
 
   return (
     <div className="bg-[#fafafa] min-h-screen pb-48">
@@ -150,17 +180,18 @@ export function ProductDetail() {
         {productFlavors && productFlavors.length > 0 && (
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[#181c2e]">Escolha o sabor</h3>
+              <h3 className="text-[#181c2e]">Escolha os sabores</h3>
               <span className="text-xs text-gray-400 uppercase tracking-wider">
-                {productFlavors.filter((f: any) => f.quantity > 0).length}{" "}
-                disponíveis
+                {selectedFlavors.length} selecionado(s)
               </span>
             </div>
             <div className="space-y-2">
               {productFlavors.map((flavor: any) => {
                 const isOutOfStock = flavor.quantity === 0;
                 const isLowStock = flavor.quantity > 0 && flavor.quantity <= 3;
-                const isSelected = selectedFlavor?.id === flavor.id;
+                const isSelected = selectedFlavors.some(
+                  (sf) => sf.flavor.id === flavor.id
+                );
 
                 return (
                   <button
@@ -219,42 +250,70 @@ export function ProductDetail() {
         )}
 
         {/* Quantity Selector */}
-        {selectedFlavor && selectedFlavor.quantity > 0 && (
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-[#181c2e] mb-1">Quantidade</h3>
-                <p className="text-xs text-gray-400">
-                  Máximo: {selectedFlavor.quantity} unidades
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleDecrease}
-                  disabled={quantity <= 1}
-                  className={`size-10 rounded-full flex items-center justify-center transition-all ${
-                    quantity <= 1
-                      ? "bg-gray-100 text-gray-300 cursor-not-allowed"
-                      : "bg-[#FF7622] text-white hover:bg-[#E6661A] active:scale-95"
-                  }`}
+        {selectedFlavors.length > 0 && (
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
+            <h3 className="text-[#181c2e] mb-4">Quantidades</h3>
+            <div className="space-y-3">
+              {selectedFlavors.map((sf) => (
+                <div
+                  key={sf.flavor.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl"
                 >
-                  <Minus className="w-4 h-4" />
-                </button>
-                <span className="text-xl text-[#2e2e2e] min-w-[40px] text-center">
-                  {quantity}
-                </span>
-                <button
-                  onClick={handleIncrease}
-                  disabled={quantity >= selectedFlavor.quantity}
-                  className={`size-10 rounded-full flex items-center justify-center transition-all ${
-                    quantity >= selectedFlavor.quantity
-                      ? "bg-gray-100 text-gray-300 cursor-not-allowed"
-                      : "bg-[#FF7622] text-white hover:bg-[#E6661A] active:scale-95"
-                  }`}
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
+                  <div className="flex-1">
+                    <div className="text-sm text-[#2e2e2e] mb-1">
+                      {sf.flavor.name}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      Máx: {sf.flavor.quantity} unidades
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleQuantityChange(sf.flavor.id, -1)}
+                      disabled={sf.quantity <= 1}
+                      className={`size-8 rounded-full flex items-center justify-center transition-all ${
+                        sf.quantity <= 1
+                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                          : "bg-[#FF7622] text-white hover:bg-[#E6661A] active:scale-95"
+                      }`}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-lg text-[#2e2e2e] min-w-[30px] text-center">
+                      {sf.quantity}
+                    </span>
+                    <button
+                      onClick={() => handleQuantityChange(sf.flavor.id, 1)}
+                      disabled={sf.quantity >= sf.flavor.quantity}
+                      className={`size-8 rounded-full flex items-center justify-center transition-all ${
+                        sf.quantity >= sf.flavor.quantity
+                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                          : "bg-[#FF7622] text-white hover:bg-[#E6661A] active:scale-95"
+                      }`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => removeFlavor(sf.flavor.id)}
+                      className="ml-2 text-red-500 hover:text-red-600 transition-colors"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -275,8 +334,8 @@ export function ProductDetail() {
             className="w-full flex-1 bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white py-4 px-6 rounded-full flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:from-gray-300 disabled:to-gray-400"
           >
             <MessageCircle className="w-5 h-5" />
-            {!selectedFlavor
-              ? "Selecione um sabor"
+            {selectedFlavors.length === 0
+              ? "Selecione ao menos um sabor"
               : canOrder
               ? "Pedir no WhatsApp"
               : "Indisponível"}
