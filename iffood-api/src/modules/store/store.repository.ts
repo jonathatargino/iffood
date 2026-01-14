@@ -176,21 +176,22 @@ export class StoreRepository {
     storeId: string;
     userId: string;
   }): Promise<boolean> {
-    const result = await this.typeormStoreRepository
-      .createQueryBuilder()
-      .softDelete()
-      .where('id = :storeId', { storeId })
-      .andWhere(
-        `EXISTS (
-          SELECT 1 
-          FROM store_users su 
-          WHERE su.store_id = :storeId 
-          AND su.user_profile_id = :userId
-        )`,
-      )
-      .setParameters({ storeId, userId })
-      .execute();
+    const store = await this.typeormStoreRepository.findOne({
+      where: { id: storeId, storeUsers: { userProfile: { id: userId } } },
+      relations: {
+        storeUsers: {
+          userProfile: true,
+        },
+        products: {
+          productOptions: true,
+        },
+      },
+    });
 
-    return (result.affected ?? 0) > 0;
+    if (!store) return false;
+
+    const result = await this.typeormStoreRepository.softRemove(store);
+
+    return !!result;
   }
 }
