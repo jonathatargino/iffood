@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AuthContext } from "./context";
 import type { Session } from "@supabase/supabase-js";
 import { supabaseClient } from "./supabase-client";
+import { process } from "zod/v4/core";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -48,6 +49,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: "google",
+      options: {
+        redirectTo: import.meta.env.VITE_APPLICATION_URL,
+      },
     });
 
     return { error: !!error };
