@@ -243,8 +243,8 @@ export function ProductForm({ storeId }: ProductFormProps) {
       toast.success("Produto criado com sucesso!");
       navigate("/minha-loja");
     },
-    onError: () => {
-      toast.error("Erro ao criar produto");
+    onError: (error) => {
+      toast.error(error.message || "Erro ao criar produto (generico)");
     },
   });
 
