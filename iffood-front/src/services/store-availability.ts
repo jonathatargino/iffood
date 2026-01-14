@@ -27,6 +27,6 @@ export const storeAvailabilityService = {
   },
 
   async updateAvailabilities(data: UpdateStoreAvailabilityDto): Promise<void> {
-    await api.put("/store/store-availability", data);
+    await api.put("/store/store-availability/full", data);
   },
 };

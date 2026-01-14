@@ -9,24 +9,34 @@ import ViewAllPage from "./pages/ver-todos";
 import { ProductFormWrapper } from "./pages/produto/wrapper";
 import { ProductDetail } from "./pages/produto-detalhes";
 import { RestaurantView } from "./pages/loja";
-import NoStoresAvailable from "./pages/no-stores-available";
 import { AuthProvider } from "./contexts/auth";
 import { QueryProvider } from "./contexts/query";
-import { createBrowserRouter, RouterProvider } from "react-router";
+import { createBrowserRouter, Outlet, RouterProvider } from "react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { AvailabilityProvider } from "./contexts/availability";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Home />,
-  },
-  {
-    path: "login",
-    element: <LoginPage />,
-  },
-  {
-    path: "configuracoes",
-    element: <ConfiguracoesPage />,
+    element: (
+      <AvailabilityProvider>
+        <Outlet />
+      </AvailabilityProvider>
+    ),
+    children: [
+      {
+        index: true,
+        element: <Home />,
+      },
+      {
+        path: "login",
+        element: <LoginPage />,
+      },
+      {
+        path: "configuracoes",
+        element: <ConfiguracoesPage />,
+      },
+    ],
   },
   {
     path: "minha-loja",
@@ -47,10 +57,6 @@ const router = createBrowserRouter([
   {
     path: "busca",
     element: <SearchPage />,
-  },
-  {
-    path: "sem-lojas-disponiveis",
-    element: <NoStoresAvailable />,
   },
   {
     path: ":type",

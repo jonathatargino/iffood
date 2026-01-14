@@ -5,6 +5,7 @@ import {
   Get,
   InternalServerErrorException,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Put,
@@ -47,6 +48,17 @@ export class StoreController {
   @UseGuards(AuthGuard)
   async findMyStore(@UserId() userId: string) {
     return this.storeService.findByUserId(userId);
+  }
+
+  @Get('available')
+  async findThereIsAvailableStore(
+    @Query('weekday', ParseIntPipe) weekday: number,
+    @Query('hours') hours: string,
+  ) {
+    return this.storeService.findThereIsAvailableStore({
+      weekday,
+      hours,
+    });
   }
 
   @Get(':id')

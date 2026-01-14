@@ -3,6 +3,7 @@ import { Store, LogOut, LogIn, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/auth/context";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAvailability } from "@/contexts/availability/context";
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
@@ -75,7 +76,10 @@ function MenuOption({
 export function ConfiguracoesPage() {
   const navigate = useNavigate();
   const { session, signOut } = useAuth();
+  const { isThereAvailableStore } = useAvailability();
   const isLoggedIn = !!session;
+
+  console.log({ isThereAvailableStore });
 
   const handleBack = async () => {
     await navigate("/");
@@ -105,7 +109,7 @@ export function ConfiguracoesPage() {
         )}
       >
         <div className="flex items-center gap-4 mb-16">
-          <BackButton onClick={handleBack} />
+          {isThereAvailableStore && <BackButton onClick={handleBack} />}
           <h1 className="text-white text-lg font-medium">Configurações</h1>
         </div>
 

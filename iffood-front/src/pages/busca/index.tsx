@@ -153,11 +153,7 @@ export default function SearchPage() {
     (entries: IntersectionObserverEntry[]) => {
       const [target] = entries;
       if (target.isIntersecting) {
-        if (
-          searchType === "stores" &&
-          hasNextStores &&
-          !isFetchingNextStores
-        ) {
+        if (searchType === "stores" && hasNextStores && !isFetchingNextStores) {
           fetchNextStores();
         } else if (
           searchType === "products" &&

@@ -14,7 +14,7 @@ export class StoreAvailabilityController {
     return this.storeAvailabilityService.findByStoreId(storeId);
   }
 
-  @Put()
+  @Put('full')
   updateFullStoreAvailability(
     @Body() body: UpdateStoreAvailabilityDto,
     @UserId() userId: string,

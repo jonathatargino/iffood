@@ -40,7 +40,7 @@ export default function NoStoresAvailable() {
   return (
     <div className="bg-gradient-to-br from-[#FF7622] to-[#E6661A] min-h-screen">
       <div className="px-6 pt-14 pb-8">
-        <div className="flex items-center justify-end mb-8">
+        <div className="flex items-center mb-8">
           <MenuIcon onClick={handleMenuClick} />
         </div>
 

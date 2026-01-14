@@ -6,9 +6,11 @@ import { GoogleIcon } from "./components/google-icon";
 import { BgAsset, BottomDecoration } from "./components/login-background";
 import { useAuth } from "@/contexts/auth/context";
 import { useNavigate } from "react-router";
+import { useAvailability } from "@/contexts/availability/context";
 
 export function LoginPage() {
   const { signInWithGoogle } = useAuth();
+  const { isThereAvailableStore } = useAvailability();
   const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
@@ -19,8 +21,8 @@ export function LoginPage() {
     }
   };
 
-  const handleGuestContinue = () => {
-    navigate("/");
+  const handleGuestContinue = async () => {
+    return await navigate("/");
   };
 
   return (

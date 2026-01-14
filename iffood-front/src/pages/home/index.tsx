@@ -118,12 +118,6 @@ export default function Home() {
 
   const stores = storesResponse?.data || [];
 
-  useEffect(() => {
-    if (!loadingStores && !loadingProducts && stores.length === 0 && products.length === 0) {
-      navigate("/sem-lojas-disponiveis");
-    }
-  }, [loadingStores, loadingProducts, stores.length, products.length, navigate]);
-
   const handleSearchClick = () => {
     navigate("/busca");
   };
@@ -221,7 +215,7 @@ export default function Home() {
       {/* Stores List */}
       <div className="px-6 pb-8">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-[#2e2e2e]">Restaurantes</h2>
+          <h2 className="text-[#2e2e2e]">Restaurantes abertos</h2>
           <button
             className="text-[#FF7622] text-sm flex items-center gap-1 hover:gap-2 transition-all"
             onClick={handleViewAllStores}

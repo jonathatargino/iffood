@@ -53,6 +53,36 @@ export class StoreRepository {
     return { stores, count };
   }
 
+  async findThereIsAvailableStore({
+    weekday,
+    hours,
+  }: {
+    weekday: number;
+    hours: string;
+  }): Promise<boolean> {
+    const exists = await this.typeormStoreRepository
+      .createQueryBuilder('store')
+      .leftJoin('store.products', 'product')
+      .leftJoin('product.productOptions', 'productOption')
+      .where('store.status = :status', { status: true })
+      .andWhere('productOption.quantity > 0')
+      .andWhere(
+        `EXISTS (
+      SELECT 1
+      FROM store_availabilities sa
+      WHERE sa.store_id = store.id
+      AND sa.weekday = :weekday
+      AND sa.start <= :hours
+      AND sa.end >= :hours
+    )`,
+        { weekday, hours },
+      )
+      .limit(1)
+      .getOne();
+
+    return !!exists;
+  }
+
   async findById(storeId: string): Promise<Store | null> {
     return this.typeormStoreRepository.findOne({
       where: { id: storeId },

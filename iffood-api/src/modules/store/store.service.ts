@@ -24,6 +24,20 @@ export class StoreService {
     return stores;
   }
 
+  async findThereIsAvailableStore({
+    weekday,
+    hours,
+  }: {
+    weekday: number;
+    hours: string;
+  }) {
+    const exists = await this.storeRepository.findThereIsAvailableStore({
+      weekday,
+      hours,
+    });
+    return { available: exists };
+  }
+
   async findById(storeId: string): Promise<Store> {
     const store = await this.storeRepository.findById(storeId);
     if (!store) {
