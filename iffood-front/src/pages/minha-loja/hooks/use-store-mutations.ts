@@ -63,7 +63,9 @@ export const useDeleteStore = () => {
   return useMutation({
     mutationFn: (storeId: string) => storeService.deleteStore(storeId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-store"] });
+      queryClient.invalidateQueries({
+        queryKey: ["my-store", "is-there-available-store"],
+      });
       toast.success("Loja deletada", {
         description: "Sua loja foi deletada com sucesso.",
       });

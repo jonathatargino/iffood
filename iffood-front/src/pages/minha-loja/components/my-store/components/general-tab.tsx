@@ -26,6 +26,7 @@ export function GeneralTab({ store }: GeneralTabProps) {
 
   const handleDeleteStore = () => {
     deleteStoreMutation.mutate(store.id);
+
     setShowDeleteModal(false);
   };
 
