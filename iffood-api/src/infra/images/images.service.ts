@@ -39,6 +39,7 @@ export class ImagesService {
 
   async process(imageBuffer: Buffer): Promise<Buffer> {
     const processedImage = await sharp(imageBuffer)
+      .rotate()
       .resize(1080, 1080, { fit: 'cover' })
       .webp({ quality: 75 })
       .toBuffer();
