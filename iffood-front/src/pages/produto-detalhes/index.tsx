@@ -94,7 +94,9 @@ export function ProductDetail() {
       0
     );
 
-    const message = `Olá! Gostaria de pedir:\n\n${product.name}\n${flavorsList}\n\nQuantidade total: ${totalQuantity}\nValor: R$ ${formatCentsToReais(
+    const message = `Olá! Gostaria de pedir:\n\n${
+      product.name
+    }\n${flavorsList}\n\nQuantidade total: ${totalQuantity}\nValor: R$ ${formatCentsToReais(
       product.value * totalQuantity
     )}`;
     const whatsappUrl = `https://wa.me/55${
