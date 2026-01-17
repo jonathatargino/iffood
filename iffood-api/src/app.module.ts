@@ -3,8 +3,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { StoreModule } from './modules/store/store.module';
 import { ProductsModule } from './modules/product/product.module';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { LoggingInterceptor } from './common/interceptors/logging-interceptor';
 
 @Module({
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+  ],
   imports: [
     ConfigModule.forRoot(),
     TypeOrmModule.forRoot({
