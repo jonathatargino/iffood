@@ -7,6 +7,7 @@ import { StoreRepository } from './store.repository';
 import { StoreAvailabilityModule } from './store-availability/store-availability.module';
 import { ImagesModule } from '../../infra/images/images.module';
 import { StoreUserModule } from './store-user/store-user.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { StoreUserModule } from './store-user/store-user.module';
     ImagesModule,
     StoreAvailabilityModule,
     StoreUserModule,
+    AuthModule,
   ],
   controllers: [StoreController],
   providers: [StoreService, StoreRepository],
