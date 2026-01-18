@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Product } from '../product.entity';
+import { applyPatch } from '../../../common/domain/apply-patch';
 
 @Entity({
   name: 'product_options',
@@ -33,4 +34,20 @@ export class ProductOption {
   @ManyToOne(() => Product, (product) => product.productOptions)
   @JoinColumn({ name: 'product_id' })
   product: Product;
+
+  patch(data: Pick<Partial<ProductOption>, 'name' | 'quantity'>) {
+    applyPatch<string>({
+      fieldName: 'name',
+      value: data.name,
+      set: (value) => (this.name = <string>value),
+      allowNull: false,
+    });
+
+    applyPatch<number>({
+      fieldName: 'quantity',
+      value: data.quantity,
+      set: (value) => (this.quantity = <number>value),
+      allowNull: false,
+    });
+  }
 }

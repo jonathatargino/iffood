@@ -10,7 +10,7 @@ import {
 } from './product.dto';
 import { ProductRepository } from './product.repository';
 import { StoreUserService } from '../store/store-user/store-user.service';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { Product } from './product.entity';
 import {
   ProductOptionStatus,
@@ -76,79 +76,124 @@ export class ProductService {
   }
 
   async updateProductWithOptions(dto: UpdateProductWithPhotoAndUserIdDto) {
+    const newPhotoUrl = dto.photo
+      ? await this.imageService.upload(dto.photo.buffer)
+      : undefined;
+
     return this.dataSource.transaction(async (entityManager) => {
       const product = await entityManager.findOne(Product, {
         where: {
           id: dto.id,
           store: { storeUsers: { userProfile: { id: dto.userId } } },
         },
-        relations: { productOptions: true, store: { storeUsers: true } },
+        relations: { productOptions: true },
       });
 
       if (!product) {
         throw new ForbiddenException();
       }
 
-      let photoUrl: string | undefined = product.photoUrl;
-      if (dto.photo) {
-        photoUrl = await this.imageService.upload(dto.photo.buffer);
-      }
-
-      product.photoUrl = photoUrl ?? product.photoUrl;
-      product.category = dto.category ?? product.category;
-      product.name = dto.name ?? product.name;
-      product.description = dto.description ?? product.description;
-      product.value = dto.value ?? product.value;
+      product.updateDetails({
+        photoUrl: newPhotoUrl,
+        category: dto.category,
+        name: dto.name,
+        description: dto.description,
+        value: dto.value,
+      });
 
       if (dto.productOptions) {
-        const dtoProductOptionsMap = dto.productOptions.reduce(
-          (map, option) => {
-            if (option.id) {
-              map[option.id] = option;
-            } else {
-              (map.new as UpdateProductOptionDto[]).push(option);
-            }
-            return map;
-          },
-          { new: [] } as Record<
-            string,
-            UpdateProductOptionDto | UpdateProductOptionDto[]
-          >,
-        );
-
-        product.productOptions = product.productOptions.map((option) => {
-          const dtoOption = dtoProductOptionsMap[
-            option.id
-          ] as UpdateProductOptionDto;
-
-          if (!dtoOption) return option;
-
-          if (dtoOption.status === ProductOptionStatus.Updated) {
-            option.name = dtoOption.name ?? option.name;
-            option.quantity = dtoOption.quantity ?? option.quantity;
-            return option;
-          }
-
-          if (dtoOption.status === ProductOptionStatus.Deleted) {
-            option.deletedAt = new Date();
-            return option;
-          }
-
-          return option;
+        await this.handleProductOptionsChanges({
+          product,
+          productOptionsChanges: dto.productOptions,
+          entityManager,
         });
-
-        for (const newOption of dtoProductOptionsMap.new as UpdateProductOptionDto[]) {
-          product.productOptions.push(
-            entityManager.create(ProductOption, {
-              name: newOption.name,
-              quantity: newOption.quantity,
-            }),
-          );
-        }
       }
 
       await entityManager.save(Product, product);
+      return product;
     });
+  }
+
+  private async handleProductOptionsChanges({
+    product,
+    productOptionsChanges,
+    entityManager,
+  }: {
+    product: Product;
+    productOptionsChanges: UpdateProductOptionDto[];
+    entityManager: EntityManager;
+  }) {
+    const { newProductOptions, existentProductOptionsChangesById } =
+      this.splitNewAndExistingProductOptionsChanges(productOptionsChanges);
+
+    product.productOptions = await Promise.all(
+      product.productOptions.map(async (option) => {
+        const optionChange = existentProductOptionsChangesById[option.id];
+
+        if (!optionChange) return option;
+
+        if (optionChange.status === ProductOptionStatus.Updated) {
+          option.patch({
+            name: optionChange.name,
+            quantity: optionChange.quantity,
+          });
+          return option;
+        }
+
+        if (optionChange.status === ProductOptionStatus.Deleted) {
+          return await entityManager.softRemove(ProductOption, option);
+        }
+
+        return option;
+      }),
+    );
+
+    this.appendNewProductOptions({
+      newProductOptions,
+      product,
+      entityManager,
+    });
+  }
+
+  private splitNewAndExistingProductOptionsChanges(
+    productOptionsChanges: UpdateProductOptionDto[],
+  ) {
+    const newProductOptions: UpdateProductOptionDto[] = [];
+    const existentProductOptionsChangesById: Record<
+      string,
+      UpdateProductOptionDto
+    > = {};
+
+    for (const option of productOptionsChanges) {
+      if (!option.id) {
+        newProductOptions.push(option);
+        continue;
+      }
+
+      existentProductOptionsChangesById[option.id] = option;
+    }
+
+    return { newProductOptions, existentProductOptionsChangesById };
+  }
+
+  private appendNewProductOptions({
+    newProductOptions,
+    product,
+    entityManager,
+  }: {
+    product: Product;
+    newProductOptions: UpdateProductOptionDto[];
+    entityManager: EntityManager;
+  }) {
+    for (const newOption of newProductOptions) {
+      product.productOptions.push(
+        entityManager.create(ProductOption, {
+          name: newOption.name,
+          quantity: newOption.quantity,
+          product,
+        }),
+      );
+    }
   }
 
   async delete({ productId, userId }: { productId: string; userId: string }) {
