@@ -16,6 +16,7 @@ import {
   UpdateProductOptionDto,
 } from './product-option/product-option.dto';
 import { logger } from '../../common/logger';
+import { UnprocessableEntityException } from '@nestjs/common';
 
 export class CreateProductDto {
   @Transform(({ value }) => Number(value))
@@ -43,19 +44,15 @@ export class CreateProductDto {
   storeId: string;
 
   @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      try {
-        const parsed: unknown = JSON.parse(value);
-        return plainToInstance(CreateProductOptionDto, parsed);
-      } catch (error) {
-        logger.error(error);
-        return [];
-      }
+    try {
+      const parsed: unknown = JSON.parse(value as string);
+      return plainToInstance(UpdateProductOptionDto, parsed);
+    } catch (error) {
+      logger.error(error);
+      throw new UnprocessableEntityException(
+        'Could not parse product options to JSON',
+      );
     }
-    if (Array.isArray(value)) {
-      return plainToInstance(CreateProductOptionDto, value);
-    }
-    return [];
   })
   @IsArray()
   @ValidateNested({ each: true })
@@ -85,19 +82,15 @@ export class UpdateProductDto {
   description: string;
 
   @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      try {
-        const parsed: unknown = JSON.parse(value);
-        return plainToInstance(UpdateProductOptionDto, parsed);
-      } catch (error) {
-        logger.error(error);
-        return [];
-      }
+    try {
+      const parsed: unknown = JSON.parse(value as string);
+      return plainToInstance(UpdateProductOptionDto, parsed);
+    } catch (error) {
+      logger.error(error);
+      throw new UnprocessableEntityException(
+        'Could not parse product options to JSON',
+      );
     }
-    if (Array.isArray(value)) {
-      return plainToInstance(UpdateProductOptionDto, value);
-    }
-    return [];
   })
   @IsArray()
   @ValidateNested({ each: true })
