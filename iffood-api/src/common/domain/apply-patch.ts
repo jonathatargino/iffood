@@ -1,10 +1,29 @@
-export function applyPatch<T>(params: {
+type ApplyPatchBase<T> = {
   fieldName: string;
   value: T | undefined | null;
-  allowNull?: boolean;
-  set: (value: T | null) => void;
   validate?: (value: T) => void;
-}) {
+};
+
+export function applyPatch<T>(
+  params: ApplyPatchBase<T> & {
+    allowNull: true;
+    set: (value: T | null) => void;
+  },
+): void;
+
+export function applyPatch<T>(
+  params: ApplyPatchBase<T> & {
+    allowNull?: false | undefined;
+    set: (value: T) => void;
+  },
+): void;
+
+export function applyPatch<T>(
+  params: ApplyPatchBase<T> & {
+    allowNull?: boolean;
+    set: ((value: T) => void) | ((value: T | null) => void);
+  },
+): void {
   const { fieldName, value, allowNull = false, set, validate } = params;
 
   if (value === undefined) return;
@@ -13,11 +32,10 @@ export function applyPatch<T>(params: {
     if (!allowNull) {
       throw new Error(`Field ${fieldName} cannot be null`);
     }
-    set(null);
+    (set as (value: T | null) => void)(null);
     return;
   }
 
-  if (validate) validate(value);
-
-  set(value);
+  validate?.(value);
+  (set as (value: T) => void)(value);
 }

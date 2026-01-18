@@ -39,14 +39,14 @@ export class ProductOption {
     applyPatch<string>({
       fieldName: 'name',
       value: data.name,
-      set: (value) => (this.name = <string>value),
+      set: (value) => (this.name = value),
       allowNull: false,
     });
 
     applyPatch<number>({
       fieldName: 'quantity',
       value: data.quantity,
-      set: (value) => (this.quantity = <number>value),
+      set: (value) => (this.quantity = value),
       allowNull: false,
     });
   }
