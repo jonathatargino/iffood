@@ -5,10 +5,12 @@ import {
   Param,
   ParseUUIDPipe,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { StoreAvailabilityService } from './store-availability.service';
 import { UpdateStoreAvailabilityDto } from './store-availability.dto';
 import { UserId } from '../../../common/decorators/user-id';
+import { AuthGuard } from '../../../common/guards/auth.guard';
 
 @Controller('store/store-availability')
 export class StoreAvailabilityController {
@@ -22,6 +24,7 @@ export class StoreAvailabilityController {
   }
 
   @Put('full')
+  @UseGuards(AuthGuard)
   updateFullStoreAvailability(
     @Body() body: UpdateStoreAvailabilityDto,
     @UserId() userId: string,
