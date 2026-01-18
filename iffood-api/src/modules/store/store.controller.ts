@@ -3,9 +3,9 @@ import {
   Controller,
   Delete,
   Get,
-  InternalServerErrorException,
   Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
   Put,
@@ -19,7 +19,6 @@ import { CreateStoreDto, UpdateStoreDto } from './store.dto';
 import { StoreService } from './store.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { UserId } from '../../common/decorators/user-id';
-import { logger } from '../../common/logger';
 
 @Controller({
   path: 'store',
@@ -62,7 +61,7 @@ export class StoreController {
   }
 
   @Get(':id')
-  async findById(@Param('id') storeId: string) {
+  async findById(@Param('id', ParseUUIDPipe) storeId: string) {
     const store = await this.storeService.findById(storeId);
     return store;
   }
@@ -75,31 +74,22 @@ export class StoreController {
     @UploadedFile() photo: Express.Multer.File,
     @UserId() userId: string,
   ) {
-    try {
-      const result = await this.storeService.create({
-        description: body.description,
-        name: body.name,
-        whatsapp: body.whatsapp,
-        photo,
-        userId,
-      });
-
-      return result;
-    } catch (error) {
-      logger.error(error);
-      throw new InternalServerErrorException();
-    }
+    return await this.storeService.create({
+      description: body.description,
+      name: body.name,
+      whatsapp: body.whatsapp,
+      photo,
+      userId,
+    });
   }
 
   @Delete(':id')
   @UseGuards(AuthGuard)
-  async delete(@UserId() userId: string, @Param('id') storeId: string) {
-    try {
-      await this.storeService.delete({ userId, storeId });
-    } catch (error) {
-      logger.error(error);
-      throw new InternalServerErrorException();
-    }
+  async delete(
+    @UserId() userId: string,
+    @Param('id', ParseUUIDPipe) storeId: string,
+  ) {
+    return await this.storeService.delete({ userId, storeId });
   }
 
   @Put(':id')
@@ -107,7 +97,7 @@ export class StoreController {
   async update(
     @Body() body: UpdateStoreDto,
     @UserId() userId: string,
-    @Param('id') storeId: string,
+    @Param('id', ParseUUIDPipe) storeId: string,
   ) {
     await this.storeService.update({
       description: body.description,
@@ -125,7 +115,7 @@ export class StoreController {
   async updatePhoto(
     @UploadedFile() photo: Express.Multer.File,
     @UserId() userId: string,
-    @Param('id') storeId: string,
+    @Param('id', ParseUUIDPipe) storeId: string,
   ) {
     await this.storeService.updatePhoto({
       photo,
