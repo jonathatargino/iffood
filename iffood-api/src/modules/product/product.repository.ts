@@ -16,12 +16,31 @@ export class ProductRepository {
   ) {}
 
   async findById({ productId }: { productId: string }) {
-    const result = await this.typeormProductRepository.findOne({
-      where: { id: productId },
-      relations: { productOptions: true, store: true },
-    });
+    const qb = this.typeormProductRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.productOptions', 'productOption')
+      .leftJoinAndSelect('product.store', 'store')
+      .addSelect((sub) => {
+        return sub
+          .select('COALESCE(SUM(po.quantity), 0)')
+          .from('product_options', 'po')
+          .where('po.product_id = :productId', { productId });
+      }, 'accumulativeProductOptionsCount')
+      .where('product.id = :productId', { productId });
 
-    return result;
+    const { entities, raw } = await qb.getRawAndEntities<{
+      accumulativeProductOptionsCount: string;
+    }>();
+
+    const product = entities[0] ?? null;
+    if (!product) return null;
+
+    return {
+      ...product,
+      accumulativeProductOptionsCount: Number(
+        raw[0].accumulativeProductOptionsCount,
+      ),
+    };
   }
 
   async findByIdAndUserId({

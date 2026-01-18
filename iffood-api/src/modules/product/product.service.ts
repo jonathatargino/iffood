@@ -34,11 +34,7 @@ export class ProductService {
       throw new NotFoundException();
     }
 
-    const accumulativeProductOptionsCount = product.productOptions.reduce(
-      (acc, option) => acc + option.quantity,
-      0,
-    );
-    return { ...product, accumulativeProductOptionsCount };
+    return product;
   }
 
   async findAllWithCountByStoreId({ storeId }: { storeId: string }) {
