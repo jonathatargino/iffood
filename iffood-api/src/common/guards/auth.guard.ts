@@ -1,13 +1,17 @@
-import { CanActivate, ExecutionContext } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { jwtVerify, createRemoteJWKSet } from 'jose';
 
+@Injectable()
 export class AuthGuard implements CanActivate {
   private remoteJWKSet: ReturnType<typeof createRemoteJWKSet>;
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     this.remoteJWKSet = createRemoteJWKSet(
-      new URL(`${process.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`),
+      new URL(
+        `${this.configService.get('SUPABASE_URL')}/auth/v1/.well-known/jwks.json`,
+      ),
     );
   }
 

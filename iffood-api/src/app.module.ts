@@ -1,10 +1,11 @@
 import { Module, ValidationPipe } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { StoreModule } from './modules/store/store.module';
 import { ProductsModule } from './modules/product/product.module';
 import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggingInterceptor } from './common/interceptors/logging-interceptor';
+import { envSchema } from './config/schema';
 
 @Module({
   providers: [
@@ -23,12 +24,20 @@ import { LoggingInterceptor } from './common/interceptors/logging-interceptor';
     },
   ],
   imports: [
-    ConfigModule.forRoot(),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: process.env.DB_URL,
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: false,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      validationSchema: envSchema,
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: configService.getOrThrow('DB_TYPE'),
+        url: configService.getOrThrow('DB_URL'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: false,
+      }),
     }),
     StoreModule,
     ProductsModule,
