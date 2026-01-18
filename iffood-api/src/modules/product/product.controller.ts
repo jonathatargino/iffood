@@ -18,10 +18,14 @@ import { UserId } from '../../common/decorators/user-id';
 import { CreateProductDto, UpdateProductDto } from './product.dto';
 import { ProductService } from './product.service';
 import { ProductCategory } from './product.entity';
+import { ProductMapper } from './product.mapper';
 
 @Controller('product')
 export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+  constructor(
+    private readonly productService: ProductService,
+    private readonly productMapper: ProductMapper,
+  ) {}
 
   @Get()
   async findAll(
@@ -96,6 +100,8 @@ export class ProductController {
 
   @Get(':id')
   async findById(@Param('id', ParseUUIDPipe) productId: string) {
-    return await this.productService.findById({ productId });
+    return this.productMapper.toDetailsDto(
+      await this.productService.findById({ productId }),
+    );
   }
 }

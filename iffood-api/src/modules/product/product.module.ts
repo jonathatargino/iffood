@@ -7,10 +7,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Product } from './product.entity';
 import { ImagesModule } from '../../infra/images/images.module';
 import { AuthModule } from '../auth/auth.module';
+import { ProductMapper } from './product.mapper';
 
 @Module({
   controllers: [ProductController],
-  providers: [ProductService, ProductRepository],
+  providers: [ProductService, ProductRepository, ProductMapper],
   imports: [
     TypeOrmModule.forFeature([Product]),
     ImagesModule,

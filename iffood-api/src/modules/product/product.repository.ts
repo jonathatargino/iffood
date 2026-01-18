@@ -36,7 +36,7 @@ export class ProductRepository {
     if (!product) return null;
 
     return {
-      ...product,
+      product: product,
       accumulativeProductOptionsCount: Number(
         raw[0].accumulativeProductOptionsCount,
       ),
