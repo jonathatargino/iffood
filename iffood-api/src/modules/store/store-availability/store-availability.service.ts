@@ -33,9 +33,6 @@ export class StoreAvailabilityService {
             },
           },
         },
-        relations: {
-          storeUsers: { userProfile: true },
-        },
       });
 
       if (!store) {

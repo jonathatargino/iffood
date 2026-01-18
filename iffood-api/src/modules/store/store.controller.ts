@@ -78,7 +78,7 @@ export class StoreController {
       description: body.description,
       name: body.name,
       whatsapp: body.whatsapp,
-      photo,
+      photoBuffer: photo.buffer,
       userId,
     });
   }

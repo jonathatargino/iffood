@@ -8,7 +8,7 @@ interface ServiceCreateStoreDto {
   name: string;
   description: string;
   whatsapp: string;
-  photo: Express.Multer.File;
+  photoBuffer: Buffer;
   userId: string;
 }
 
@@ -55,7 +55,7 @@ export class StoreService {
   }
 
   async create(store: ServiceCreateStoreDto): Promise<Store> {
-    const photoUrl = await this.imageService.upload(store.photo.buffer);
+    const photoUrl = await this.imageService.upload(store.photoBuffer);
 
     const createdStore = await this.storeRepository.create({
       data: {
