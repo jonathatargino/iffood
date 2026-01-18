@@ -3,12 +3,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { StoreModule } from './modules/store/store.module';
 import { ProductsModule } from './modules/product/product.module';
-import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggingInterceptor } from './common/interceptors/logging-interceptor';
 import { envSchema } from './config/schema';
+import { GeneralExceptionsFilter } from './common/filters/general-exceptions.filter';
 
 @Module({
   providers: [
+    {
+      provide: APP_FILTER,
+      useClass: GeneralExceptionsFilter,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
