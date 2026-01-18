@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   CreateProductWithPhotoAndUserIdDto,
   FindAllProductFilters,
@@ -25,12 +29,16 @@ export class ProductService {
   ) {}
 
   async findById({ productId }: { productId: string }) {
-    const result = await this.productRepository.findById({ productId });
-    const accumulativeProductOptionsCount = result?.productOptions.reduce(
+    const product = await this.productRepository.findById({ productId });
+    if (!product) {
+      throw new NotFoundException();
+    }
+
+    const accumulativeProductOptionsCount = product.productOptions.reduce(
       (acc, option) => acc + option.quantity,
       0,
     );
-    return { ...result, accumulativeProductOptionsCount };
+    return { ...product, accumulativeProductOptionsCount };
   }
 
   async findAllWithCountByStoreId({ storeId }: { storeId: string }) {

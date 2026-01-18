@@ -3,8 +3,8 @@ import {
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
+  ParseUUIDPipe,
   Post,
   Put,
   Query,
@@ -67,7 +67,7 @@ export class ProductController {
   @Delete(':id')
   @UseGuards(AuthGuard)
   async deleteProduct(
-    @Param('id') productId: string,
+    @Param('id', ParseUUIDPipe) productId: string,
     @UserId() userId: string,
   ) {
     return await this.productService.delete({ productId, userId });
@@ -77,7 +77,7 @@ export class ProductController {
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('photo'))
   async updateProduct(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateProductDto,
     @UploadedFile() photo: Express.Multer.File,
     @UserId() userId: string,
@@ -95,12 +95,7 @@ export class ProductController {
   }
 
   @Get(':id')
-  async findById(@Param('id') productId: string) {
-    const result = await this.productService.findById({ productId });
-    if (!result) {
-      throw new NotFoundException();
-    }
-
-    return result;
+  async findById(@Param('id', ParseUUIDPipe) productId: string) {
+    return await this.productService.findById({ productId });
   }
 }

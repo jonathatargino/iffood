@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   FindAllProductFilters,
   FullCreateProductDto,
@@ -21,9 +21,6 @@ export class ProductRepository {
       relations: { productOptions: true, store: true },
     });
 
-    if (!result) {
-      throw new NotFoundException();
-    }
     return result;
   }
 
