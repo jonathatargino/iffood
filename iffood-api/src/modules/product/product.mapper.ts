@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { ProductDetailsResponseDto } from './product.response.dto';
+import {
+  ProductDetailsResponseDto,
+  ProductListResponseDto,
+} from './product.response.dto';
 import { Product } from './product.entity';
 
 @Injectable()
@@ -32,6 +35,29 @@ export class ProductMapper {
         quantity: option.quantity,
       })),
       accumulativeProductOptionsCount,
+    };
+  }
+
+  toListDto({
+    products,
+    count,
+  }: {
+    products: Product[];
+    count: number;
+  }): ProductListResponseDto {
+    return {
+      products: products.map((product) => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        value: product.value,
+        photoUrl: product.photoUrl,
+        store: {
+          name: product.store.name,
+        },
+      })),
+      count: count,
     };
   }
 }

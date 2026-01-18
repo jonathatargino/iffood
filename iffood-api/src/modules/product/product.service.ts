@@ -37,7 +37,7 @@ export class ProductService {
     return product;
   }
 
-  async findAllWithCountByStoreId({ storeId }: { storeId: string }) {
+  async findAllWithTotalCountByStoreId({ storeId }: { storeId: string }) {
     return this.productRepository.findAllWithCounts({ storeId });
   }
 

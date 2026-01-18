@@ -31,7 +31,7 @@ class StoreResponseDto {
   status: boolean;
 }
 
-export class ProductDetailsResponseDto {
+class BaseProductResponseDto {
   @ApiProperty({ format: 'uuid' })
   id: string;
 
@@ -49,7 +49,9 @@ export class ProductDetailsResponseDto {
 
   @ApiProperty({ nullable: true })
   photoUrl: string | null;
+}
 
+export class ProductDetailsResponseDto extends BaseProductResponseDto {
   @ApiProperty({ type: StoreResponseDto })
   store: StoreResponseDto;
 
@@ -58,4 +60,22 @@ export class ProductDetailsResponseDto {
 
   @ApiProperty({ type: Number, example: 7 })
   accumulativeProductOptionsCount: number;
+}
+
+class StoreNameDto {
+  @ApiProperty()
+  name: string;
+}
+
+class ProductListItemResponseDto extends BaseProductResponseDto {
+  @ApiProperty({ type: StoreNameDto })
+  store: StoreNameDto;
+}
+
+export class ProductListResponseDto {
+  @ApiProperty({ type: [ProductListItemResponseDto] })
+  products: ProductListItemResponseDto[];
+
+  @ApiProperty({ type: Number, example: 42 })
+  count: number;
 }

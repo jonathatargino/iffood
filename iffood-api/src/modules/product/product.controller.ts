@@ -37,20 +37,24 @@ export class ProductController {
     @Query('weekday') weekday?: string,
     @Query('hours') hours?: string,
   ) {
-    return await this.productService.findAllByStoreId({
-      page,
-      pageSize,
-      name,
-      storeId,
-      category,
-      weekday: weekday ? parseInt(weekday, 10) : undefined,
-      hours,
-    });
+    return this.productMapper.toListDto(
+      await this.productService.findAllByStoreId({
+        page,
+        pageSize,
+        name,
+        storeId,
+        category,
+        weekday: weekday ? parseInt(weekday, 10) : undefined,
+        hours,
+      }),
+    );
   }
 
   @Get('dashboard')
-  async findAllWithCountByStoreId(@Query('storeId') storeId: string) {
-    return await this.productService.findAllWithCountByStoreId({ storeId });
+  async findAllWithTotalCountByStoreId(@Query('storeId') storeId: string) {
+    return await this.productService.findAllWithTotalCountByStoreId({
+      storeId,
+    });
   }
 
   @Post()
