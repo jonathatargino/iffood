@@ -20,7 +20,10 @@ export class StoreService {
   ) {}
 
   async findAll(filters: FindAllStoreFilters) {
-    const stores = await this.storeRepository.findAll(filters);
+    const stores =
+      await this.storeRepository.findAllActiveWithPositiveProductOptions(
+        filters,
+      );
     return stores;
   }
 

@@ -12,7 +12,7 @@ export class StoreRepository {
     private readonly dataSource: DataSource,
   ) {}
 
-  async findAll(filters: FindAllStoreFilters) {
+  async findAllActiveWithPositiveProductOptions(filters: FindAllStoreFilters) {
     const queryBuilder = this.typeormStoreRepository
       .createQueryBuilder('store')
       .leftJoin('store.products', 'product')
