@@ -1,4 +1,4 @@
-import { CreateProductCoreDto } from '../product.core.dto';
+import { CreateProductCoreDto } from './product.core.dto';
 
 export interface RepositoryCreateProductDto extends CreateProductCoreDto {
   photoUrl: string;
@@ -10,9 +10,7 @@ export interface ProductWithCounts {
   name: string;
   description: string;
   photoUrl: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
+  category: string;
   productOptionsCount: number;
   accumulativeProductOptionsCount: number;
 }

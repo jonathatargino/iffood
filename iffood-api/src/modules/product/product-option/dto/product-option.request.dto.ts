@@ -9,38 +9,36 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ProductOptionStatus } from './product-option.core.dto';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreateProductOptionRequestDto {
+class ProductOptionBaseRequestDto {
+  @ApiProperty({ type: Number })
   @Transform(({ value }) => Number(value))
   @IsNumber()
   @IsInt()
   quantity: number;
 
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
   name: string;
 }
 
-export class UpdateProductOptionRequestDto {
+export class CreateProductOptionRequestDto extends ProductOptionBaseRequestDto {}
+
+export class UpdateProductOptionRequestDto extends ProductOptionBaseRequestDto {
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Product option ID, if updating an existing option. If not present, a new option will be created.',
+  })
   @IsString()
   @IsUUID()
   @IsOptional()
   id?: string;
 
-  @Transform(({ value }) => Number(value))
-  @IsNumber()
-  @IsInt()
-  quantity: number;
-
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
+  @ApiProperty({ enum: ProductOptionStatus })
   @IsString()
   @IsEnum(ProductOptionStatus)
   status: ProductOptionStatus;
-
-  createdAt?: Date;
-  updatedAt?: Date;
-  deletedAt?: Date;
 }

@@ -2,7 +2,7 @@ import {
   BaseProductCoreDto,
   CreateProductCoreDto,
   UpdateProductCoreDto,
-} from '../product.core.dto';
+} from './product.core.dto';
 
 interface ServiceBaseProductDto extends BaseProductCoreDto {
   photoBuffer: Buffer;

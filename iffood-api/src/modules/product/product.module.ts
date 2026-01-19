@@ -8,10 +8,16 @@ import { Product } from './product.entity';
 import { ImagesModule } from '../../infra/images/images.module';
 import { AuthModule } from '../auth/auth.module';
 import { ProductMapper } from './product.mapper';
+import { ProductOptionMapper } from './product-option/product-option.mapper';
 
 @Module({
   controllers: [ProductController],
-  providers: [ProductService, ProductRepository, ProductMapper],
+  providers: [
+    ProductService,
+    ProductRepository,
+    ProductMapper,
+    ProductOptionMapper,
+  ],
   imports: [
     TypeOrmModule.forFeature([Product]),
     ImagesModule,

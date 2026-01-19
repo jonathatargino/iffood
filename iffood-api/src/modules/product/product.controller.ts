@@ -17,15 +17,26 @@ import { AuthGuard } from '../../common/guards/auth.guard';
 import { UserId } from '../../common/decorators/user-id';
 import {
   CreateProductRequestBodyDto,
+  FindAllProductQueryDto,
+  ProductDashboardQueryDto,
+  SwaggerCreateProductRequestBodyDto,
+  SwaggerUpdateProductRequestBodyDto,
   UpdateProductRequestBodyDto,
 } from './dto/product.request.dto';
 import { ProductService } from './product.service';
-import { ProductCategory } from './product.entity';
 import { ProductMapper } from './product.mapper';
-import { ApiOkResponse, ApiResponse } from '@nestjs/swagger';
 import {
+  ApiBody,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiResponse,
+} from '@nestjs/swagger';
+import {
+  ProductDashboardResponseDto,
   ProductDetailsResponseDto,
   ProductListResponseDto,
+  SingleProductResponseDto,
+  SingleProductWithStoreResponseDto,
 } from './dto/product.response.dto';
 
 @Controller('product')
@@ -38,13 +49,16 @@ export class ProductController {
   @ApiOkResponse({ type: [ProductListResponseDto] })
   @Get()
   async findAll(
-    @Query('storeId') storeId: string,
-    @Query('page') page: number = 1,
-    @Query('pageSize') pageSize: number = 20,
-    @Query('name') name?: string,
-    @Query('category') category?: ProductCategory,
-    @Query('weekday') weekday?: string,
-    @Query('hours') hours?: string,
+    @Query()
+    {
+      page,
+      pageSize,
+      category,
+      hours,
+      name,
+      storeId,
+      weekday,
+    }: FindAllProductQueryDto,
   ) {
     return this.productMapper.toListDto(
       await this.productService.findAllByStoreId({
@@ -53,19 +67,35 @@ export class ProductController {
         name,
         storeId,
         category,
-        weekday: weekday ? parseInt(weekday, 10) : undefined,
+        weekday: weekday,
         hours,
       }),
     );
   }
 
-  @Get('dashboard')
-  async findAllWithTotalCountByStoreId(@Query('storeId') storeId: string) {
-    return await this.productService.findAllWithTotalCountByStoreId({
-      storeId,
-    });
+  @ApiResponse({ type: ProductDetailsResponseDto })
+  @Get(':id')
+  async findById(@Param('id', ParseUUIDPipe) productId: string) {
+    return this.productMapper.toDetailsDto(
+      await this.productService.findById({ productId }),
+    );
   }
 
+  @ApiOkResponse({ type: [ProductDashboardResponseDto] })
+  @Get('dashboard')
+  async findAllWithTotalCountByStoreId(
+    @Query() { storeId }: ProductDashboardQueryDto,
+  ) {
+    return this.productMapper.toDashboardDto(
+      await this.productService.findAllWithTotalCountByStoreId({
+        storeId,
+      }),
+    );
+  }
+
+  @ApiConsumes('multipart/form-data')
+  @ApiOkResponse({ type: SingleProductWithStoreResponseDto })
+  @ApiBody({ type: SwaggerCreateProductRequestBodyDto })
   @Post()
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('photo'))
@@ -74,22 +104,18 @@ export class ProductController {
     @UploadedFile() photo: Express.Multer.File,
     @UserId() userId: string,
   ) {
-    return await this.productService.createProductWithOptions({
-      ...body,
-      photoBuffer: photo.buffer,
-      userId,
-    });
+    return this.productMapper.toWithStoreDto(
+      await this.productService.createProductWithOptions({
+        ...body,
+        photoBuffer: photo.buffer,
+        userId,
+      }),
+    );
   }
 
-  @Delete(':id')
-  @UseGuards(AuthGuard)
-  async deleteProduct(
-    @Param('id', ParseUUIDPipe) productId: string,
-    @UserId() userId: string,
-  ) {
-    return await this.productService.delete({ productId, userId });
-  }
-
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: SwaggerUpdateProductRequestBodyDto })
+  @ApiOkResponse({ type: SingleProductResponseDto })
   @Put(':id')
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('photo'))
@@ -99,23 +125,26 @@ export class ProductController {
     @UploadedFile() photo: Express.Multer.File,
     @UserId() userId: string,
   ) {
-    return await this.productService.updateProductWithOptions({
-      id: id,
-      description: body.description,
-      name: body.name,
-      productOptions: body.productOptions,
-      value: body.value,
-      photoBuffer: photo.buffer,
-      userId,
-      category: body.category,
-    });
+    return this.productMapper.toDto(
+      await this.productService.updateProductWithOptions({
+        id: id,
+        description: body.description,
+        name: body.name,
+        productOptions: body.productOptions,
+        value: body.value,
+        photoBuffer: photo.buffer,
+        userId,
+        category: body.category,
+      }),
+    );
   }
 
-  @ApiResponse({ type: ProductDetailsResponseDto })
-  @Get(':id')
-  async findById(@Param('id', ParseUUIDPipe) productId: string) {
-    return this.productMapper.toDetailsDto(
-      await this.productService.findById({ productId }),
-    );
+  @Delete(':id')
+  @UseGuards(AuthGuard)
+  async deleteProduct(
+    @Param('id', ParseUUIDPipe) productId: string,
+    @UserId() userId: string,
+  ) {
+    await this.productService.delete({ productId, userId });
   }
 }

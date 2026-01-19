@@ -1,7 +1,6 @@
 export enum ProductOptionStatus {
   Updated = 'updated',
   Deleted = 'deleted',
-  New = 'new',
 }
 
 export interface CreateProductOptionCoreDto {

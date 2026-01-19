@@ -152,9 +152,7 @@ export class ProductRepository {
       .addSelect('product.name', 'name')
       .addSelect('product.description', 'description')
       .addSelect('product.photo_url', 'photoUrl')
-      .addSelect('product.created_at', 'createdAt')
-      .addSelect('product.updated_at', 'updatedAt')
-      .addSelect('product.deleted_at', 'deletedAt')
+      .addSelect('product.category', 'category')
       .addSelect('COUNT(productOption.id)', 'productOptionsCount')
       .addSelect(
         'COALESCE(SUM(productOption.quantity), 0)',
@@ -168,22 +166,18 @@ export class ProductRepository {
       name: string;
       description: string;
       photoUrl: string;
-      createdAt: Date;
-      updatedAt: Date;
-      deletedAt: Date | null;
       productOptionsCount: string;
       accumulativeProductOptionsCount: string;
+      category: string;
     }>();
 
     const products: ProductWithCounts[] = rawProducts.map((p) => ({
       id: p.id,
       value: p.value,
       name: p.name,
+      category: p.category,
       description: p.description,
       photoUrl: p.photoUrl,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
-      deletedAt: p.deletedAt ?? undefined,
       productOptionsCount: parseInt(p.productOptionsCount, 10),
       accumulativeProductOptionsCount: parseInt(
         p.accumulativeProductOptionsCount,
