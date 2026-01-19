@@ -15,10 +15,18 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { UserId } from '../../common/decorators/user-id';
-import { CreateProductDto, UpdateProductDto } from './product.dto';
+import {
+  CreateProductRequestBodyDto,
+  UpdateProductRequestBodyDto,
+} from './dto/product.request.dto';
 import { ProductService } from './product.service';
 import { ProductCategory } from './product.entity';
 import { ProductMapper } from './product.mapper';
+import { ApiOkResponse, ApiResponse } from '@nestjs/swagger';
+import {
+  ProductDetailsResponseDto,
+  ProductListResponseDto,
+} from './dto/product.response.dto';
 
 @Controller('product')
 export class ProductController {
@@ -27,6 +35,7 @@ export class ProductController {
     private readonly productMapper: ProductMapper,
   ) {}
 
+  @ApiOkResponse({ type: [ProductListResponseDto] })
   @Get()
   async findAll(
     @Query('storeId') storeId: string,
@@ -61,13 +70,13 @@ export class ProductController {
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('photo'))
   async createProduct(
-    @Body() body: CreateProductDto,
+    @Body() body: CreateProductRequestBodyDto,
     @UploadedFile() photo: Express.Multer.File,
     @UserId() userId: string,
   ) {
     return await this.productService.createProductWithOptions({
       ...body,
-      photo,
+      photoBuffer: photo.buffer,
       userId,
     });
   }
@@ -86,7 +95,7 @@ export class ProductController {
   @UseInterceptors(FileInterceptor('photo'))
   async updateProduct(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: UpdateProductDto,
+    @Body() body: UpdateProductRequestBodyDto,
     @UploadedFile() photo: Express.Multer.File,
     @UserId() userId: string,
   ) {
@@ -96,12 +105,13 @@ export class ProductController {
       name: body.name,
       productOptions: body.productOptions,
       value: body.value,
-      photo,
+      photoBuffer: photo.buffer,
       userId,
       category: body.category,
     });
   }
 
+  @ApiResponse({ type: ProductDetailsResponseDto })
   @Get(':id')
   async findById(@Param('id', ParseUUIDPipe) productId: string) {
     return this.productMapper.toDetailsDto(

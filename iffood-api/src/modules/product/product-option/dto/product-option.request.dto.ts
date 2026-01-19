@@ -8,13 +8,9 @@ import {
   IsUUID,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { ProductOptionStatus } from './product-option.core.dto';
 
-export enum ProductOptionStatus {
-  Updated = 'updated',
-  Deleted = 'deleted',
-  New = 'new',
-}
-export class CreateProductOptionDto {
+export class CreateProductOptionRequestDto {
   @Transform(({ value }) => Number(value))
   @IsNumber()
   @IsInt()
@@ -25,7 +21,7 @@ export class CreateProductOptionDto {
   name: string;
 }
 
-export class UpdateProductOptionDto {
+export class UpdateProductOptionRequestDto {
   @IsString()
   @IsUUID()
   @IsOptional()
@@ -34,11 +30,11 @@ export class UpdateProductOptionDto {
   @Transform(({ value }) => Number(value))
   @IsNumber()
   @IsInt()
-  quantity?: number;
+  quantity: number;
 
   @IsString()
   @IsNotEmpty()
-  name?: string;
+  name: string;
 
   @IsString()
   @IsEnum(ProductOptionStatus)

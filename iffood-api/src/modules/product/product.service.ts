@@ -3,21 +3,21 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  CreateProductWithPhotoAndUserIdDto,
-  FindAllProductFilters,
-  UpdateProductWithPhotoAndUserIdDto,
-} from './product.dto';
+import { FindAllProductFilters } from './dto/product.request.dto';
 import { ProductRepository } from './product.repository';
 import { StoreUserService } from '../store/store-user/store-user.service';
 import { DataSource, EntityManager } from 'typeorm';
 import { Product } from './product.entity';
-import {
-  ProductOptionStatus,
-  UpdateProductOptionDto,
-} from './product-option/product-option.dto';
 import { ProductOption } from './product-option/product-option.entity';
 import { ImagesService } from '../../infra/images/images.service';
+import {
+  ServiceCreateProductDto,
+  ServiceUpdateProductDto,
+} from './dto/product.service.dto';
+import {
+  ProductOptionStatus,
+  UpdateProductOptionCoreDto,
+} from './product-option/dto/product-option.core.dto';
 
 @Injectable()
 export class ProductService {
@@ -46,7 +46,7 @@ export class ProductService {
     return result;
   }
 
-  async createProductWithOptions(dto: CreateProductWithPhotoAndUserIdDto) {
+  async createProductWithOptions(dto: ServiceCreateProductDto) {
     const isAllowed = await this.storeUserService.isUserStoreMember({
       storeId: dto.storeId,
       userProfileId: dto.userId,
@@ -56,7 +56,7 @@ export class ProductService {
       throw new ForbiddenException();
     }
 
-    const photoUrl = await this.imageService.upload(dto.photo.buffer);
+    const photoUrl = await this.imageService.upload(dto.photoBuffer);
 
     const result = await this.productRepository.create({
       description: dto.description,
@@ -71,9 +71,9 @@ export class ProductService {
     return result;
   }
 
-  async updateProductWithOptions(dto: UpdateProductWithPhotoAndUserIdDto) {
-    const newPhotoUrl = dto.photo
-      ? await this.imageService.upload(dto.photo.buffer)
+  async updateProductWithOptions(dto: ServiceUpdateProductDto) {
+    const newPhotoUrl = dto.photoBuffer
+      ? await this.imageService.upload(dto.photoBuffer)
       : undefined;
 
     return this.dataSource.transaction(async (entityManager) => {
@@ -116,7 +116,7 @@ export class ProductService {
     entityManager,
   }: {
     product: Product;
-    productOptionsChanges: UpdateProductOptionDto[];
+    productOptionsChanges: UpdateProductOptionCoreDto[];
     entityManager: EntityManager;
   }) {
     const { newProductOptions, existentProductOptionsChangesById } =
@@ -152,12 +152,12 @@ export class ProductService {
   }
 
   private splitNewAndExistingProductOptionsChanges(
-    productOptionsChanges: UpdateProductOptionDto[],
+    productOptionsChanges: UpdateProductOptionCoreDto[],
   ) {
-    const newProductOptions: UpdateProductOptionDto[] = [];
+    const newProductOptions: UpdateProductOptionCoreDto[] = [];
     const existentProductOptionsChangesById: Record<
       string,
-      UpdateProductOptionDto
+      UpdateProductOptionCoreDto
     > = {};
 
     for (const option of productOptionsChanges) {
@@ -178,7 +178,7 @@ export class ProductService {
     entityManager,
   }: {
     product: Product;
-    newProductOptions: UpdateProductOptionDto[];
+    newProductOptions: UpdateProductOptionCoreDto[];
     entityManager: EntityManager;
   }) {
     for (const newOption of newProductOptions) {

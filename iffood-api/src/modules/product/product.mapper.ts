@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   ProductDetailsResponseDto,
   ProductListResponseDto,
-} from './product.response.dto';
+} from './dto/product.response.dto';
 import { Product } from './product.entity';
 
 @Injectable()
