@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsMilitaryTime, IsNumber, IsString } from 'class-validator';
-import { IsInt } from 'class-validator/types/decorator/typechecker/IsInt';
+import { IsMilitaryTime, IsNumber, IsString, IsInt } from 'class-validator';
 
 export class ListItemStoreAvailabilityResponseDtoUnit {
   @ApiProperty({ format: 'uuid' })
