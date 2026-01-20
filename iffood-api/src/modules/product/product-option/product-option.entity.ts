@@ -23,7 +23,7 @@ export class ProductOption {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ name: 'quantity' })
   private _quantity: number;
 
   get quantity(): number {
@@ -43,6 +43,7 @@ export class ProductOption {
 
   @Column({
     length: PRODUCT_OPTION_CONSTRAINTS.NAME_MAX,
+    name: 'name',
   })
   private _name: string;
 
