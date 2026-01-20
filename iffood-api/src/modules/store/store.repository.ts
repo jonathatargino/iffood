@@ -3,7 +3,7 @@ import { DataSource, Repository } from 'typeorm';
 import { Store } from './store.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StoreUser } from './store-user/store-user.entity';
-import { FindAllStoreFilters } from './dto/store.dto';
+import { FindAllStoreFilters } from './dto/store.core.dto';
 
 @Injectable()
 export class StoreRepository {
@@ -99,11 +99,6 @@ export class StoreRepository {
           userProfile: {
             id: userId,
           },
-        },
-      },
-      relations: {
-        storeUsers: {
-          userProfile: true,
         },
       },
     });

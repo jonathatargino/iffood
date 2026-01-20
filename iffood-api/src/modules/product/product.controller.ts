@@ -36,7 +36,7 @@ import {
   ProductDetailsResponseDto,
   ProductListResponseDto,
   SingleProductResponseDto,
-  SingleProductWithStoreResponseDto,
+  SingleProductWithBaseStoreResponseDto,
 } from './dto/product.response.dto';
 
 @Controller('product')
@@ -94,7 +94,7 @@ export class ProductController {
   }
 
   @ApiConsumes('multipart/form-data')
-  @ApiOkResponse({ type: SingleProductWithStoreResponseDto })
+  @ApiOkResponse({ type: SingleProductWithBaseStoreResponseDto })
   @ApiBody({ type: SwaggerCreateProductRequestBodyDto })
   @Post()
   @UseGuards(AuthGuard)

@@ -1,27 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ProductOptionResponseDto } from '../product-option/dto/product-option.response.dto';
+import { BaseStoreResponseDto } from '../../store/dto/store.response.dto';
 
-class StoreResponseDto {
-  @ApiProperty({ format: 'uuid' })
-  id: string;
-
-  @ApiProperty()
-  name: string;
-
-  @ApiProperty()
-  description: string;
-
-  @ApiProperty()
-  whatsapp: string;
-
-  @ApiProperty()
-  photoUrl: string;
-
-  @ApiProperty()
-  status: boolean;
-}
-
-class BaseProductResponseDto {
+export class BaseProductResponseDto {
   @ApiProperty({ format: 'uuid' })
   id: string;
 
@@ -42,8 +23,8 @@ class BaseProductResponseDto {
 }
 
 export class ProductDetailsResponseDto extends BaseProductResponseDto {
-  @ApiProperty({ type: StoreResponseDto })
-  store: StoreResponseDto;
+  @ApiProperty({ type: BaseStoreResponseDto })
+  store: BaseStoreResponseDto;
 
   @ApiProperty({ type: [ProductOptionResponseDto] })
   productOptions: ProductOptionResponseDto[];
@@ -91,7 +72,7 @@ export class SingleProductResponseDto extends BaseProductResponseDto {
   productOptions: ProductOptionResponseDto[];
 }
 
-export class SingleProductWithStoreResponseDto extends SingleProductResponseDto {
-  @ApiProperty({ type: StoreResponseDto })
-  store: StoreResponseDto;
+export class SingleProductWithBaseStoreResponseDto extends SingleProductResponseDto {
+  @ApiProperty({ type: BaseStoreResponseDto })
+  store: BaseStoreResponseDto;
 }

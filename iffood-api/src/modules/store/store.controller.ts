@@ -15,40 +15,72 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 import { StoreService } from './store.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { UserId } from '../../common/decorators/user-id';
+import {
+  CreateStoreRequestDto,
+  FindAllStoresQueryDto,
+  SwaggerCreateStoreRequestDto,
+  SwaggerUpdateStoreRequestDto,
+  UpdateStoreRequestDto,
+} from './dto/store.request.dto';
+import { StoreMapper } from './store.mapper';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOkResponse,
+  getSchemaPath,
+} from '@nestjs/swagger';
+import {
+  BaseStoreResponseDto,
+  IsAvailableStoreResponseDto,
+  PaginatedStoresResponseDto,
+  StoreWithProductsResponseDto,
+} from './dto/store.response.dto';
+import { StoreBaseMapper } from './store.base.mapper';
 
 @Controller({
   path: 'store',
 })
 export class StoreController {
-  constructor(private storeService: StoreService) {}
+  constructor(
+    private storeService: StoreService,
+    private storeMapper: StoreMapper,
+    private storeBaseMapper: StoreBaseMapper,
+  ) {}
 
+  @ApiOkResponse({ type: PaginatedStoresResponseDto })
   @Get()
   async findAll(
-    @Query('name') name?: string,
-    @Query('pageSize') pageSize: number = 20,
-    @Query('page') page: number = 1,
-    @Query('weekday') weekday?: string,
-    @Query('hours') hours?: string,
+    @Query() { page, pageSize, hours, name, weekday }: FindAllStoresQueryDto,
   ) {
-    return this.storeService.findAll({
-      name,
-      pageSize,
-      page,
-      weekday: weekday !== undefined ? Number(weekday) : undefined,
-      hours,
-    });
+    return this.storeMapper.toPaginatedDto(
+      await this.storeService.findAll({
+        name,
+        pageSize,
+        page,
+        weekday,
+        hours,
+      }),
+    );
   }
 
+  @ApiOkResponse({
+    schema: {
+      type: 'array',
+      items: { $ref: getSchemaPath(BaseStoreResponseDto) },
+    },
+  })
   @Get('me')
   @UseGuards(AuthGuard)
   async findMyStore(@UserId() userId: string) {
-    return this.storeService.findByUserId(userId);
+    return this.storeBaseMapper.toListDto(
+      await this.storeService.findByUserId(userId),
+    );
   }
 
+  @ApiOkResponse({ type: IsAvailableStoreResponseDto })
   @Get('available')
   async findThereIsAvailableStore(
     @Query('weekday', ParseIntPipe) weekday: number,
@@ -60,27 +92,34 @@ export class StoreController {
     });
   }
 
+  @ApiOkResponse({ type: StoreWithProductsResponseDto })
   @Get(':id')
   async findById(@Param('id', ParseUUIDPipe) storeId: string) {
-    const store = await this.storeService.findById(storeId);
-    return store;
+    return this.storeMapper.toDtoWithProducts(
+      await this.storeService.findById(storeId),
+    );
   }
 
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: SwaggerCreateStoreRequestDto })
+  @ApiOkResponse({ type: BaseStoreResponseDto })
   @Post()
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('photo'))
   async create(
-    @Body() body: CreateStoreDto,
+    @Body() body: CreateStoreRequestDto,
     @UploadedFile() photo: Express.Multer.File,
     @UserId() userId: string,
   ) {
-    return await this.storeService.create({
-      description: body.description,
-      name: body.name,
-      whatsapp: body.whatsapp,
-      photoBuffer: photo.buffer,
-      userId,
-    });
+    return this.storeBaseMapper.toDto(
+      await this.storeService.create({
+        description: body.description,
+        name: body.name,
+        whatsapp: body.whatsapp,
+        photoBuffer: photo.buffer,
+        userId,
+      }),
+    );
   }
 
   @Delete(':id')
@@ -92,10 +131,12 @@ export class StoreController {
     return await this.storeService.delete({ userId, storeId });
   }
 
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: SwaggerUpdateStoreRequestDto })
   @Put(':id')
   @UseGuards(AuthGuard)
   async update(
-    @Body() body: UpdateStoreDto,
+    @Body() body: UpdateStoreRequestDto,
     @UserId() userId: string,
     @Param('id', ParseUUIDPipe) storeId: string,
   ) {

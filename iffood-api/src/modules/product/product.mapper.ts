@@ -4,15 +4,19 @@ import {
   ProductDetailsResponseDto,
   ProductListResponseDto,
   SingleProductResponseDto,
-  SingleProductWithStoreResponseDto,
+  SingleProductWithBaseStoreResponseDto,
 } from './dto/product.response.dto';
 import { Product } from './product.entity';
 import { ProductWithCounts } from './dto/product.repository.dto';
 import { ProductOptionMapper } from './product-option/product-option.mapper';
+import { StoreBaseMapper } from '../store/store.base.mapper';
 
 @Injectable()
 export class ProductMapper {
-  constructor(private readonly productOptionMapper: ProductOptionMapper) {}
+  constructor(
+    private readonly productOptionMapper: ProductOptionMapper,
+    private readonly storeBaseMapper: StoreBaseMapper,
+  ) {}
 
   toDto(product: Product): SingleProductResponseDto {
     return {
@@ -28,7 +32,7 @@ export class ProductMapper {
     };
   }
 
-  toWithStoreDto(product: Product): SingleProductWithStoreResponseDto {
+  toWithStoreDto(product: Product): SingleProductWithBaseStoreResponseDto {
     return {
       category: product.category,
       description: product.description,
@@ -39,14 +43,7 @@ export class ProductMapper {
       productOptions: product.productOptions.map((option) =>
         this.productOptionMapper.toDto(option),
       ),
-      store: {
-        id: product.store.id,
-        name: product.store.name,
-        description: product.store.description,
-        whatsapp: product.store.whatsapp,
-        photoUrl: product.store.photoUrl,
-        status: product.store.status,
-      },
+      store: this.storeBaseMapper.toDto(product.store),
     };
   }
 
