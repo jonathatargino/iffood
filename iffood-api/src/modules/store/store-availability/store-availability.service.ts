@@ -2,8 +2,8 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { Store } from '../store.entity';
 import { StoreAvailabilityRepository } from './store-availability.repository';
-import { UpdateStoreAvailabilityWithUserIdDto } from './store-availability.dto';
 import { StoreAvailability } from './store-availability.entity';
+import { ServiceUpdateStoreAvailabilityDto } from './dto/store-availability.service.dto';
 
 @Injectable()
 export class StoreAvailabilityService {
@@ -22,7 +22,7 @@ export class StoreAvailabilityService {
     storeId,
     userId,
     availabilities,
-  }: UpdateStoreAvailabilityWithUserIdDto) {
+  }: ServiceUpdateStoreAvailabilityDto) {
     return this.dataSource.transaction(async (entityManager) => {
       const store = await entityManager.findOne(Store, {
         where: {
@@ -50,7 +50,7 @@ export class StoreAvailabilityService {
         });
       });
 
-      await entityManager.save(StoreAvailability, newAvailabilities);
+      return await entityManager.save(StoreAvailability, newAvailabilities);
     });
   }
 }

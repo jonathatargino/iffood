@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   CreateDateColumn,
   Entity,
@@ -8,7 +9,14 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Store } from '../store.entity';
+import { STORE_AVAILABILITY_CONSTRAINTS } from '../../../common/validation/constraints/store-availability-constraints';
+import { InvalidStoreAvailabilityWeekdayError } from './domain/errors/invalid-store-availability-weekday.error';
+import { InvalidStoreAvailabilityStartError } from './domain/errors/invalid-store-availability-start.error';
+import { InvalidStoreAvailabilityEndError } from './domain/errors/invalid-store-availability-end.error';
 
+@Check(
+  `"weekday" >= ${STORE_AVAILABILITY_CONSTRAINTS.WEEKDAY_MIN} AND "weekday" <= ${STORE_AVAILABILITY_CONSTRAINTS.WEEKDAY_MAX}`,
+)
 @Entity({
   name: 'store_availabilities',
 })
@@ -16,14 +24,53 @@ export class StoreAvailability {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  weekday: number;
+  @Column({ name: 'weekday' })
+  private _weekday: number;
 
-  @Column({ type: 'time' })
-  start: string;
+  get weekday(): number {
+    return this._weekday;
+  }
 
-  @Column({ type: 'time' })
-  end: string;
+  changeWeekday(weekday: number): void {
+    if (
+      weekday < STORE_AVAILABILITY_CONSTRAINTS.WEEKDAY_MIN ||
+      weekday > STORE_AVAILABILITY_CONSTRAINTS.WEEKDAY_MAX
+    ) {
+      throw new InvalidStoreAvailabilityWeekdayError(weekday);
+    }
+
+    this._weekday = weekday;
+  }
+
+  @Column({ type: 'time', name: 'start' })
+  private _start: string;
+
+  get start(): string {
+    return this._start;
+  }
+
+  changeStart(start: string): void {
+    if (start.length !== STORE_AVAILABILITY_CONSTRAINTS.START_LENGTH) {
+      throw new InvalidStoreAvailabilityStartError(start);
+    }
+
+    this._start = start;
+  }
+
+  @Column({ type: 'time', name: 'end' })
+  private _end: string;
+
+  get end(): string {
+    return this._end;
+  }
+
+  changeEnd(end: string): void {
+    if (end.length !== STORE_AVAILABILITY_CONSTRAINTS.END_LENGTH) {
+      throw new InvalidStoreAvailabilityEndError(end);
+    }
+
+    this._end = end;
+  }
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

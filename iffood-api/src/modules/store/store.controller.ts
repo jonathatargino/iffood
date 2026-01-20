@@ -15,7 +15,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CreateStoreDto, UpdateStoreDto } from './store.dto';
+import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 import { StoreService } from './store.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { UserId } from '../../common/decorators/user-id';

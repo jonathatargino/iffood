@@ -1,0 +1,6 @@
+export const STORE_AVAILABILITY_CONSTRAINTS = {
+  WEEKDAY_MIN: 0,
+  WEEKDAY_MAX: 6,
+  START_LENGTH: 5,
+  END_LENGTH: 5,
+} as const;
