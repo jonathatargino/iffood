@@ -1,4 +1,4 @@
-import { Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Check, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import {
   Column,
   CreateDateColumn,
@@ -8,7 +8,14 @@ import {
 } from 'typeorm';
 import { Product } from '../product.entity';
 import { applyPatch } from '../../../common/domain/apply-patch';
+import { PRODUCT_OPTION_CONSTRAINTS } from '../../../common/validation/constraints/product-option-constraints';
+import { InvalidProductOptionNameError } from './domain/invalid-product-option-name.error';
+import { InvalidProductOptionQuantityError } from './domain/invalid-product-option-quantity.error';
 
+@Check(
+  `"quantity" >= ${PRODUCT_OPTION_CONSTRAINTS.QUANTITY_MIN} AND "quantity" <= ${PRODUCT_OPTION_CONSTRAINTS.QUANTITY_MAX}`,
+)
+@Check(`LENGTH("name") >= ${PRODUCT_OPTION_CONSTRAINTS.NAME_MIN}`)
 @Entity({
   name: 'product_options',
 })
@@ -17,10 +24,42 @@ export class ProductOption {
   id: string;
 
   @Column()
-  quantity: number;
+  private _quantity: number;
 
-  @Column()
-  name: string;
+  get quantity(): number {
+    return this._quantity;
+  }
+
+  changeQuantity(quantity: number): void {
+    if (
+      quantity < PRODUCT_OPTION_CONSTRAINTS.QUANTITY_MIN ||
+      quantity > PRODUCT_OPTION_CONSTRAINTS.QUANTITY_MAX
+    ) {
+      throw new InvalidProductOptionQuantityError(quantity);
+    }
+
+    this._quantity = quantity;
+  }
+
+  @Column({
+    length: PRODUCT_OPTION_CONSTRAINTS.NAME_MAX,
+  })
+  private _name: string;
+
+  get name(): string {
+    return this._name;
+  }
+
+  changeName(name: string): void {
+    if (
+      name.length < PRODUCT_OPTION_CONSTRAINTS.NAME_MIN ||
+      name.length > PRODUCT_OPTION_CONSTRAINTS.NAME_MAX
+    ) {
+      throw new InvalidProductOptionNameError(name);
+    }
+
+    this._name = name;
+  }
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -39,14 +78,14 @@ export class ProductOption {
     applyPatch<string>({
       fieldName: 'name',
       value: data.name,
-      set: (value) => (this.name = value),
+      set: (value) => this.changeName(value),
       allowNull: false,
     });
 
     applyPatch<number>({
       fieldName: 'quantity',
       value: data.quantity,
-      set: (value) => (this.quantity = value),
+      set: (value) => this.changeQuantity(value),
       allowNull: false,
     });
   }

@@ -27,6 +27,8 @@ type UpdateProductDetailsInput = Partial<
 @Check(
   `"value" >= ${PRODUCT_CONSTRAINTS.VALUE_MIN} AND "value" <= ${PRODUCT_CONSTRAINTS.VALUE_MAX}`,
 )
+@Check(`LENGTH("name") >= ${PRODUCT_CONSTRAINTS.NAME_MIN}`)
+@Check(`LENGTH("description") >= ${PRODUCT_CONSTRAINTS.DESCRIPTION_MIN}`)
 @Entity({
   name: 'products',
 })

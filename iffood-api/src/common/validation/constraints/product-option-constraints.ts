@@ -1,0 +1,6 @@
+export const PRODUCT_OPTION_CONSTRAINTS = {
+  NAME_MIN: 3,
+  NAME_MAX: 60,
+  QUANTITY_MIN: 0,
+  QUANTITY_MAX: 500,
+} as const;
