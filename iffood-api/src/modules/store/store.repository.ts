@@ -1,15 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Store } from './store.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { StoreUser } from './store-user/store-user.entity';
 import { FindAllStoreFilters } from './dto/store.core.dto';
 
 @Injectable()
 export class StoreRepository {
   constructor(
     @InjectRepository(Store) private typeormStoreRepository: Repository<Store>,
-    private readonly dataSource: DataSource,
   ) {}
 
   async findAllActiveWithPositiveProductOptions(filters: FindAllStoreFilters) {
@@ -101,39 +99,6 @@ export class StoreRepository {
           },
         },
       },
-    });
-  }
-
-  async create({
-    data,
-    userId,
-  }: {
-    data: Partial<Store>;
-    userId: string;
-  }): Promise<Store> {
-    return this.dataSource.transaction(async (entityManager) => {
-      const createdStore = entityManager.create(Store, {
-        photoUrl: data.photoUrl,
-        name: data.name,
-        description: data.description,
-        whatsapp: data.whatsapp,
-        status: true,
-      });
-
-      await entityManager.save(createdStore);
-
-      const createdStoreUser = entityManager.create(StoreUser, {
-        store: {
-          id: createdStore.id,
-        },
-        userProfile: {
-          id: userId,
-        },
-      });
-
-      await entityManager.save(createdStoreUser);
-
-      return createdStore;
     });
   }
 

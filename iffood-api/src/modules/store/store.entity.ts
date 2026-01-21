@@ -89,7 +89,7 @@ export class Store {
     this._photoUrl = photoUrl;
   }
 
-  @Column()
+  @Column({ default: true })
   status: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

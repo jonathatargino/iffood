@@ -4,12 +4,15 @@ import { StoreRepository } from './store.repository';
 import { ImagesService } from '../../infra/images/images.service';
 import { FindAllStoreFilters } from './dto/store.core.dto';
 import { ServiceCreateStoreDto } from './dto/store.service.dto';
+import { DataSource } from 'typeorm';
+import { StoreUser } from './store-user/store-user.entity';
 
 @Injectable()
 export class StoreService {
   constructor(
     private readonly storeRepository: StoreRepository,
     private imageService: ImagesService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findAll(filters: FindAllStoreFilters) {
@@ -50,17 +53,27 @@ export class StoreService {
   async create(store: ServiceCreateStoreDto): Promise<Store> {
     const photoUrl = await this.imageService.upload(store.photoBuffer);
 
-    const createdStore = await this.storeRepository.create({
-      data: {
+    return this.dataSource.transaction(async (entityManager) => {
+      const createdStore = entityManager.create(Store, {
+        photoUrl: photoUrl,
         name: store.name,
         description: store.description,
         whatsapp: store.whatsapp,
-        photoUrl,
-      },
-      userId: store.userId,
-    });
+      });
 
-    return createdStore;
+      await entityManager.save(createdStore);
+
+      const createdStoreUser = entityManager.create(StoreUser, {
+        store: createdStore,
+        userProfile: {
+          id: store.userId,
+        },
+      });
+
+      await entityManager.save(createdStoreUser);
+
+      return createdStore;
+    });
   }
 
   async update({
