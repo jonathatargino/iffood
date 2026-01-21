@@ -91,3 +91,8 @@ export class FindAllStoresQueryDto implements FindAllStoreFilters {
   @IsOptional()
   hours?: string;
 }
+
+export class StoreUpdatePhotoRequestDto {
+  @ApiProperty({ type: 'string', format: 'binary' })
+  photo: Express.Multer.File;
+}

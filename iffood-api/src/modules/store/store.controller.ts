@@ -21,6 +21,7 @@ import { UserId } from '../../common/decorators/user-id';
 import {
   CreateStoreRequestDto,
   FindAllStoresQueryDto,
+  StoreUpdatePhotoRequestDto,
   SwaggerCreateStoreRequestDto,
   SwaggerUpdateStoreRequestDto,
   UpdateStoreRequestDto,
@@ -155,6 +156,8 @@ export class StoreController {
     });
   }
 
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: StoreUpdatePhotoRequestDto })
   @ApiBearerAuth('access-token')
   @Patch(':id/photo')
   @UseGuards(AuthGuard)
