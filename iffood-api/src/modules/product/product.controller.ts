@@ -26,6 +26,7 @@ import {
 import { ProductService } from './product.service';
 import { ProductMapper } from './product.mapper';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiOkResponse,
@@ -93,6 +94,7 @@ export class ProductController {
     );
   }
 
+  @ApiBearerAuth('access-token')
   @ApiConsumes('multipart/form-data')
   @ApiOkResponse({ type: SingleProductWithBaseStoreResponseDto })
   @ApiBody({ type: SwaggerCreateProductRequestBodyDto })
@@ -113,6 +115,7 @@ export class ProductController {
     );
   }
 
+  @ApiBearerAuth('access-token')
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: SwaggerUpdateProductRequestBodyDto })
   @ApiOkResponse({ type: SingleProductResponseDto })
@@ -139,6 +142,7 @@ export class ProductController {
     );
   }
 
+  @ApiBearerAuth('access-token')
   @Delete(':id')
   @UseGuards(AuthGuard)
   async deleteProduct(

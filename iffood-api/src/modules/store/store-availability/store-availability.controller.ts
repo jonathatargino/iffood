@@ -12,7 +12,7 @@ import { UpdateStoreAvailabilityRequestDto } from './dto/store-availability.requ
 import { UserId } from '../../../common/decorators/user-id';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { StoreAvailabilityMapper } from './store-availability.mapper';
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse } from '@nestjs/swagger';
 import {
   ListStoreAvailabilityResponseDto,
   ListStoreAvailabilityWithStoreIdResponseDto,
@@ -33,6 +33,7 @@ export class StoreAvailabilityController {
     );
   }
 
+  @ApiBearerAuth('access-token')
   @ApiOkResponse({ type: ListStoreAvailabilityWithStoreIdResponseDto })
   @Put('full')
   @UseGuards(AuthGuard)

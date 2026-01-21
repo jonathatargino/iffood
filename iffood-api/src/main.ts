@@ -11,6 +11,16 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('IFood API')
     .setVersion('0.0.1')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        in: 'header',
+      },
+      'access-token',
+    )
     .build();
 
   const documentFactory = () =>

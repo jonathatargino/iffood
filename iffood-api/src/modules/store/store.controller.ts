@@ -27,6 +27,7 @@ import {
 } from './dto/store.request.dto';
 import { StoreMapper } from './store.mapper';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiOkResponse,
@@ -66,6 +67,7 @@ export class StoreController {
     );
   }
 
+  @ApiBearerAuth('access-token')
   @ApiOkResponse({
     schema: {
       type: 'array',
@@ -100,6 +102,7 @@ export class StoreController {
     );
   }
 
+  @ApiBearerAuth('access-token')
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: SwaggerCreateStoreRequestDto })
   @ApiOkResponse({ type: BaseStoreResponseDto })
@@ -122,6 +125,7 @@ export class StoreController {
     );
   }
 
+  @ApiBearerAuth('access-token')
   @Delete(':id')
   @UseGuards(AuthGuard)
   async delete(
@@ -131,6 +135,7 @@ export class StoreController {
     return await this.storeService.delete({ userId, storeId });
   }
 
+  @ApiBearerAuth('access-token')
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: SwaggerUpdateStoreRequestDto })
   @Put(':id')
@@ -150,6 +155,7 @@ export class StoreController {
     });
   }
 
+  @ApiBearerAuth('access-token')
   @Patch(':id/photo')
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('photo'))
