@@ -23,10 +23,10 @@ export class BaseProductResponseDto {
 }
 
 export class ProductDetailsResponseDto extends BaseProductResponseDto {
-  @ApiProperty({ type: BaseStoreResponseDto })
+  @ApiProperty({ type: () => BaseStoreResponseDto })
   store: BaseStoreResponseDto;
 
-  @ApiProperty({ type: [ProductOptionResponseDto] })
+  @ApiProperty({ type: () => ProductOptionResponseDto, isArray: true })
   productOptions: ProductOptionResponseDto[];
 
   @ApiProperty({ type: Number, example: 7 })
@@ -44,7 +44,7 @@ class ProductListItemResponseDto extends BaseProductResponseDto {
 }
 
 export class ProductListResponseDto {
-  @ApiProperty({ type: [ProductListItemResponseDto] })
+  @ApiProperty({ type: () => ProductListItemResponseDto, isArray: true })
   products: ProductListItemResponseDto[];
 
   @ApiProperty({ type: Number, example: 42 })
@@ -60,7 +60,10 @@ class ProductDashboardListItemResponseDto extends BaseProductResponseDto {
 }
 
 export class ProductDashboardResponseDto {
-  @ApiProperty({ type: [ProductDashboardListItemResponseDto] })
+  @ApiProperty({
+    type: () => ProductDashboardListItemResponseDto,
+    isArray: true,
+  })
   products: ProductDashboardListItemResponseDto[];
 
   @ApiProperty({ type: Number, example: 42 })
@@ -68,11 +71,11 @@ export class ProductDashboardResponseDto {
 }
 
 export class SingleProductResponseDto extends BaseProductResponseDto {
-  @ApiProperty({ type: [ProductOptionResponseDto] })
+  @ApiProperty({ type: () => ProductOptionResponseDto, isArray: true })
   productOptions: ProductOptionResponseDto[];
 }
 
 export class SingleProductWithBaseStoreResponseDto extends SingleProductResponseDto {
-  @ApiProperty({ type: BaseStoreResponseDto })
+  @ApiProperty({ type: () => BaseStoreResponseDto })
   store: BaseStoreResponseDto;
 }

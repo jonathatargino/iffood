@@ -22,12 +22,12 @@ export class BaseStoreResponseDto {
 }
 
 export class StoreWithProductsResponseDto extends BaseStoreResponseDto {
-  @ApiProperty({ type: [BaseProductResponseDto] })
+  @ApiProperty({ type: () => BaseProductResponseDto, isArray: true })
   products: BaseProductResponseDto[];
 }
 
 export class PaginatedStoresResponseDto {
-  @ApiProperty({ type: [BaseStoreResponseDto] })
+  @ApiProperty({ type: () => BaseStoreResponseDto, isArray: true })
   stores: BaseStoreResponseDto[];
 
   @ApiProperty({ type: Number, example: 10 })
