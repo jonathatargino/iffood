@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { Store } from '../store.entity';
 import { StoreAvailabilityRepository } from './store-availability.repository';
@@ -23,6 +27,8 @@ export class StoreAvailabilityService {
     userId,
     availabilities,
   }: ServiceUpdateStoreAvailabilityDto) {
+    this.validateAvailabilityArray(availabilities);
+
     return this.dataSource.transaction(async (entityManager) => {
       const store = await entityManager.findOne(Store, {
         where: {
@@ -52,5 +58,28 @@ export class StoreAvailabilityService {
 
       return await entityManager.save(StoreAvailability, newAvailabilities);
     });
+  }
+
+  validateAvailabilityArray(
+    availabilities: ServiceUpdateStoreAvailabilityDto['availabilities'],
+  ) {
+    const availabilityWeekdaySet = new Set<number>();
+
+    for (const currentAvailability of availabilities) {
+      const weekday = currentAvailability.weekday;
+      if (availabilityWeekdaySet.has(weekday)) {
+        throw new BadRequestException(
+          `Duplicate availability for weekday ${weekday}`,
+        );
+      }
+
+      if (currentAvailability.start >= currentAvailability.end) {
+        throw new BadRequestException(
+          `Invalid availability hours for weekday ${weekday}. End time must be after start time.`,
+        );
+      }
+
+      availabilityWeekdaySet.add(weekday);
+    }
   }
 }
