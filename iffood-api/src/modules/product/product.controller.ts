@@ -34,7 +34,7 @@ import {
 import {
   ProductDashboardResponseDto,
   ProductDetailsResponseDto,
-  ProductListResponseDto,
+  PaginatedProductListResponseDto,
   SingleProductResponseDto,
   SingleProductWithBaseStoreResponseDto,
 } from './dto/product.response.dto';
@@ -46,7 +46,7 @@ export class ProductController {
     private readonly productMapper: ProductMapper,
   ) {}
 
-  @ApiOkResponse({ type: [ProductListResponseDto] })
+  @ApiOkResponse({ type: PaginatedProductListResponseDto })
   @Get()
   async findAll(
     @Query()

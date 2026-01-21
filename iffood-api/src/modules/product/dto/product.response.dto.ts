@@ -43,7 +43,7 @@ class ProductListItemResponseDto extends BaseProductResponseDto {
   store: StoreNameDto;
 }
 
-export class ProductListResponseDto {
+export class PaginatedProductListResponseDto {
   @ApiProperty({ type: () => ProductListItemResponseDto, isArray: true })
   products: ProductListItemResponseDto[];
 

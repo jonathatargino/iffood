@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   ProductDashboardResponseDto,
   ProductDetailsResponseDto,
-  ProductListResponseDto,
+  PaginatedProductListResponseDto,
   SingleProductResponseDto,
   SingleProductWithBaseStoreResponseDto,
 } from './dto/product.response.dto';
@@ -82,7 +82,7 @@ export class ProductMapper {
   }: {
     products: Product[];
     count: number;
-  }): ProductListResponseDto {
+  }): PaginatedProductListResponseDto {
     return {
       products: products.map((product) => ({
         id: product.id,
