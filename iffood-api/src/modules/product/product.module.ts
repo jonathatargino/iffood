@@ -9,6 +9,7 @@ import { ImagesModule } from '../../infra/images/images.module';
 import { AuthModule } from '../auth/auth.module';
 import { ProductMapper } from './product.mapper';
 import { ProductOptionMapper } from './product-option/product-option.mapper';
+import { StoreBaseMapper } from '../store/store.base.mapper';
 
 @Module({
   controllers: [ProductController],
@@ -17,6 +18,7 @@ import { ProductOptionMapper } from './product-option/product-option.mapper';
     ProductRepository,
     ProductMapper,
     ProductOptionMapper,
+    StoreBaseMapper,
   ],
   imports: [
     TypeOrmModule.forFeature([Product]),

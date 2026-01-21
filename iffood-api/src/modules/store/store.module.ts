@@ -8,6 +8,9 @@ import { StoreAvailabilityModule } from './store-availability/store-availability
 import { ImagesModule } from '../../infra/images/images.module';
 import { StoreUserModule } from './store-user/store-user.module';
 import { AuthModule } from '../auth/auth.module';
+import { StoreMapper } from './store.mapper';
+import { ProductBaseMapper } from '../product/product.base.mapper';
+import { StoreBaseMapper } from './store.base.mapper';
 
 @Module({
   imports: [
@@ -18,7 +21,13 @@ import { AuthModule } from '../auth/auth.module';
     AuthModule,
   ],
   controllers: [StoreController],
-  providers: [StoreService, StoreRepository],
+  providers: [
+    StoreService,
+    StoreRepository,
+    StoreMapper,
+    StoreBaseMapper,
+    ProductBaseMapper,
+  ],
   exports: [StoreAvailabilityModule, StoreUserModule],
 })
 export class StoreModule {}
