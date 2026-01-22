@@ -10,9 +10,9 @@ import {
 } from 'typeorm';
 import { Store } from '../store.entity';
 import { STORE_AVAILABILITY_CONSTRAINTS } from '../../../common/validation/constraints/store-availability-constraints';
-import { InvalidStoreAvailabilityWeekdayError } from './domain/errors/invalid-store-availability-weekday.error';
 import { InvalidStoreAvailabilityStartError } from './domain/errors/invalid-store-availability-start.error';
 import { InvalidStoreAvailabilityEndError } from './domain/errors/invalid-store-availability-end.error';
+import { WeekDay } from './domain/value-objects/week-day';
 
 @Check(
   `"weekday" >= ${STORE_AVAILABILITY_CONSTRAINTS.WEEKDAY_MIN} AND "weekday" <= ${STORE_AVAILABILITY_CONSTRAINTS.WEEKDAY_MAX}`,
@@ -32,14 +32,7 @@ export class StoreAvailability {
   }
 
   changeWeekday(weekday: number): void {
-    if (
-      weekday < STORE_AVAILABILITY_CONSTRAINTS.WEEKDAY_MIN ||
-      weekday > STORE_AVAILABILITY_CONSTRAINTS.WEEKDAY_MAX
-    ) {
-      throw new InvalidStoreAvailabilityWeekdayError(weekday);
-    }
-
-    this._weekday = weekday;
+    this._weekday = new WeekDay(weekday).getValue();
   }
 
   @Column({ type: 'time', name: 'start' })
