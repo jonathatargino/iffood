@@ -50,4 +50,21 @@ describe('Store Entity', () => {
       store.changePhotoUrl(invalidUrl);
     }).toThrow(InvalidStorePhotoUrlError);
   });
+
+  it('create() should create store when receive valid properties', () => {
+    const props = {
+      name: 'Test Store',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'https://example.com/photo.jpg',
+    };
+
+    const createdStore = Store.create(props);
+
+    expect(createdStore).toBeDefined();
+    expect(createdStore.name).toBe(props.name);
+    expect(createdStore.description).toBe(props.description);
+    expect(createdStore.whatsapp).toBe(props.whatsapp);
+    expect(createdStore.photoUrl).toBe(new URL(props.photoUrl).toString());
+  });
 });
