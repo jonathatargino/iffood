@@ -50,15 +50,16 @@ export class StoreService {
     return stores;
   }
 
+  // Test this
   async create(store: ServiceCreateStoreDto): Promise<Store> {
     const photoUrl = await this.imageService.upload(store.photoBuffer);
 
     return this.dataSource.transaction(async (entityManager) => {
-      const createdStore = entityManager.create(Store, {
-        photoUrl: photoUrl,
+      const createdStore = Store.create({
         name: store.name,
         description: store.description,
         whatsapp: store.whatsapp,
+        photoUrl,
       });
 
       await entityManager.save(createdStore);

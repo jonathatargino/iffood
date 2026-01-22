@@ -71,6 +71,8 @@ export class ProductService {
     return result;
   }
 
+  // TODO: Receive already splitted new and existing options in DTO;
+  // Tests: use testcontainers (transactional tests)
   async updateProductWithOptions(dto: ServiceUpdateProductDto) {
     const newPhotoUrl = dto.photoBuffer
       ? await this.imageService.upload(dto.photoBuffer)

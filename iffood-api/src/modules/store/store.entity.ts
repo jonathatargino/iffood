@@ -114,4 +114,21 @@ export class Store {
     (storeAvailability) => storeAvailability.store,
   )
   storeAvailabilities: StoreAvailability[];
+
+  static create(props: {
+    name: string;
+    description: string;
+    whatsapp: string;
+    photoUrl: string;
+  }): Store {
+    const store = new Store();
+
+    store.changeName(props.name);
+    store.changeDescription(props.description);
+    store.changeWhatsapp(props.whatsapp);
+    store.changePhotoUrl(props.photoUrl);
+    store.status = true;
+
+    return store;
+  }
 }
