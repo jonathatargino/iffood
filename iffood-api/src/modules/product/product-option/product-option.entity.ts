@@ -26,26 +26,24 @@ export class ProductOption {
   @Column({ name: 'quantity' })
   private _quantity: number;
 
-  get quantity(): number {
-    return this._quantity;
-  }
-
-  changeQuantity(quantity: number): void {
-    if (
-      quantity < PRODUCT_OPTION_CONSTRAINTS.QUANTITY_MIN ||
-      quantity > PRODUCT_OPTION_CONSTRAINTS.QUANTITY_MAX
-    ) {
-      throw new InvalidProductOptionQuantityError(quantity);
-    }
-
-    this._quantity = quantity;
-  }
-
   @Column({
     length: PRODUCT_OPTION_CONSTRAINTS.NAME_MAX,
     name: 'name',
   })
   private _name: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deletedAt?: Date;
+
+  @ManyToOne(() => Product, (product) => product.productOptions)
+  @JoinColumn({ name: 'product_id' })
+  product: Product;
 
   get name(): string {
     return this._name;
@@ -62,18 +60,20 @@ export class ProductOption {
     this._name = name;
   }
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  get quantity(): number {
+    return this._quantity;
+  }
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  changeQuantity(quantity: number): void {
+    if (
+      quantity < PRODUCT_OPTION_CONSTRAINTS.QUANTITY_MIN ||
+      quantity > PRODUCT_OPTION_CONSTRAINTS.QUANTITY_MAX
+    ) {
+      throw new InvalidProductOptionQuantityError(quantity);
+    }
 
-  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
-  deletedAt?: Date;
-
-  @ManyToOne(() => Product, (product) => product.productOptions)
-  @JoinColumn({ name: 'product_id' })
-  product: Product;
+    this._quantity = quantity;
+  }
 
   patch(data: Pick<Partial<ProductOption>, 'name' | 'quantity'>) {
     applyPatch<string>({
@@ -89,5 +89,20 @@ export class ProductOption {
       set: (value) => this.changeQuantity(value),
       allowNull: false,
     });
+  }
+
+  static create({
+    name,
+    quantity,
+  }: {
+    name: string;
+    quantity: number;
+  }): ProductOption {
+    const productOption = new ProductOption();
+
+    productOption.changeName(name);
+    productOption.changeQuantity(quantity);
+
+    return productOption;
   }
 }
