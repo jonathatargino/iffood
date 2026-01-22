@@ -6,7 +6,7 @@ import {
 import { FindAllProductFilters } from './dto/product.request.dto';
 import { ProductRepository } from './product.repository';
 import { StoreUserService } from '../store/store-user/store-user.service';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Product } from './product.entity';
 import { ProductOption } from './product-option/product-option.entity';
 import { ImagesService } from '../../infra/images/images.service';
@@ -14,11 +14,6 @@ import {
   ServiceCreateProductDto,
   ServiceUpdateProductDto,
 } from './dto/product.service.dto';
-import {
-  ProductOptionStatus,
-  UpdateProductOptionCoreDto,
-} from './product-option/dto/product-option.core.dto';
-
 @Injectable()
 export class ProductService {
   constructor(
@@ -79,6 +74,8 @@ export class ProductService {
       : undefined;
 
     return this.dataSource.transaction(async (entityManager) => {
+      let toDelete: ProductOption[] = [];
+
       const product = await entityManager.findOne(Product, {
         where: {
           id: dto.id,
@@ -100,98 +97,17 @@ export class ProductService {
       });
 
       if (dto.productOptions) {
-        await this.handleProductOptionsChanges({
-          product,
-          productOptionsChanges: dto.productOptions,
-          entityManager,
-        });
+        const result = product.applyOptionsChange(dto.productOptions);
+        toDelete = result.toDelete;
+      }
+
+      if (toDelete && toDelete.length > 0) {
+        await entityManager.softRemove(ProductOption, toDelete);
       }
 
       await entityManager.save(Product, product);
       return product;
     });
-  }
-
-  private async handleProductOptionsChanges({
-    product,
-    productOptionsChanges,
-    entityManager,
-  }: {
-    product: Product;
-    productOptionsChanges: UpdateProductOptionCoreDto[];
-    entityManager: EntityManager;
-  }) {
-    const { newProductOptions, existentProductOptionsChangesById } =
-      this.splitNewAndExistingProductOptionsChanges(productOptionsChanges);
-
-    product.productOptions = await Promise.all(
-      product.productOptions.map(async (option) => {
-        const optionChange = existentProductOptionsChangesById[option.id];
-
-        if (!optionChange) return option;
-
-        if (optionChange.status === ProductOptionStatus.Updated) {
-          option.patch({
-            name: optionChange.name,
-            quantity: optionChange.quantity,
-          });
-          return option;
-        }
-
-        if (optionChange.status === ProductOptionStatus.Deleted) {
-          return await entityManager.softRemove(ProductOption, option);
-        }
-
-        return option;
-      }),
-    );
-
-    this.appendNewProductOptions({
-      newProductOptions,
-      product,
-      entityManager,
-    });
-  }
-
-  private splitNewAndExistingProductOptionsChanges(
-    productOptionsChanges: UpdateProductOptionCoreDto[],
-  ) {
-    const newProductOptions: UpdateProductOptionCoreDto[] = [];
-    const existentProductOptionsChangesById: Record<
-      string,
-      UpdateProductOptionCoreDto
-    > = {};
-
-    for (const option of productOptionsChanges) {
-      if (!option.id) {
-        newProductOptions.push(option);
-        continue;
-      }
-
-      existentProductOptionsChangesById[option.id] = option;
-    }
-
-    return { newProductOptions, existentProductOptionsChangesById };
-  }
-
-  private appendNewProductOptions({
-    newProductOptions,
-    product,
-    entityManager,
-  }: {
-    product: Product;
-    newProductOptions: UpdateProductOptionCoreDto[];
-    entityManager: EntityManager;
-  }) {
-    for (const newOption of newProductOptions) {
-      product.productOptions.push(
-        entityManager.create(ProductOption, {
-          name: newOption.name,
-          quantity: newOption.quantity,
-          product,
-        }),
-      );
-    }
   }
 
   async delete({ productId, userId }: { productId: string; userId: string }) {

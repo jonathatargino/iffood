@@ -84,11 +84,10 @@ export class UpdateProductRequestBodyDto extends BaseProductRequestBodyDto {
   @Transform(({ value }) =>
     plainToInstance(UpdateProductOptionRequestDto, parseJson(value)),
   )
-  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateProductOptionRequestDto)
   @IsOptional()
-  productOptions: UpdateProductOptionRequestDto[];
+  productOptions: UpdateProductOptionRequestDto;
 }
 
 export interface FindAllProductFilters {

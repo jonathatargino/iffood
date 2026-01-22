@@ -23,7 +23,6 @@ import {
   FindAllStoresQueryDto,
   StoreUpdatePhotoRequestDto,
   SwaggerCreateStoreRequestDto,
-  SwaggerUpdateStoreRequestDto,
   UpdateStoreRequestDto,
 } from './dto/store.request.dto';
 import { StoreMapper } from './store.mapper';
@@ -137,8 +136,7 @@ export class StoreController {
   }
 
   @ApiBearerAuth('access-token')
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({ type: SwaggerUpdateStoreRequestDto })
+  @ApiOkResponse({ type: BaseStoreResponseDto })
   @Put(':id')
   @UseGuards(AuthGuard)
   async update(
@@ -146,14 +144,16 @@ export class StoreController {
     @UserId() userId: string,
     @Param('id', ParseUUIDPipe) storeId: string,
   ) {
-    await this.storeService.update({
-      description: body.description,
-      name: body.name,
-      whatsapp: body.whatsapp,
-      status: body.status,
-      storeId,
-      userId,
-    });
+    return this.storeBaseMapper.toDto(
+      await this.storeService.update({
+        description: body.description,
+        name: body.name,
+        whatsapp: body.whatsapp,
+        status: body.status,
+        storeId,
+        userId,
+      }),
+    );
   }
 
   @ApiConsumes('multipart/form-data')

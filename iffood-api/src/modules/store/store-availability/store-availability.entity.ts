@@ -65,15 +65,22 @@ export class StoreAvailability {
     this._end = availabilityHours.getEnd();
   }
 
-  static create(
-    weekday: number,
-    start: string,
-    end: string,
-  ): StoreAvailability {
+  static create({
+    end,
+    start,
+    weekday,
+    store,
+  }: {
+    weekday: number;
+    start: string;
+    end: string;
+    store: Store;
+  }): StoreAvailability {
     const storeAvailability = new StoreAvailability();
 
     storeAvailability.changeWeekday(weekday);
     storeAvailability.changeHours(start, end);
+    storeAvailability.store = store;
 
     return storeAvailability;
   }

@@ -94,14 +94,17 @@ export class ProductOption {
   static create({
     name,
     quantity,
+    product,
   }: {
     name: string;
     quantity: number;
+    product: Product;
   }): ProductOption {
     const productOption = new ProductOption();
 
     productOption.changeName(name);
     productOption.changeQuantity(quantity);
+    productOption.product = product;
 
     return productOption;
   }

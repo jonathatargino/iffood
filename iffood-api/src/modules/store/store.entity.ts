@@ -15,6 +15,8 @@ import { InvalidStoreDescriptionError } from './domain/invalid-store-description
 import { InvalidStorePhotoUrlError } from './domain/invalid-store-photo-url.error';
 import { InvalidStoreNameError } from './domain/invalid-store-name.error';
 import { WhatsappNumber } from './domain/value-objects/whatsapp-number.vo';
+import { applyPatch } from '../../common/domain/apply-patch';
+import { ServiceUpdateStoreDto } from './dto/store.service.dto';
 
 @Entity({
   name: 'stores',
@@ -133,5 +135,39 @@ export class Store {
     store.status = true;
 
     return store;
+  }
+
+  updateDetails({
+    description,
+    name,
+    status,
+    whatsapp,
+  }: Omit<ServiceUpdateStoreDto, 'storeId' | 'userId'>) {
+    applyPatch({
+      fieldName: 'description',
+      value: description,
+      allowNull: false,
+      set: (v) => this.changeDescription(v),
+    });
+    applyPatch({
+      fieldName: 'name',
+      value: name,
+      allowNull: false,
+      set: (v) => this.changeName(v),
+    });
+    applyPatch({
+      fieldName: 'whatsapp',
+      value: whatsapp,
+      allowNull: false,
+      set: (v) => this.changeWhatsapp(v),
+    });
+    applyPatch({
+      fieldName: 'status',
+      value: status,
+      set: (v) => {
+        this.status = v;
+      },
+      allowNull: false,
+    });
   }
 }

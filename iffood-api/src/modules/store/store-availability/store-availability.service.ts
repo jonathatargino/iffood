@@ -47,14 +47,16 @@ export class StoreAvailabilityService {
 
       await entityManager.delete(StoreAvailability, { store: { id: storeId } });
 
-      const newAvailabilities = availabilities.map((availability) => {
-        return entityManager.create(StoreAvailability, {
-          ...availability,
+      const newAvailabilities = availabilities.map(({ end, start, weekday }) =>
+        StoreAvailability.create({
+          start,
+          end,
+          weekday,
           store: {
             id: storeId,
-          },
-        });
-      });
+          } as Store,
+        }),
+      );
 
       return await entityManager.save(StoreAvailability, newAvailabilities);
     });
@@ -70,12 +72,6 @@ export class StoreAvailabilityService {
       if (availabilityWeekdaySet.has(weekday)) {
         throw new BadRequestException(
           `Duplicate availability for weekday ${weekday}`,
-        );
-      }
-
-      if (currentAvailability.start >= currentAvailability.end) {
-        throw new BadRequestException(
-          `Invalid availability hours for weekday ${weekday}. End time must be after start time.`,
         );
       }
 

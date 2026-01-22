@@ -14,6 +14,7 @@ import { PRODUCT_CONSTRAINTS } from '../../common/validation/constraints/product
 import { InvalidProductNameError } from './domain/errors/invalid-product-name.error';
 import { InvalidProductDescriptionError } from './domain/errors/invalid-product-description.error';
 import { InvalidProductPhotoUrlError } from './domain/errors/invalid-product-photo-url.error';
+import { UpdateProductOptionCoreDto } from './product-option/dto/product-option.core.dto';
 
 export enum ProductCategory {
   Sweet = 'sweet',
@@ -175,21 +176,76 @@ export class Product {
     });
   }
 
-  static create(props: {
+  static create({
+    category,
+    description,
+    name,
+    photoUrl,
+    value,
+    store,
+  }: {
     name: string;
     description: string;
     photoUrl: string;
     value: number;
     category: ProductCategory;
+    store: Store;
   }): Product {
     const product = new Product();
 
-    product.changeName(props.name);
-    product.changeDescription(props.description);
-    product.changePhotoUrl(props.photoUrl);
-    product.changeValue(props.value);
-    product.category = props.category;
+    product.changeName(name);
+    product.changeDescription(description);
+    product.changePhotoUrl(photoUrl);
+    product.changeValue(value);
+    product.category = category;
+    product.store = store;
 
     return product;
+  }
+
+  applyOptionsChange(changes: UpdateProductOptionCoreDto): {
+    toDelete: ProductOption[];
+  } {
+    const productOptionsById = this.mapOptionsById();
+
+    const toDelete = changes.deleted.map((option) => {
+      return productOptionsById.get(option.id);
+    });
+
+    for (const updated of changes.updated) {
+      const existentOption = productOptionsById.get(updated.id);
+
+      existentOption.patch({
+        name: updated.name,
+        quantity: updated.quantity,
+      });
+    }
+
+    for (const newOption of changes.new) {
+      const productOption = ProductOption.create({
+        name: newOption.name,
+        quantity: newOption.quantity,
+        product: this,
+      });
+      this.productOptions.push(productOption);
+    }
+
+    return { toDelete };
+  }
+
+  private mapOptionsById() {
+    const map: Record<string, ProductOption> = {};
+    for (const option of this.productOptions) {
+      map[option.id] = option;
+    }
+    return {
+      get: (id: string) => {
+        const existentOption = map[id];
+        if (!existentOption) {
+          throw new Error(`Product option with id ${id} doesn't exist`);
+        }
+        return existentOption;
+      },
+    };
   }
 }

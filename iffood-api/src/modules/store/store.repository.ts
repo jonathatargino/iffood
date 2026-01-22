@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Store } from './store.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -110,23 +110,24 @@ export class StoreRepository {
     storeId: string;
     userId: string;
     data: Partial<Store>;
-  }): Promise<boolean> {
-    const result = await this.typeormStoreRepository
-      .createQueryBuilder()
-      .update(data)
-      .where('id = :storeId', { storeId })
-      .andWhere(
-        `EXISTS (
-          SELECT 1 
-          FROM store_users su 
-          WHERE su.store_id = :storeId 
-          AND su.user_profile_id = :userId
-        )`,
+  }): Promise<Store> {
+    const store = await this.typeormStoreRepository
+      .createQueryBuilder('s')
+      .innerJoin(
+        'store_users',
+        'su',
+        'su.store_id = s.id AND su.user_profile_id = :userId',
+        { userId },
       )
-      .setParameters({ storeId, userId })
-      .execute();
+      .where('s.id = :storeId', { storeId })
+      .getOne();
 
-    return (result.affected ?? 0) > 0;
+    if (!store) {
+      throw new ForbiddenException();
+    }
+
+    store.updateDetails(data);
+    return await this.typeormStoreRepository.save(store);
   }
 
   async delete({

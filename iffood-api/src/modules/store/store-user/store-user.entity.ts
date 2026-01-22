@@ -33,4 +33,17 @@ export class StoreUser {
 
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date;
+
+  static create({
+    store,
+    userProfile,
+  }: {
+    store: Store;
+    userProfile: UserProfile;
+  }): StoreUser {
+    const storeUser = new StoreUser();
+    storeUser.store = store;
+    storeUser.userProfile = userProfile;
+    return storeUser;
+  }
 }

@@ -17,7 +17,7 @@ export interface CreateProductCoreDto extends BaseProductCoreDto {
 }
 
 export interface UpdateProductCoreDto extends BaseProductCoreDto {
-  productOptions: UpdateProductOptionCoreDto[];
+  productOptions: UpdateProductOptionCoreDto;
 }
 
 export interface FindAllProductFilters {

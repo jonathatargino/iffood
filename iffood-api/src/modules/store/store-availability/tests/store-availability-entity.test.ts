@@ -1,3 +1,4 @@
+import { Store } from '../../store.entity';
 import { InvalidAvailabilityHoursError } from '../domain/errors/invalid-availability-hours.error';
 import { InvalidMilitaryTimeError } from '../domain/errors/invalid-military-time.error';
 import { InvalidStoreAvailabilityWeekdayError } from '../domain/errors/invalid-store-availability-weekday.error';
@@ -62,11 +63,12 @@ describe('StoreAvailability Entity', () => {
     const validEnd = '20:00';
 
     expect(() => {
-      const newStoreAvailability = StoreAvailability.create(
-        validWeekday,
-        validStart,
-        validEnd,
-      );
+      const newStoreAvailability = StoreAvailability.create({
+        weekday: validWeekday,
+        start: validStart,
+        end: validEnd,
+        store: {} as Store,
+      });
       expect(newStoreAvailability.weekday).toBe(validWeekday);
       expect(newStoreAvailability.start).toBe(validStart);
       expect(newStoreAvailability.end).toBe(validEnd);

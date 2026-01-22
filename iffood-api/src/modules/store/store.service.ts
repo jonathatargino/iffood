@@ -3,9 +3,13 @@ import { Store } from './store.entity';
 import { StoreRepository } from './store.repository';
 import { ImagesService } from '../../infra/images/images.service';
 import { FindAllStoreFilters } from './dto/store.core.dto';
-import { ServiceCreateStoreDto } from './dto/store.service.dto';
+import {
+  ServiceCreateStoreDto,
+  ServiceUpdateStoreDto,
+} from './dto/store.service.dto';
 import { DataSource } from 'typeorm';
 import { StoreUser } from './store-user/store-user.entity';
+import { UserProfile } from '../user-profile/user-profile.entity';
 
 @Injectable()
 export class StoreService {
@@ -50,7 +54,6 @@ export class StoreService {
     return stores;
   }
 
-  // Test this
   async create(store: ServiceCreateStoreDto): Promise<Store> {
     const photoUrl = await this.imageService.upload(store.photoBuffer);
 
@@ -64,11 +67,9 @@ export class StoreService {
 
       await entityManager.save(createdStore);
 
-      const createdStoreUser = entityManager.create(StoreUser, {
+      const createdStoreUser = StoreUser.create({
         store: createdStore,
-        userProfile: {
-          id: store.userId,
-        },
+        userProfile: { id: store.userId } as UserProfile,
       });
 
       await entityManager.save(createdStoreUser);
@@ -84,15 +85,8 @@ export class StoreService {
     whatsapp,
     userId,
     status,
-  }: {
-    storeId: string;
-    name?: string;
-    description?: string;
-    whatsapp?: string;
-    status?: boolean;
-    userId: string;
-  }) {
-    const isUpdated = await this.storeRepository.update({
+  }: ServiceUpdateStoreDto) {
+    return await this.storeRepository.update({
       data: {
         name,
         description,
@@ -102,10 +96,6 @@ export class StoreService {
       storeId,
       userId,
     });
-
-    if (!isUpdated) {
-      throw new NotFoundException();
-    }
   }
 
   async updatePhoto({

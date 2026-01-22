@@ -48,11 +48,6 @@ export class SwaggerCreateStoreRequestDto extends CreateStoreRequestDto {
   photo: Express.Multer.File;
 }
 
-export class SwaggerUpdateStoreRequestDto extends UpdateStoreRequestDto {
-  @ApiProperty({ type: 'string', format: 'binary' })
-  photo: Express.Multer.File;
-}
-
 export class FindAllStoresQueryDto implements FindAllStoreFilters {
   @Type(() => Number)
   @ApiPropertyOptional({ default: 20, maximum: 500 })

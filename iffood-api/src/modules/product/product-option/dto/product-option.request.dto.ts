@@ -1,9 +1,7 @@
 import {
-  IsEnum,
   IsInt,
   IsNotEmpty,
   IsNumber,
-  IsOptional,
   IsString,
   IsUUID,
   Length,
@@ -11,7 +9,6 @@ import {
   Min,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { ProductOptionStatus } from './product-option.core.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PRODUCT_OPTION_CONSTRAINTS } from '../../../../common/validation/constraints/product-option-constraints';
 
@@ -36,19 +33,20 @@ class ProductOptionBaseRequestDto {
 
 export class CreateProductOptionRequestDto extends ProductOptionBaseRequestDto {}
 
-export class UpdateProductOptionRequestDto extends ProductOptionBaseRequestDto {
+export class UpdateProductOptionUnitRequestDto extends ProductOptionBaseRequestDto {
   @ApiPropertyOptional({
     format: 'uuid',
-    description:
-      'Product option ID, if updating an existing option. If not present, a new option will be created.',
   })
   @IsString()
   @IsUUID()
-  @IsOptional()
-  id?: string;
+  id: string;
+}
 
-  @ApiProperty({ enum: ProductOptionStatus })
-  @IsString()
-  @IsEnum(ProductOptionStatus)
-  status: ProductOptionStatus;
+export class UpdateProductOptionRequestDto {
+  @ApiProperty({ type: [UpdateProductOptionUnitRequestDto] })
+  updated: UpdateProductOptionUnitRequestDto[];
+  @ApiProperty({ type: [UpdateProductOptionUnitRequestDto] })
+  deleted: UpdateProductOptionUnitRequestDto[];
+  @ApiProperty({ type: [ProductOptionBaseRequestDto] })
+  new: ProductOptionBaseRequestDto[];
 }

@@ -7,6 +7,7 @@ import {
   ProductWithCounts,
   RepositoryCreateProductDto,
 } from './dto/product.repository.dto';
+import { Store } from '../store/store.entity';
 
 @Injectable()
 export class ProductRepository {
@@ -113,10 +114,12 @@ export class ProductRepository {
   }
 
   async create(data: RepositoryCreateProductDto) {
-    const result = await this.typeormProductRepository.save({
+    const product = Product.create({
       ...data,
-      store: { id: data.storeId },
+      store: { id: data.storeId } as Store,
     });
+
+    const result = await this.typeormProductRepository.save(product);
     return result;
   }
 
