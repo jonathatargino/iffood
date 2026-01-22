@@ -37,82 +37,19 @@ export class Product {
   id: string;
 
   @Column({ name: 'value' })
-  _value: number;
-
-  get value(): number {
-    return this._value;
-  }
-
-  changeValue(val: number): void {
-    if (
-      val < PRODUCT_CONSTRAINTS.VALUE_MIN ||
-      val > PRODUCT_CONSTRAINTS.VALUE_MAX
-    ) {
-      throw new InvalidProductValueError(val);
-    }
-
-    this._value = val;
-  }
+  private _value: number;
 
   @Column({ name: 'name', length: PRODUCT_CONSTRAINTS.NAME_MAX })
-  _name: string;
-
-  get name(): string {
-    return this._name;
-  }
-
-  changeName(name: string): void {
-    const trimmedName = name.trim();
-    if (
-      trimmedName.length < PRODUCT_CONSTRAINTS.NAME_MIN ||
-      trimmedName.length > PRODUCT_CONSTRAINTS.NAME_MAX
-    ) {
-      throw new InvalidProductNameError(name);
-    }
-
-    this._name = trimmedName;
-  }
+  private _name: string;
 
   @Column({ name: 'description', length: PRODUCT_CONSTRAINTS.DESCRIPTION_MAX })
-  _description: string;
+  private _description: string;
 
-  get description(): string {
-    return this._description;
-  }
-
-  changeDescription(description: string): void {
-    const trimmedDescription = description.trim();
-    if (
-      trimmedDescription.length < PRODUCT_CONSTRAINTS.DESCRIPTION_MIN ||
-      trimmedDescription.length > PRODUCT_CONSTRAINTS.DESCRIPTION_MAX
-    ) {
-      throw new InvalidProductDescriptionError(description);
-    }
-
-    this._description = trimmedDescription;
-  }
+  @Column({ name: 'photo_url', length: PRODUCT_CONSTRAINTS.PHOTO_URL_MAX })
+  private _photoUrl: string;
 
   @Column({ type: 'enum', enum: ProductCategory })
   category: ProductCategory;
-
-  @Column({ name: 'photo_url', length: PRODUCT_CONSTRAINTS.PHOTO_URL_MAX })
-  _photoUrl: string;
-
-  get photoUrl(): string {
-    return this._photoUrl;
-  }
-
-  changePhotoUrl(photoUrl: string): void {
-    const trimmedPhotoUrl = photoUrl.trim();
-    if (
-      trimmedPhotoUrl.length < PRODUCT_CONSTRAINTS.PHOTO_URL_MIN ||
-      trimmedPhotoUrl.length > PRODUCT_CONSTRAINTS.PHOTO_URL_MAX
-    ) {
-      throw new InvalidProductPhotoUrlError(photoUrl);
-    }
-
-    this._photoUrl = trimmedPhotoUrl;
-  }
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -131,6 +68,73 @@ export class Product {
   @ManyToOne(() => Store, (store) => store.products)
   @JoinColumn({ name: 'store_id' })
   store: Store;
+
+  get value(): number {
+    return this._value;
+  }
+
+  changeValue(val: number): void {
+    if (
+      val < PRODUCT_CONSTRAINTS.VALUE_MIN ||
+      val > PRODUCT_CONSTRAINTS.VALUE_MAX
+    ) {
+      throw new InvalidProductValueError(val);
+    }
+
+    this._value = val;
+  }
+
+  get name(): string {
+    return this._name;
+  }
+
+  changeName(name: string): void {
+    if (
+      name.length < PRODUCT_CONSTRAINTS.NAME_MIN ||
+      name.length > PRODUCT_CONSTRAINTS.NAME_MAX
+    ) {
+      throw new InvalidProductNameError(name);
+    }
+
+    this._name = name;
+  }
+
+  get description(): string {
+    return this._description;
+  }
+
+  changeDescription(description: string): void {
+    if (
+      description.length < PRODUCT_CONSTRAINTS.DESCRIPTION_MIN ||
+      description.length > PRODUCT_CONSTRAINTS.DESCRIPTION_MAX
+    ) {
+      throw new InvalidProductDescriptionError(description);
+    }
+
+    this._description = description;
+  }
+
+  get photoUrl(): string {
+    return this._photoUrl;
+  }
+
+  changePhotoUrl(photoUrl: string): void {
+    let url: string;
+    try {
+      url = new URL(photoUrl).toString();
+    } catch {
+      throw new InvalidProductPhotoUrlError(photoUrl);
+    }
+
+    if (
+      url.length < PRODUCT_CONSTRAINTS.PHOTO_URL_MIN ||
+      url.length > PRODUCT_CONSTRAINTS.PHOTO_URL_MAX
+    ) {
+      throw new InvalidProductPhotoUrlError(photoUrl);
+    }
+
+    this._photoUrl = url;
+  }
 
   updateDetails({
     category,
@@ -169,5 +173,23 @@ export class Product {
       allowNull: false,
       set: (v) => (this.category = v),
     });
+  }
+
+  static create(props: {
+    name: string;
+    description: string;
+    photoUrl: string;
+    value: number;
+    category: ProductCategory;
+  }): Product {
+    const product = new Product();
+
+    product.changeName(props.name);
+    product.changeDescription(props.description);
+    product.changePhotoUrl(props.photoUrl);
+    product.changeValue(props.value);
+    product.category = props.category;
+
+    return product;
   }
 }
