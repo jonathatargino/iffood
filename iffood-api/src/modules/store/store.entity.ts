@@ -104,11 +104,18 @@ export class Store {
   }
 
   changePhotoUrl(photoUrl: string) {
-    if (photoUrl.length > STORE_CONSTRAINTS.PHOTO_URL_MAX) {
+    let url: string;
+    try {
+      url = new URL(photoUrl).toString();
+    } catch {
       throw new InvalidStorePhotoUrlError(photoUrl);
     }
 
-    this._photoUrl = photoUrl;
+    if (url.length > STORE_CONSTRAINTS.PHOTO_URL_MAX) {
+      throw new InvalidStorePhotoUrlError(photoUrl);
+    }
+
+    this._photoUrl = url;
   }
 
   static create(props: {

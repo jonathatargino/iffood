@@ -4,7 +4,7 @@ import { STORE_CONSTRAINTS } from '../../../common/validation/constraints/store-
 export class InvalidStorePhotoUrlError extends DomainError {
   constructor(value: string) {
     super(
-      `Invalid store photo URL: ${value}. Photo URL should have a length less than ${STORE_CONSTRAINTS.PHOTO_URL_MAX}.`,
+      `Invalid store photo URL: ${value}. Photo URL should be an valid URL and should have a length less than ${STORE_CONSTRAINTS.PHOTO_URL_MAX}.`,
     );
   }
 }
