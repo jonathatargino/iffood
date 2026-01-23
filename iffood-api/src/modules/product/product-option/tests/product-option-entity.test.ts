@@ -1,3 +1,5 @@
+import { Store } from '../../../store/store.entity';
+import { Product, ProductCategory } from '../../product.entity';
 import { InvalidProductOptionQuantityError } from '../domain/invalid-product-option-quantity.error';
 import { ProductOption } from '../product-option.entity';
 
@@ -30,6 +32,7 @@ describe('ProductOption Entity', () => {
       const createdProductOption = ProductOption.create({
         name: 'Valid Option Name',
         quantity: 3,
+        product: { id: 'fake-product-id' } as Product,
       });
 
       expect(createdProductOption).toBeInstanceOf(ProductOption);
@@ -66,5 +69,87 @@ describe('ProductOption Entity', () => {
 
     expect(productOption.name).toBe('Initial Option Name');
     expect(productOption.quantity).toBe(5);
+  });
+
+  it("addOption() should add a ProductOption to the Product's productOptions array", () => {
+    const product = Product.create({
+      name: 'Test Product',
+      description: 'Test Description',
+      photoUrl: 'http://example.com/photo.jpg',
+      value: 100,
+      category: ProductCategory.Savory,
+      store: { id: 'fake-store-id' } as Store,
+    });
+
+    product.productOptions = [];
+
+    const optionToAdd = ProductOption.create({
+      name: 'New Option',
+      quantity: 10,
+      product,
+    });
+
+    expect(() => {
+      product.addOption(optionToAdd);
+    }).not.toThrow();
+
+    expect(product['productOptions']).toContain(optionToAdd);
+  });
+
+  it('applyOptionsChange() should correctly process new, updated, and deleted options', () => {
+    const product = Product.create({
+      name: 'Test Product',
+      description: 'Test Description',
+      photoUrl: 'http://example.com/photo.jpg',
+      value: 100,
+      category: ProductCategory.Savory,
+      store: { id: 'fake-store-id' } as Store,
+    });
+
+    product.productOptions = [];
+
+    const existingOption1 = ProductOption.create({
+      name: 'Option 1',
+      quantity: 10,
+      product,
+    });
+    existingOption1.id = 'existing-option-1-id';
+    const existingOption2 = ProductOption.create({
+      name: 'Option 2',
+      quantity: 20,
+      product,
+    });
+    existingOption2.id = 'existing-option-2-id';
+    const existingOption3 = ProductOption.create({
+      name: 'Option 3',
+      quantity: 20,
+      product,
+    });
+
+    product.addOption(existingOption1);
+    product.addOption(existingOption2);
+    product.addOption(existingOption3);
+
+    const changes = {
+      new: [{ name: 'New Option', quantity: 5 }],
+      updated: [
+        { id: existingOption1.id, name: 'Updated Option 1', quantity: 15 },
+      ],
+      deleted: [
+        { id: existingOption2.id, name: 'Deleted Option 1', quantity: 15 },
+      ],
+    };
+
+    const result = product.applyOptionsChange(changes);
+
+    expect(product['productOptions'].length).toBe(3);
+    expect(product['productOptions']).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Updated Option 1', quantity: 15 }),
+        expect.objectContaining({ name: 'New Option', quantity: 5 }),
+        expect.objectContaining({ name: 'Option 3', quantity: 20 }),
+      ]),
+    );
+    expect(result.toDelete).toEqual([existingOption2]);
   });
 });

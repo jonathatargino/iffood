@@ -15,6 +15,7 @@ import { InvalidProductNameError } from './domain/errors/invalid-product-name.er
 import { InvalidProductDescriptionError } from './domain/errors/invalid-product-description.error';
 import { InvalidProductPhotoUrlError } from './domain/errors/invalid-product-photo-url.error';
 import { UpdateProductOptionCoreDto } from './product-option/dto/product-option.core.dto';
+import { RelationNotLoadedError } from '../../common/domain/relation-not-loaded.error';
 
 export enum ProductCategory {
   Sweet = 'sweet',
@@ -212,6 +213,11 @@ export class Product {
       return productOptionsById.get(option.id);
     });
 
+    const toDeleteIds = new Set(toDelete.map((option) => option.id));
+    this.productOptions = this.productOptions.filter(
+      (option) => !toDeleteIds.has(option.id),
+    );
+
     for (const updated of changes.updated) {
       const existentOption = productOptionsById.get(updated.id);
 
@@ -247,5 +253,13 @@ export class Product {
         return existentOption;
       },
     };
+  }
+
+  addOption(option: ProductOption) {
+    if (!this.productOptions) {
+      throw new RelationNotLoadedError('Product.productOptions');
+    }
+
+    this.productOptions.push(option);
   }
 }
