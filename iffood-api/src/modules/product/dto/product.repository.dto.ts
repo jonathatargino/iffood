@@ -1,7 +1,12 @@
+import { ProductOption } from '../product-option/product-option.entity';
 import { CreateProductCoreDto } from './product.core.dto';
 
-export interface RepositoryCreateProductDto extends CreateProductCoreDto {
+export interface RepositoryCreateProductDto extends Omit<
+  CreateProductCoreDto,
+  'productOptions'
+> {
   photoUrl: string;
+  productOptions: ProductOption[];
 }
 
 export interface ProductWithCounts {

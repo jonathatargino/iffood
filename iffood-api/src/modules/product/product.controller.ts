@@ -62,7 +62,7 @@ export class ProductController {
     }: FindAllProductQueryDto,
   ) {
     return this.productMapper.toListDto(
-      await this.productService.findAllByStoreId({
+      await this.productService.findAll({
         page,
         pageSize,
         name,

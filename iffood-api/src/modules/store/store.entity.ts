@@ -50,17 +50,20 @@ export class Store {
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date;
 
-  @OneToMany(() => StoreUser, (storeUser) => storeUser.store)
+  @OneToMany(() => StoreUser, (storeUser) => storeUser.store, { cascade: true })
   storeUsers: StoreUser[];
 
   @OneToMany(() => Product, (product) => product.store, {
-    cascade: ['soft-remove'],
+    cascade: true,
   })
   products: Product[];
 
   @OneToMany(
     () => StoreAvailability,
     (storeAvailability) => storeAvailability.store,
+    {
+      cascade: true,
+    },
   )
   storeAvailabilities: StoreAvailability[];
 
@@ -121,23 +124,6 @@ export class Store {
     this._photoUrl = url;
   }
 
-  static create(props: {
-    name: string;
-    description: string;
-    whatsapp: string;
-    photoUrl: string;
-  }): Store {
-    const store = new Store();
-
-    store.changeName(props.name);
-    store.changeDescription(props.description);
-    store.changeWhatsapp(props.whatsapp);
-    store.changePhotoUrl(props.photoUrl);
-    store.status = true;
-
-    return store;
-  }
-
   updateDetails({
     description,
     name,
@@ -188,5 +174,45 @@ export class Store {
 
       availabilityWeekdaySet.add(weekday);
     }
+  }
+
+  setProducts(products: Product[]) {
+    this.products = products;
+  }
+
+  setUserProfiles(storeUsers: StoreUser[]) {
+    this.storeUsers = storeUsers;
+  }
+
+  static create(props: {
+    name: string;
+    description: string;
+    whatsapp: string;
+    photoUrl: string;
+    availabilities?: StoreAvailability[];
+    products?: Product[];
+    storeUsers?: StoreUser[];
+  }): Store {
+    const store = new Store();
+
+    store.changeName(props.name);
+    store.changeDescription(props.description);
+    store.changeWhatsapp(props.whatsapp);
+    store.changePhotoUrl(props.photoUrl);
+    store.status = true;
+
+    if (props.availabilities) {
+      store.setAvailabilities(props.availabilities);
+    }
+
+    if (props.products) {
+      store.setProducts(props.products);
+    }
+
+    if (props.storeUsers) {
+      store.setUserProfiles(props.storeUsers);
+    }
+
+    return store;
   }
 }

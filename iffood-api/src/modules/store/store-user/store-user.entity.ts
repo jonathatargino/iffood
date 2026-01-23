@@ -38,12 +38,12 @@ export class StoreUser {
     store,
     userProfile,
   }: {
-    store: Store;
+    store?: Store;
     userProfile: UserProfile;
   }): StoreUser {
     const storeUser = new StoreUser();
-    storeUser.store = store;
     storeUser.userProfile = userProfile;
+    if (store) storeUser.store = store;
     return storeUser;
   }
 }

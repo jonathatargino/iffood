@@ -36,8 +36,9 @@ export class ProductService {
     return this.productRepository.findAllWithCounts({ storeId });
   }
 
-  async findAllByStoreId(filters: FindAllProductFilters) {
-    const result = await this.productRepository.findAll(filters);
+  // Vale a pena testar. Está realmente retornando apenas produtos disponíveis?
+  async findAll(filters: FindAllProductFilters) {
+    const result = await this.productRepository.findAllAvailable(filters);
     return result;
   }
 
@@ -52,15 +53,21 @@ export class ProductService {
     }
 
     const photoUrl = await this.imageService.upload(dto.photoBuffer);
+    const productOptions = dto.productOptions.map((option) =>
+      ProductOption.create({
+        name: option.name,
+        quantity: option.quantity,
+      }),
+    );
 
     const result = await this.productRepository.create({
       description: dto.description,
       name: dto.name,
       photoUrl,
-      productOptions: dto.productOptions,
       value: dto.value,
       storeId: dto.storeId,
       category: dto.category,
+      productOptions,
     });
 
     return result;

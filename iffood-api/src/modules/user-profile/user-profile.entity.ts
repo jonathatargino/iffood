@@ -34,6 +34,8 @@ export class UserProfile {
   @Column({ name: 'user_auth_id' })
   userAuthId: string;
 
-  @OneToMany(() => StoreUser, (storeUser) => storeUser.userProfile)
+  @OneToMany(() => StoreUser, (storeUser) => storeUser.userProfile, {
+    cascade: true,
+  })
   storeUsers: StoreUser[];
 }

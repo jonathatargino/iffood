@@ -61,7 +61,7 @@ export class ProductRepository {
     return result;
   }
 
-  async findAll(filters: FindAllProductFilters) {
+  async findAllAvailable(filters: FindAllProductFilters) {
     const queryBuilder = this.typeormProductRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.productOptions', 'productOption')

@@ -98,13 +98,15 @@ export class ProductOption {
   }: {
     name: string;
     quantity: number;
-    product: Product;
+    product?: Product;
   }): ProductOption {
     const productOption = new ProductOption();
 
     productOption.changeName(name);
     productOption.changeQuantity(quantity);
-    productOption.product = product;
+    if (product) {
+      productOption.product = product;
+    }
 
     return productOption;
   }

@@ -63,7 +63,7 @@ export class Product {
   deletedAt?: Date;
 
   @OneToMany(() => ProductOption, (productOption) => productOption.product, {
-    cascade: ['insert', 'update', 'soft-remove'],
+    cascade: true,
   })
   productOptions: ProductOption[];
 
@@ -184,13 +184,15 @@ export class Product {
     photoUrl,
     value,
     store,
+    productOptions,
   }: {
     name: string;
     description: string;
     photoUrl: string;
     value: number;
     category: ProductCategory;
-    store: Store;
+    store?: Store;
+    productOptions?: ProductOption[];
   }): Product {
     const product = new Product();
 
@@ -199,7 +201,9 @@ export class Product {
     product.changePhotoUrl(photoUrl);
     product.changeValue(value);
     product.category = category;
-    product.store = store;
+
+    if (store) product.store = store;
+    if (productOptions) product.productOptions = productOptions;
 
     return product;
   }

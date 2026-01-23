@@ -8,6 +8,10 @@ import { ImagesService } from '../../../infra/images/images.service';
 import { DataSource } from 'typeorm';
 import { ServiceCreateStoreDto } from '../dto/store.service.dto';
 import { givenUserProfile } from './helpers/given-user-profile';
+import { Store } from '../store.entity';
+import { Product, ProductCategory } from '../../product/product.entity';
+import { StoreAvailability } from '../store-availability/store-availability.entity';
+import { ProductOption } from '../../product/product-option/product-option.entity';
 
 jest.setTimeout(60_000);
 
@@ -45,7 +49,7 @@ describe('Store Service', () => {
           entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
           synchronize: true,
         }),
-        TypeOrmModule.forFeature([StoreRepository]),
+        TypeOrmModule.forFeature([Store]),
       ],
       providers: [
         StoreService,
@@ -55,10 +59,7 @@ describe('Store Service', () => {
             upload: jest.fn().mockResolvedValue('http://image.url/photo.jpg'),
           },
         },
-        {
-          provide: StoreRepository,
-          useValue: {},
-        },
+        StoreRepository,
       ],
     }).compile();
 
@@ -104,5 +105,177 @@ describe('Store Service', () => {
     });
 
     expect(storeUser).toBeDefined();
+  });
+
+  it('findAll() should return only available stores', async () => {
+    const userProfile = await givenUserProfile(dataSource);
+    const createStoreDTOs: Omit<ServiceCreateStoreDto, 'photoBuffer'>[] = [
+      {
+        name: 'Available Store 1',
+        description: 'First available store',
+        whatsapp: '85985454176',
+        userId: userProfile.id,
+      },
+      {
+        name: 'Unavailable Store',
+        description: 'Falsy status',
+        whatsapp: '85985454177',
+        userId: userProfile.id,
+      },
+      {
+        name: 'Unavailable Store 2',
+        description: 'None store availabilities matches',
+        whatsapp: '85985454177',
+        userId: userProfile.id,
+      },
+      {
+        name: 'Unavailable Store 3',
+        description: 'No products available',
+        whatsapp: '85985454177',
+        userId: userProfile.id,
+      },
+      {
+        name: 'Available Store 2',
+        description: 'Second available store',
+        whatsapp: '85985454178',
+        userId: userProfile.id,
+      },
+    ];
+
+    const firstStore = Store.create({
+      ...createStoreDTOs[0],
+      photoUrl: 'http://image.url/photo1.jpg',
+      availabilities: [
+        StoreAvailability.create({ weekday: 1, start: '08:00', end: '18:00' }),
+        StoreAvailability.create({ weekday: 2, start: '08:00', end: '18:00' }),
+      ],
+      products: [
+        Product.create({
+          name: 'Product 1',
+          description: 'A product Lorem Ipsum',
+          photoUrl: 'http://image.url/product1.jpg',
+          value: 10,
+          category: ProductCategory.Savory,
+          productOptions: [
+            ProductOption.create({ name: 'Option 1', quantity: 5 }),
+          ],
+        }),
+      ],
+      storeUsers: [{ userProfile } as StoreUser],
+    });
+    firstStore.status = true;
+
+    const secondStore = Store.create({
+      ...createStoreDTOs[4],
+      photoUrl: 'http://image.url/photo2.jpg',
+      availabilities: [
+        StoreAvailability.create({ weekday: 1, start: '09:00', end: '17:00' }),
+        StoreAvailability.create({ weekday: 3, start: '09:00', end: '17:00' }),
+      ],
+      products: [
+        Product.create({
+          name: 'Product 2',
+          description: 'Another product',
+          photoUrl: 'http://image.url/product2.jpg',
+          value: 15,
+          category: ProductCategory.Sweet,
+          productOptions: [
+            ProductOption.create({ name: 'Option 1', quantity: 5 }),
+          ],
+        }),
+      ],
+      storeUsers: [{ userProfile } as StoreUser],
+    });
+    secondStore.status = true;
+
+    const unavailableStore1 = Store.create({
+      ...createStoreDTOs[1],
+      photoUrl: 'http://image.url/photo3.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+      availabilities: [
+        StoreAvailability.create({ weekday: 1, start: '09:00', end: '17:00' }),
+        StoreAvailability.create({ weekday: 3, start: '09:00', end: '17:00' }),
+      ],
+      products: [
+        Product.create({
+          name: 'Product 2',
+          description: 'Another product',
+          photoUrl: 'http://image.url/product2.jpg',
+          value: 15,
+          category: ProductCategory.Sweet,
+          productOptions: [
+            ProductOption.create({ name: 'Option 1', quantity: 5 }),
+          ],
+        }),
+      ],
+    });
+    unavailableStore1.status = false;
+
+    const unavailableStore2 = Store.create({
+      ...createStoreDTOs[2],
+      photoUrl: 'http://image.url/photo4.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+      availabilities: [
+        StoreAvailability.create({ weekday: 2, start: '10:00', end: '15:00' }),
+        StoreAvailability.create({ weekday: 4, start: '10:00', end: '15:00' }),
+      ],
+      products: [
+        Product.create({
+          name: 'Product 3',
+          description: 'Yet another product',
+          photoUrl: 'http://image.url/product3.jpg',
+          value: 20,
+          category: ProductCategory.Sweet,
+          productOptions: [
+            ProductOption.create({ name: 'Option 1', quantity: 5 }),
+          ],
+        }),
+      ],
+    });
+    unavailableStore2.status = true;
+
+    const unavailableStore3 = Store.create({
+      ...createStoreDTOs[3],
+      photoUrl: 'http://image.url/photo5.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+      availabilities: [
+        StoreAvailability.create({ weekday: 1, start: '08:00', end: '18:00' }),
+      ],
+      products: [
+        Product.create({
+          name: 'Product 3',
+          description: 'Yet another product',
+          photoUrl: 'http://image.url/product3.jpg',
+          value: 20,
+          category: ProductCategory.Sweet,
+          productOptions: [
+            ProductOption.create({ name: 'Option 1', quantity: 0 }),
+          ],
+        }),
+      ],
+    });
+    unavailableStore3.status = true;
+
+    await dataSource
+      .getRepository(Store)
+      .save([
+        firstStore,
+        secondStore,
+        unavailableStore1,
+        unavailableStore2,
+        unavailableStore3,
+      ]);
+
+    const stores = await storeService.findAll({
+      page: 1,
+      pageSize: 10,
+      hours: '10:00',
+      weekday: 1,
+    });
+
+    expect(stores.count).toBe(2);
+    const storeNames = stores.stores.map((s) => s.name);
+    expect(storeNames).toContain('Available Store 1');
+    expect(storeNames).toContain('Available Store 2');
   });
 });

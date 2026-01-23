@@ -19,6 +19,7 @@ export class StoreService {
     private readonly dataSource: DataSource,
   ) {}
 
+  // Vale a pena testar para ver se está, de fato, retornando corretamente todas as lojas ativas com produtos disponiveis
   async findAll(filters: FindAllStoreFilters) {
     const stores =
       await this.storeRepository.findAllActiveWithPositiveProductOptions(
@@ -27,6 +28,7 @@ export class StoreService {
     return stores;
   }
 
+  // Testar também. Está retornando corretamente se há ou não lojas disponíveis?
   async findThereIsAvailableStore({
     weekday,
     hours,
@@ -63,18 +65,14 @@ export class StoreService {
         description: store.description,
         whatsapp: store.whatsapp,
         photoUrl,
+        storeUsers: [
+          StoreUser.create({
+            userProfile: { id: store.userId } as UserProfile,
+          }),
+        ],
       });
 
-      await entityManager.save(createdStore);
-
-      const createdStoreUser = StoreUser.create({
-        store: createdStore,
-        userProfile: { id: store.userId } as UserProfile,
-      });
-
-      await entityManager.save(createdStoreUser);
-
-      return createdStore;
+      return await entityManager.save(createdStore);
     });
   }
 

@@ -76,13 +76,13 @@ export class StoreAvailability {
     weekday: number;
     start: string;
     end: string;
-    store: Store;
+    store?: Store;
   }): StoreAvailability {
     const storeAvailability = new StoreAvailability();
 
     storeAvailability.changeWeekday(weekday);
     storeAvailability.changeHours(start, end);
-    storeAvailability.store = store;
+    if (store) storeAvailability.store = store;
 
     return storeAvailability;
   }
