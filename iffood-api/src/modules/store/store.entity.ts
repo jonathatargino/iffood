@@ -16,8 +16,11 @@ import { InvalidStorePhotoUrlError } from './domain/invalid-store-photo-url.erro
 import { InvalidStoreNameError } from './domain/invalid-store-name.error';
 import { WhatsappNumber } from './domain/value-objects/whatsapp-number.vo';
 import { applyPatch } from '../../common/domain/apply-patch';
-import { ServiceUpdateStoreDto } from './dto/store.service.dto';
 import { DuplicatedAvailabilityWeekdayError } from './store-availability/domain/errors/duplicated-availability-weekday.error';
+
+type UpdateStoreDetailsInput = Partial<
+  Pick<Store, 'photoUrl' | 'name' | 'description' | 'whatsapp' | 'status'>
+>;
 
 @Entity({
   name: 'stores',
@@ -129,7 +132,8 @@ export class Store {
     name,
     status,
     whatsapp,
-  }: Omit<ServiceUpdateStoreDto, 'storeId' | 'userId'>) {
+    photoUrl,
+  }: UpdateStoreDetailsInput) {
     applyPatch({
       fieldName: 'description',
       value: description,
@@ -155,6 +159,12 @@ export class Store {
         this.status = v;
       },
       allowNull: false,
+    });
+    applyPatch<string>({
+      fieldName: 'photoUrl',
+      value: photoUrl,
+      allowNull: false,
+      set: (v) => this.changePhotoUrl(v),
     });
   }
 
