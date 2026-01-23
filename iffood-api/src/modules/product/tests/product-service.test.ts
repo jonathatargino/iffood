@@ -18,6 +18,8 @@ import {
   ServiceCreateProductDto,
   ServiceUpdateProductDto,
 } from '../dto/product.service.dto';
+import { ForbiddenException } from '@nestjs/common';
+import { StoreUserRepository } from '../../store/store-user/store-user.repository';
 
 jest.setTimeout(60_000);
 
@@ -55,7 +57,7 @@ describe('Product Service', () => {
           entities: [join(process.cwd(), 'src/**/*.entity{.ts,.js}')],
           synchronize: true,
         }),
-        TypeOrmModule.forFeature([Product]),
+        TypeOrmModule.forFeature([Product, StoreUser]),
       ],
       providers: [
         ProductService,
@@ -66,12 +68,8 @@ describe('Product Service', () => {
             upload: jest.fn().mockResolvedValue('http://image.url/photo.jpg'),
           },
         },
-        {
-          provide: StoreUserService,
-          useValue: {
-            isUserStoreMember: jest.fn().mockResolvedValue(true),
-          },
-        },
+        StoreUserService,
+        StoreUserRepository,
       ],
     }).compile();
 
@@ -318,6 +316,39 @@ describe('Product Service', () => {
     const optionNames = productInDb!.productOptions.map((opt) => opt.name);
     expect(optionNames).toContain('Option 1');
     expect(optionNames).toContain('Option 2');
+  });
+
+  it('createProductWithOptions() should throw ForbiddenException when user is not a store member', async () => {
+    const ownerProfile = await givenUserProfile(dataSource);
+    const userProfile = await givenUserProfile(dataSource);
+    const store = Store.create({
+      name: 'Another Store',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile: ownerProfile } as StoreUser],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    const dto: ServiceCreateProductDto = {
+      name: 'Test Product',
+      description: 'A product for testing',
+      value: 25,
+      category: ProductCategory.Savory,
+      photoBuffer: Buffer.from('fake-image-buffer'),
+      storeId: store.id,
+      productOptions: [
+        { name: 'Option 1', quantity: 10 },
+        { name: 'Option 2', quantity: 15 },
+      ],
+      userId: userProfile.id,
+    };
+
+    await expect(productService.createProductWithOptions(dto)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it("updateProductWithOptions() should update a product's details and its options", async () => {
