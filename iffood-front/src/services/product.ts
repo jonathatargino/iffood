@@ -68,7 +68,7 @@ export const productService = {
       category?: string;
       weekday?: number;
       hours?: string;
-    }
+    },
   ): Promise<PaginatedProductsResponse> {
     const response = await api.get<BackendProductsResponse>("/product", {
       params: { storeId, ...params },
@@ -84,11 +84,11 @@ export const productService = {
   },
 
   async getProductsWithCountsByStore(
-    storeId: string
+    storeId: string,
   ): Promise<FindAllProductsResponse> {
     const response = await api.get<FindAllProductsResponse>(
       "/product/dashboard",
-      { params: { storeId } }
+      { params: { storeId } },
     );
     return response.data;
   },
@@ -132,10 +132,10 @@ export const productService = {
     category: "sweet" | "savory";
     photo?: File;
     productOptions: {
-      id?: string;
-      name: string;
-      quantity: number;
-    }[];
+      updated: { id: string; name: string; quantity: number }[];
+      deleted: { id: string; name: string; quantity: number }[];
+      new: { name: string; quantity: number }[];
+    };
   }): Promise<Product> {
     const formData = new FormData();
     formData.append("name", data.name);

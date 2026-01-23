@@ -209,19 +209,17 @@ export function ProductForm({ storeId }: ProductFormProps) {
             name: opt.name,
             quantity: opt.quantity,
             status: "updated" as const,
-          }))
+          })),
         );
       }
     }
   }, [product, isEditMode, setValue]);
 
-  console.log(preview);
-
   const totalStock = flavorsData
     .filter((f) => f.status !== "deleted")
     .reduce((sum, flavor) => sum + flavor.quantity, 0);
   const activeFlavors = fields.filter(
-    (_, index) => flavorsData[index]?.status !== "deleted"
+    (_, index) => flavorsData[index]?.status !== "deleted",
   );
   const canAddFlavor = activeFlavors.length < MAX_FLAVORS;
   const canDeleteFlavor = activeFlavors.length > 1;
@@ -336,11 +334,10 @@ export function ProductForm({ storeId }: ProductFormProps) {
       category: "sweet" | "savory";
       photo?: File;
       productOptions: {
-        id?: string;
-        name: string;
-        quantity: number;
-        status: "new" | "updated" | "deleted";
-      }[];
+        updated: { id: string; name: string; quantity: number }[];
+        deleted: { id: string; name: string; quantity: number }[];
+        new: { name: string; quantity: number }[];
+      };
     }) => productService.updateProduct(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["store-products", storeId] });
@@ -376,6 +373,29 @@ export function ProductForm({ storeId }: ProductFormProps) {
     const activeFlavors = data.flavors.filter((f) => f.status !== "deleted");
 
     if (isEditMode) {
+      const updatedFlavors = data.flavors
+        .filter((f) => f.status === "updated" && f.id)
+        .map((f) => ({
+          id: f.id!,
+          name: f.name,
+          quantity: f.quantity,
+        }));
+
+      const deletedFlavors = data.flavors
+        .filter((f) => f.status === "deleted" && f.id)
+        .map((f) => ({
+          id: f.id!,
+          name: f.name,
+          quantity: f.quantity,
+        }));
+
+      const newFlavors = data.flavors
+        .filter((f) => f.status === "new")
+        .map((f) => ({
+          name: f.name,
+          quantity: f.quantity,
+        }));
+
       updateProductMutation.mutate({
         id: productId!,
         name: data.name,
@@ -383,12 +403,11 @@ export function ProductForm({ storeId }: ProductFormProps) {
         value: priceInCents,
         category: data.category,
         photo: data.image || undefined,
-        productOptions: data.flavors.map((f) => ({
-          id: f.id,
-          name: f.name,
-          quantity: f.quantity,
-          status: f.status || "updated",
-        })),
+        productOptions: {
+          updated: updatedFlavors,
+          deleted: deletedFlavors,
+          new: newFlavors,
+        },
       });
     } else {
       createProductMutation.mutate({
@@ -421,8 +440,6 @@ export function ProductForm({ storeId }: ProductFormProps) {
       </div>
     );
   }
-
-  console.log({ isSubmitting, isLoading });
 
   return (
     <div className="bg-[#fafafa] min-h-screen pb-8">

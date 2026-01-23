@@ -125,8 +125,8 @@ export class ProductController {
   async updateProduct(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateProductRequestBodyDto,
-    @UploadedFile() photo: Express.Multer.File,
     @UserId() userId: string,
+    @UploadedFile() photo?: Express.Multer.File,
   ) {
     return this.productMapper.toDto(
       await this.productService.updateProductWithOptions({
@@ -135,7 +135,7 @@ export class ProductController {
         name: body.name,
         productOptions: body.productOptions,
         value: body.value,
-        photoBuffer: photo.buffer,
+        photoBuffer: photo?.buffer,
         userId,
         category: body.category,
       }),

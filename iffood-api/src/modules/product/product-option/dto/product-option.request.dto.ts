@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -7,8 +8,9 @@ import {
   Length,
   Max,
   Min,
+  ValidateNested,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PRODUCT_OPTION_CONSTRAINTS } from '../../../../common/validation/constraints/product-option-constraints';
 
@@ -43,10 +45,18 @@ export class UpdateProductOptionUnitRequestDto extends ProductOptionBaseRequestD
 }
 
 export class UpdateProductOptionRequestDto {
-  @ApiProperty({ type: [UpdateProductOptionUnitRequestDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateProductOptionUnitRequestDto)
   updated: UpdateProductOptionUnitRequestDto[];
-  @ApiProperty({ type: [UpdateProductOptionUnitRequestDto] })
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateProductOptionUnitRequestDto)
   deleted: UpdateProductOptionUnitRequestDto[];
-  @ApiProperty({ type: [ProductOptionBaseRequestDto] })
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductOptionBaseRequestDto)
   new: ProductOptionBaseRequestDto[];
 }

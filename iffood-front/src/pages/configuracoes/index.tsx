@@ -12,7 +12,7 @@ function BackButton({ onClick }: { onClick: () => void }) {
       className={cn(
         "size-11 bg-white rounded-2xl shadow-md",
         "flex items-center justify-center",
-        "active:scale-95 transition-transform"
+        "active:scale-95 transition-transform",
       )}
       aria-label="Voltar"
     >
@@ -47,14 +47,14 @@ function MenuOption({
       className={cn(
         "w-full bg-white rounded-2xl p-5 flex items-center justify-between",
         "shadow-sm hover:shadow-lg transition-all",
-        disabled ? "opacity-40 cursor-not-allowed" : "active:scale-[0.98]"
+        disabled ? "opacity-40 cursor-not-allowed" : "active:scale-[0.98]",
       )}
     >
       <div className="flex items-center gap-4">
         <div
           className={cn(
             "size-12 rounded-full flex items-center justify-center",
-            variant === "danger" ? "bg-red-50" : "bg-gray-50"
+            variant === "danger" ? "bg-red-50" : "bg-gray-50",
           )}
         >
           {icon}
@@ -62,7 +62,7 @@ function MenuOption({
         <span
           className={cn(
             "text-[#2e2e2e]",
-            variant === "danger" && "text-red-600"
+            variant === "danger" && "text-red-600",
           )}
         >
           {label}
@@ -78,8 +78,6 @@ export function ConfiguracoesPage() {
   const { session, signOut } = useAuth();
   const { isThereAvailableStore } = useAvailability();
   const isLoggedIn = !!session;
-
-  console.log({ isThereAvailableStore });
 
   const handleBack = async () => {
     await navigate("/");
@@ -105,7 +103,7 @@ export function ConfiguracoesPage() {
       <div
         className={cn(
           "bg-gradient-to-br from-[#FF7622] to-[#E6661A]",
-          "px-6 pt-14 pb-32 rounded-b-[32px] shadow-lg relative"
+          "px-6 pt-14 pb-32 rounded-b-[32px] shadow-lg relative",
         )}
       >
         <div className="flex items-center gap-4 mb-16">
