@@ -62,7 +62,9 @@ describe('StoreAvailability Service', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.query(`TRUNCATE TABLE store_users, stores CASCADE;`);
+    await dataSource.query(
+      `TRUNCATE TABLE store_users, store_availabilities, store_users, user_profiles, stores CASCADE;`,
+    );
   });
 
   it("updateFullStoreAvailability should replace store's availabilities", async () => {

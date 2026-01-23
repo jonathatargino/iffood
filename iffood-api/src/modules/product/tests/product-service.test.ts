@@ -1,22 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GenericContainer, StartedTestContainer } from 'testcontainers';
-import { StoreRepository } from '../store.repository';
-import { StoreUser } from '../store-user/store-user.entity';
-import { StoreService } from '../store.service';
-import { ImagesService } from '../../../infra/images/images.service';
 import { DataSource } from 'typeorm';
-import { ServiceCreateStoreDto } from '../dto/store.service.dto';
-import { givenUserProfile } from './helpers/given-user-profile';
-import { Store } from '../store.entity';
-import { Product, ProductCategory } from '../../product/product.entity';
-import { StoreAvailability } from '../store-availability/store-availability.entity';
-import { ProductOption } from '../../product/product-option/product-option.entity';
+import { join } from 'path';
+import { ProductService } from '../product.service';
+import { Product, ProductCategory } from '../product.entity';
+import { ProductRepository } from '../product.repository';
+import { Store } from '../../store/store.entity';
+import { ServiceCreateStoreDto } from '../../store/dto/store.service.dto';
+import { givenUserProfile } from '../../store/tests/helpers/given-user-profile';
+import { StoreAvailability } from '../../store/store-availability/store-availability.entity';
+import { ProductOption } from '../product-option/product-option.entity';
+import { StoreUser } from '../../store/store-user/store-user.entity';
+import { ImagesService } from '../../../infra/images/images.service';
+import { StoreUserService } from '../../store/store-user/store-user.service';
 
 jest.setTimeout(60_000);
 
-describe('Store Service', () => {
-  let storeService: StoreService;
+describe('Product Service', () => {
+  let productService: ProductService;
   let dataSource: DataSource;
   let container: StartedTestContainer;
   let moduleRef: TestingModule;
@@ -46,24 +48,28 @@ describe('Store Service', () => {
           username: TEST_DB_ENV.POSTGRES_USER,
           password: TEST_DB_ENV.POSTGRES_PASSWORD,
           database: TEST_DB_ENV.POSTGRES_DB,
-          entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
+          entities: [join(process.cwd(), 'src/**/*.entity{.ts,.js}')],
           synchronize: true,
         }),
-        TypeOrmModule.forFeature([Store]),
+        TypeOrmModule.forFeature([Product]),
       ],
       providers: [
-        StoreService,
-        StoreRepository,
+        ProductService,
+        ProductRepository,
         {
           provide: ImagesService,
           useValue: {
             upload: jest.fn().mockResolvedValue('http://image.url/photo.jpg'),
           },
         },
+        {
+          provide: StoreUserService,
+          useValue: {},
+        },
       ],
     }).compile();
 
-    storeService = moduleRef.get<StoreService>(StoreService);
+    productService = moduleRef.get(ProductService);
     dataSource = moduleRef.get(DataSource);
   });
 
@@ -73,43 +79,10 @@ describe('Store Service', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.query(
-      `TRUNCATE TABLE store_users, product_options, products, store_availabilities, store_users, user_profiles, stores CASCADE;`,
-    );
+    await dataSource.query(`TRUNCATE TABLE product_options, products CASCADE;`);
   });
 
-  it('(create) should create a store and a store user', async () => {
-    const userProfile = await givenUserProfile(dataSource);
-
-    const createStoreDto: ServiceCreateStoreDto = {
-      name: 'Test Store',
-      description: 'A store for testing',
-      whatsapp: '85985454176',
-      photoBuffer: Buffer.from('fake-image-data'),
-      userId: userProfile.id,
-    };
-
-    const createdStore = await storeService.create(createStoreDto);
-
-    expect(createdStore).toBeDefined();
-    expect(createdStore.id).toBeDefined();
-    expect(createdStore.name).toBe(createStoreDto.name);
-    expect(createdStore.description).toBe(createStoreDto.description);
-    expect(createdStore.whatsapp).toBe(createStoreDto.whatsapp);
-    expect(createdStore.photoUrl).toBe('http://image.url/photo.jpg');
-
-    const storeUser = await dataSource.getRepository(StoreUser).findOne({
-      where: {
-        store: { id: createdStore.id },
-        userProfile: { id: userProfile.id },
-      },
-      relations: ['userProfile'],
-    });
-
-    expect(storeUser).toBeDefined();
-  });
-
-  it('findAll() should return only available stores', async () => {
+  it('findAll() should return only available products', async () => {
     const userProfile = await givenUserProfile(dataSource);
     const createStoreDTOs: Omit<ServiceCreateStoreDto, 'photoBuffer'>[] = [
       {
@@ -159,7 +132,7 @@ describe('Store Service', () => {
           value: 10,
           category: ProductCategory.Savory,
           productOptions: [
-            ProductOption.create({ name: 'Option 1', quantity: 5 }),
+            ProductOption.create({ name: 'Store 1 - Option 1', quantity: 5 }),
           ],
         }),
       ],
@@ -182,7 +155,8 @@ describe('Store Service', () => {
           value: 15,
           category: ProductCategory.Sweet,
           productOptions: [
-            ProductOption.create({ name: 'Option 1', quantity: 5 }),
+            ProductOption.create({ name: 'Store 2 - Option 1', quantity: 5 }),
+            ProductOption.create({ name: 'Store 2 - Option 2', quantity: 8 }),
           ],
         }),
       ],
@@ -206,7 +180,10 @@ describe('Store Service', () => {
           value: 15,
           category: ProductCategory.Sweet,
           productOptions: [
-            ProductOption.create({ name: 'Option 1', quantity: 5 }),
+            ProductOption.create({
+              name: 'Unavailable Store 1 - Option 1',
+              quantity: 5,
+            }),
           ],
         }),
       ],
@@ -229,7 +206,10 @@ describe('Store Service', () => {
           value: 20,
           category: ProductCategory.Sweet,
           productOptions: [
-            ProductOption.create({ name: 'Option 1', quantity: 5 }),
+            ProductOption.create({
+              name: 'Unavailable Store 2 - Option 1',
+              quantity: 5,
+            }),
           ],
         }),
       ],
@@ -251,7 +231,10 @@ describe('Store Service', () => {
           value: 20,
           category: ProductCategory.Sweet,
           productOptions: [
-            ProductOption.create({ name: 'Option 1', quantity: 0 }),
+            ProductOption.create({
+              name: 'Unavailable Store 3 - Option 1',
+              quantity: 0,
+            }),
           ],
         }),
       ],
@@ -268,90 +251,16 @@ describe('Store Service', () => {
         unavailableStore3,
       ]);
 
-    const stores = await storeService.findAll({
+    const productsResult = await productService.findAll({
+      weekday: 1,
+      hours: '10:00',
       page: 1,
       pageSize: 10,
-      hours: '10:00',
-      weekday: 1,
     });
 
-    expect(stores.count).toBe(2);
-    const storeNames = stores.stores.map((s) => s.name);
-    expect(storeNames).toContain('Available Store 1');
-    expect(storeNames).toContain('Available Store 2');
-  });
-
-  it('findThereIsAvailableStore() should return true when there is at least one store available', async () => {
-    const userProfile = await givenUserProfile(dataSource);
-
-    const store = Store.create({
-      name: 'Available Store',
-      description: 'A store for testing',
-      whatsapp: '85985454176',
-      photoUrl: 'http://image.url/photo.jpg',
-      storeUsers: [{ userProfile } as StoreUser],
-      availabilities: [
-        StoreAvailability.create({ weekday: 1, start: '08:00', end: '18:00' }),
-      ],
-      products: [
-        Product.create({
-          name: 'Product 1',
-          description: 'A product Lorem Ipsum',
-          photoUrl: 'http://image.url/product1.jpg',
-          value: 10,
-          category: ProductCategory.Savory,
-          productOptions: [
-            ProductOption.create({ name: 'Option 1', quantity: 5 }),
-          ],
-        }),
-      ],
-    });
-    store.status = true;
-
-    await dataSource.getRepository(Store).save(store);
-
-    const result = await storeService.findThereIsAvailableStore({
-      weekday: 1,
-      hours: '10:00',
-    });
-
-    expect(result.available).toBe(true);
-  });
-
-  it("findThereIsAvailableStore() should return false when there isn't any store available", async () => {
-    const userProfile = await givenUserProfile(dataSource);
-
-    const store = Store.create({
-      name: 'Available Store',
-      description: 'A store for testing',
-      whatsapp: '85985454176',
-      photoUrl: 'http://image.url/photo.jpg',
-      storeUsers: [{ userProfile } as StoreUser],
-      availabilities: [
-        StoreAvailability.create({ weekday: 1, start: '08:00', end: '18:00' }),
-      ],
-      products: [
-        Product.create({
-          name: 'Product 1',
-          description: 'A product Lorem Ipsum',
-          photoUrl: 'http://image.url/product1.jpg',
-          value: 10,
-          category: ProductCategory.Savory,
-          productOptions: [
-            ProductOption.create({ name: 'Option 1', quantity: 5 }),
-          ],
-        }),
-      ],
-    });
-    store.status = true;
-
-    await dataSource.getRepository(Store).save(store);
-
-    const result = await storeService.findThereIsAvailableStore({
-      weekday: 2,
-      hours: '10:00',
-    });
-
-    expect(result.available).toBe(false);
+    expect(productsResult.count).toBe(2);
+    const productsNames = productsResult.products.map((p) => p.name);
+    expect(productsNames).toContain('Product 1');
+    expect(productsNames).toContain('Product 2');
   });
 });
