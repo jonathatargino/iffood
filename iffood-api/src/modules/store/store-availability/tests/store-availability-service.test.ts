@@ -10,6 +10,7 @@ import { StoreUser } from '../../store-user/store-user.entity';
 import { givenUserProfile } from '../../tests/helpers/given-user-profile';
 import { ServiceUpdateStoreAvailabilityDto } from '../dto/store-availability.service.dto';
 import { join } from 'path';
+import { ForbiddenException } from '@nestjs/common';
 
 jest.setTimeout(60_000);
 
@@ -123,5 +124,45 @@ describe('StoreAvailability Service', () => {
       { weekday: 3, start: '10:00', end: '20:00' },
       { weekday: 5, start: '12:00', end: '22:00' },
     ]);
+  });
+
+  it("updateFullStoreAvailability should throw ForbiddenException when user doesn't belong to store", async () => {
+    const userProfile = await givenUserProfile(dataSource);
+
+    const store = Store.create({
+      name: 'Available Store',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [],
+      availabilities: [
+        StoreAvailability.create({ weekday: 1, start: '08:00', end: '18:00' }),
+      ],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    const newAvailabilities: ServiceUpdateStoreAvailabilityDto['availabilities'] =
+      [
+        {
+          end: '20:00',
+          start: '10:00',
+          weekday: 3,
+        },
+        {
+          end: '22:00',
+          start: '12:00',
+          weekday: 5,
+        },
+      ];
+
+    await expect(
+      storeAvailabilityService.updateFullStoreAvailability({
+        storeId: store.id,
+        userId: userProfile.id,
+        availabilities: newAvailabilities,
+      }),
+    ).rejects.toThrow(ForbiddenException);
   });
 });
