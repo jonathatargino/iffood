@@ -163,7 +163,7 @@ export function ProductForm({ storeId }: ProductFormProps) {
     control,
     watch,
     setValue,
-    formState: { errors, isSubmitting, isLoading },
+    formState: { errors },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
