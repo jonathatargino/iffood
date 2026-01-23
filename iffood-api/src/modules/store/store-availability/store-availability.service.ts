@@ -18,8 +18,6 @@ export class StoreAvailabilityService {
     return result;
   }
 
-  // Testar. Está de fato substituindo as avaliabilities antigas?
-  // OBS: Integration test.
   updateFullStoreAvailability({
     storeId,
     userId,
