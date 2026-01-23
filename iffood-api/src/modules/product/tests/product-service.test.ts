@@ -14,6 +14,7 @@ import { ProductOption } from '../product-option/product-option.entity';
 import { StoreUser } from '../../store/store-user/store-user.entity';
 import { ImagesService } from '../../../infra/images/images.service';
 import { StoreUserService } from '../../store/store-user/store-user.service';
+import { ServiceCreateProductDto } from '../dto/product.service.dto';
 
 jest.setTimeout(60_000);
 
@@ -64,7 +65,9 @@ describe('Product Service', () => {
         },
         {
           provide: StoreUserService,
-          useValue: {},
+          useValue: {
+            isUserStoreMember: jest.fn().mockResolvedValue(true),
+          },
         },
       ],
     }).compile();
@@ -262,5 +265,55 @@ describe('Product Service', () => {
     const productsNames = productsResult.products.map((p) => p.name);
     expect(productsNames).toContain('Product 1');
     expect(productsNames).toContain('Product 2');
+  });
+
+  it("createProductWithOptions() should create a product with it's options", async () => {
+    const userProfile = await givenUserProfile(dataSource);
+    const store = Store.create({
+      name: 'Product Store',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    const dto: ServiceCreateProductDto = {
+      name: 'Test Product',
+      description: 'A product for testing',
+      value: 25,
+      category: ProductCategory.Savory,
+      photoBuffer: Buffer.from('fake-image-buffer'),
+      storeId: store.id,
+      productOptions: [
+        { name: 'Option 1', quantity: 10 },
+        { name: 'Option 2', quantity: 15 },
+      ],
+      userId: userProfile.id,
+    };
+
+    const createdProduct = await productService.createProductWithOptions(dto);
+
+    expect(createdProduct).toBeDefined();
+
+    const productInDb = await dataSource.getRepository(Product).findOne({
+      where: { id: createdProduct.id },
+      relations: { productOptions: true, store: true },
+    });
+
+    expect(productInDb).toBeDefined();
+    expect(productInDb!.name).toBe(dto.name);
+    expect(productInDb!.description).toBe(dto.description);
+    expect(productInDb!.value).toBe(dto.value);
+    expect(productInDb!.category).toBe(dto.category);
+    expect(productInDb!.photoUrl).toBe('http://image.url/photo.jpg');
+    expect(productInDb!.store.id).toBe(store.id);
+    expect(productInDb!.productOptions).toHaveLength(2);
+
+    const optionNames = productInDb!.productOptions.map((opt) => opt.name);
+    expect(optionNames).toContain('Option 1');
+    expect(optionNames).toContain('Option 2');
   });
 });

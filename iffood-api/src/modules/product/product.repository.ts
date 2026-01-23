@@ -113,6 +113,7 @@ export class ProductRepository {
     return { products, count };
   }
 
+  // Mover pra transaction, já que tenta criar entidade aninhada
   async create(data: RepositoryCreateProductDto) {
     const product = Product.create({
       ...data,
