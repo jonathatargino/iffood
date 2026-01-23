@@ -19,7 +19,6 @@ export class StoreService {
     private readonly dataSource: DataSource,
   ) {}
 
-  // Vale a pena testar para ver se está, de fato, retornando corretamente todas as lojas ativas com produtos disponiveis
   async findAll(filters: FindAllStoreFilters) {
     const stores =
       await this.storeRepository.findAllActiveWithPositiveProductOptions(
@@ -28,7 +27,6 @@ export class StoreService {
     return stores;
   }
 
-  // Testar também. Está retornando corretamente se há ou não lojas disponíveis?
   async findThereIsAvailableStore({
     weekday,
     hours,

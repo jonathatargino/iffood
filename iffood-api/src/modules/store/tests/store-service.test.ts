@@ -278,4 +278,78 @@ describe('Store Service', () => {
     expect(storeNames).toContain('Available Store 1');
     expect(storeNames).toContain('Available Store 2');
   });
+
+  it('findThereIsAvailableStore() should return true when there is at least one store available', async () => {
+    const userProfile = await givenUserProfile(dataSource);
+
+    const store = Store.create({
+      name: 'Available Store',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+      availabilities: [
+        StoreAvailability.create({ weekday: 1, start: '08:00', end: '18:00' }),
+      ],
+      products: [
+        Product.create({
+          name: 'Product 1',
+          description: 'A product Lorem Ipsum',
+          photoUrl: 'http://image.url/product1.jpg',
+          value: 10,
+          category: ProductCategory.Savory,
+          productOptions: [
+            ProductOption.create({ name: 'Option 1', quantity: 5 }),
+          ],
+        }),
+      ],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    const result = await storeService.findThereIsAvailableStore({
+      weekday: 1,
+      hours: '10:00',
+    });
+
+    expect(result.available).toBe(true);
+  });
+
+  it("findThereIsAvailableStore() should return false when there isn't any store available", async () => {
+    const userProfile = await givenUserProfile(dataSource);
+
+    const store = Store.create({
+      name: 'Available Store',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+      availabilities: [
+        StoreAvailability.create({ weekday: 1, start: '08:00', end: '18:00' }),
+      ],
+      products: [
+        Product.create({
+          name: 'Product 1',
+          description: 'A product Lorem Ipsum',
+          photoUrl: 'http://image.url/product1.jpg',
+          value: 10,
+          category: ProductCategory.Savory,
+          productOptions: [
+            ProductOption.create({ name: 'Option 1', quantity: 5 }),
+          ],
+        }),
+      ],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    const result = await storeService.findThereIsAvailableStore({
+      weekday: 2,
+      hours: '10:00',
+    });
+
+    expect(result.available).toBe(false);
+  });
 });
