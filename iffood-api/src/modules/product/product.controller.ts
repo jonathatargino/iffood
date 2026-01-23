@@ -74,14 +74,6 @@ export class ProductController {
     );
   }
 
-  @ApiResponse({ type: ProductDetailsResponseDto })
-  @Get(':id')
-  async findById(@Param('id', ParseUUIDPipe) productId: string) {
-    return this.productMapper.toDetailsDto(
-      await this.productService.findById({ productId }),
-    );
-  }
-
   @ApiOkResponse({ type: [ProductDashboardResponseDto] })
   @Get('dashboard')
   async findAllWithTotalCountByStoreId(
@@ -91,6 +83,14 @@ export class ProductController {
       await this.productService.findAllWithTotalCountByStoreId({
         storeId,
       }),
+    );
+  }
+
+  @ApiResponse({ type: ProductDetailsResponseDto })
+  @Get(':id')
+  async findById(@Param('id', ParseUUIDPipe) productId: string) {
+    return this.productMapper.toDetailsDto(
+      await this.productService.findById({ productId }),
     );
   }
 
