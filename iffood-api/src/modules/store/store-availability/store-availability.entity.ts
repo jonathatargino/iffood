@@ -12,6 +12,7 @@ import { Store } from '../store.entity';
 import { STORE_AVAILABILITY_CONSTRAINTS } from '../../../common/validation/constraints/store-availability-constraints';
 import { WeekDay } from './domain/value-objects/week-day.vo';
 import { AvailabilityHours } from './domain/value-objects/availability-hours.vo';
+import { hhmmTransformer } from './utils';
 
 @Check(
   `"weekday" >= ${STORE_AVAILABILITY_CONSTRAINTS.WEEKDAY_MIN} AND "weekday" <= ${STORE_AVAILABILITY_CONSTRAINTS.WEEKDAY_MAX}`,
@@ -26,10 +27,10 @@ export class StoreAvailability {
   @Column({ name: 'weekday' })
   private _weekday: number;
 
-  @Column({ type: 'time', name: 'start' })
+  @Column({ type: 'time', name: 'start', transformer: hhmmTransformer })
   private _start: string;
 
-  @Column({ type: 'time', name: 'end' })
+  @Column({ type: 'time', name: 'end', transformer: hhmmTransformer })
   private _end: string;
 
   @CreateDateColumn({ name: 'created_at' })
