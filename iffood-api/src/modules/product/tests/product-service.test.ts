@@ -422,4 +422,133 @@ describe('Product Service', () => {
     expect(optionNames).toContain('Original Option 3');
     expect(optionNames).toContain('New Option 4');
   });
+
+  it('updateProductWithOptions() should throw ForbiddenException when user is not a store member', async () => {
+    const ownerProfile = await givenUserProfile(dataSource);
+    const userProfile = await givenUserProfile(dataSource);
+    const store = Store.create({
+      name: 'Another Store',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile: ownerProfile } as StoreUser],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    const product = Product.create({
+      name: 'Original Product',
+      description: 'Original description',
+      value: 30,
+      category: ProductCategory.Savory,
+      photoUrl: 'http://image.url/original-product.jpg',
+      store: store,
+      productOptions: [
+        ProductOption.create({ name: 'Original Option 1', quantity: 10 }),
+      ],
+    });
+
+    await dataSource.getRepository(Product).save(product);
+
+    const dto: ServiceUpdateProductDto = {
+      id: product.id,
+      name: 'Updated Product',
+      value: 35,
+      category: ProductCategory.Sweet,
+      photoBuffer: Buffer.from('new-fake-image-buffer'),
+      productOptions: {
+        deleted: [],
+        new: [{ name: 'New Option 4', quantity: 40 }],
+        updated: [],
+      },
+      userId: userProfile.id,
+    };
+
+    await expect(productService.updateProductWithOptions(dto)).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('delete() should throw ForbiddenException when user is not a store member', async () => {
+    const ownerProfile = await givenUserProfile(dataSource);
+    const userProfile = await givenUserProfile(dataSource);
+    const store = Store.create({
+      name: 'Another Store',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile: ownerProfile } as StoreUser],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    const product = Product.create({
+      name: 'Product to Delete',
+      description: 'Product description',
+      value: 30,
+      category: ProductCategory.Savory,
+      photoUrl: 'http://image.url/product-to-delete.jpg',
+      store: store,
+      productOptions: [],
+    });
+
+    await dataSource.getRepository(Product).save(product);
+
+    await expect(
+      productService.delete({ productId: product.id, userId: userProfile.id }),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('delete() should delete the soft delete product and product options when user is a store member', async () => {
+    const userProfile = await givenUserProfile(dataSource);
+    const store = Store.create({
+      name: 'Product Store',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    const product = Product.create({
+      name: 'Product to Delete',
+      description: 'Product description',
+      value: 30,
+      category: ProductCategory.Savory,
+      photoUrl: 'http://image.url/product-to-delete.jpg',
+      store: store,
+      productOptions: [
+        ProductOption.create({ name: 'Option 1', quantity: 10 }),
+        ProductOption.create({ name: 'Option 2', quantity: 20 }),
+      ],
+    });
+
+    await dataSource.getRepository(Product).save(product);
+
+    const deleteResult = await productService.delete({
+      productId: product.id,
+      userId: userProfile.id,
+    });
+
+    expect(deleteResult).toBe(true);
+
+    const productInDb = await dataSource
+      .getRepository(Product)
+      .findOne({ where: { id: product.id }, withDeleted: true });
+
+    expect(productInDb).toBeDefined();
+    expect(productInDb!.deletedAt).toBeInstanceOf(Date);
+
+    const productOptionsInDb = await dataSource
+      .getRepository(ProductOption)
+      .find({ where: { product: { id: product.id } }, withDeleted: true });
+    expect(productOptionsInDb).toHaveLength(2);
+    productOptionsInDb.forEach((option) => {
+      expect(option.deletedAt).toBeInstanceOf(Date);
+    });
+  });
 });

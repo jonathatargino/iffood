@@ -127,6 +127,6 @@ export class ProductService {
       throw new ForbiddenException();
     }
 
-    return;
+    return true;
   }
 }
