@@ -13,7 +13,7 @@ import { UserId } from '../../../common/decorators/user-id';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { StoreAvailabilityMapper } from './store-availability.mapper';
 import { ApiBearerAuth, ApiOkResponse } from '@nestjs/swagger';
-import { ListStoreAvailabilityResponseDto } from './dto/store-availability.response.dto';
+import { ListItemStoreAvailabilityResponseDtoUnit } from './dto/store-availability.response.dto';
 
 @Controller('store/store-availability')
 export class StoreAvailabilityController {
@@ -22,7 +22,7 @@ export class StoreAvailabilityController {
     private readonly storeAvailabilityMapper: StoreAvailabilityMapper,
   ) {}
 
-  @ApiOkResponse({ type: ListStoreAvailabilityResponseDto })
+  @ApiOkResponse({ type: [ListItemStoreAvailabilityResponseDtoUnit] })
   @Get(':storeId')
   async findByStoreId(@Param('storeId', ParseUUIDPipe) storeId: string) {
     return this.storeAvailabilityMapper.toListDto(
@@ -31,7 +31,7 @@ export class StoreAvailabilityController {
   }
 
   @ApiBearerAuth('access-token')
-  @ApiOkResponse({ type: ListStoreAvailabilityResponseDto })
+  @ApiOkResponse({ type: [ListItemStoreAvailabilityResponseDtoUnit] })
   @Put('full')
   @UseGuards(AuthGuard)
   async updateFullStoreAvailability(

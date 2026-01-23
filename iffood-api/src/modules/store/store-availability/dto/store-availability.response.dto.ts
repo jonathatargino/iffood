@@ -29,8 +29,3 @@ export class ListItemStoreAvailabilityResponseDtoUnit {
   @IsMilitaryTime()
   end: string;
 }
-
-export class ListStoreAvailabilityResponseDto {
-  @ApiProperty({ type: [ListItemStoreAvailabilityResponseDtoUnit] })
-  availabilities: ListItemStoreAvailabilityResponseDtoUnit[];
-}
