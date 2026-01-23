@@ -14,6 +14,7 @@ import {
   ServiceCreateProductDto,
   ServiceUpdateProductDto,
 } from './dto/product.service.dto';
+import { Store } from '../store/store.entity';
 @Injectable()
 export class ProductService {
   constructor(
@@ -36,7 +37,6 @@ export class ProductService {
     return this.productRepository.findAllWithCounts({ storeId });
   }
 
-  // Vale a pena testar. Está realmente retornando apenas produtos disponíveis?
   async findAll(filters: FindAllProductFilters) {
     const result = await this.productRepository.findAllAvailable(filters);
     return result;
@@ -60,20 +60,21 @@ export class ProductService {
       }),
     );
 
-    const result = await this.productRepository.create({
-      description: dto.description,
-      name: dto.name,
-      photoUrl,
-      value: dto.value,
-      storeId: dto.storeId,
-      category: dto.category,
-      productOptions,
-    });
+    return this.dataSource.transaction(async (entityManager) => {
+      const product = Product.create({
+        description: dto.description,
+        name: dto.name,
+        photoUrl,
+        value: dto.value,
+        category: dto.category,
+        store: { id: dto.storeId } as Store,
+        productOptions,
+      });
 
-    return result;
+      return await entityManager.save(Product, product);
+    });
   }
 
-  // Teste: Está realmente alterando as informaçẽoes do produto, assim como os options?
   async updateProductWithOptions(dto: ServiceUpdateProductDto) {
     const newPhotoUrl = dto.photoBuffer
       ? await this.imageService.upload(dto.photoBuffer)

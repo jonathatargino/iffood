@@ -14,7 +14,10 @@ import { ProductOption } from '../product-option/product-option.entity';
 import { StoreUser } from '../../store/store-user/store-user.entity';
 import { ImagesService } from '../../../infra/images/images.service';
 import { StoreUserService } from '../../store/store-user/store-user.service';
-import { ServiceCreateProductDto } from '../dto/product.service.dto';
+import {
+  ServiceCreateProductDto,
+  ServiceUpdateProductDto,
+} from '../dto/product.service.dto';
 
 jest.setTimeout(60_000);
 
@@ -315,5 +318,77 @@ describe('Product Service', () => {
     const optionNames = productInDb!.productOptions.map((opt) => opt.name);
     expect(optionNames).toContain('Option 1');
     expect(optionNames).toContain('Option 2');
+  });
+
+  it("updateProductWithOptions() should update a product's details and its options", async () => {
+    const userProfile = await givenUserProfile(dataSource);
+    const store = Store.create({
+      name: 'Product Store',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    const product = Product.create({
+      name: 'Original Product',
+      description: 'Original description',
+      value: 30,
+      category: ProductCategory.Savory,
+      photoUrl: 'http://image.url/original-product.jpg',
+      store: store,
+      productOptions: [
+        ProductOption.create({ name: 'Original Option 1', quantity: 10 }),
+        ProductOption.create({ name: 'Original Option 2', quantity: 20 }),
+        ProductOption.create({ name: 'Original Option 3', quantity: 30 }),
+      ],
+    });
+
+    await dataSource.getRepository(Product).save(product);
+
+    const dto: ServiceUpdateProductDto = {
+      id: product.id,
+      name: 'Updated Product',
+      value: 35,
+      category: ProductCategory.Sweet,
+      photoBuffer: Buffer.from('new-fake-image-buffer'),
+      productOptions: {
+        deleted: [product.productOptions[1]],
+        new: [{ name: 'New Option 4', quantity: 40 }],
+        updated: [
+          {
+            id: product.productOptions[0].id,
+            name: 'Updated Option 1',
+            quantity: 15,
+          },
+        ],
+      },
+      userId: userProfile.id,
+    };
+
+    const updatedProduct = await productService.updateProductWithOptions(dto);
+
+    expect(updatedProduct).toBeDefined();
+
+    const productInDb = await dataSource.getRepository(Product).findOne({
+      where: { id: updatedProduct.id },
+      relations: { productOptions: true, store: true },
+    });
+
+    expect(productInDb).toBeDefined();
+    expect(productInDb!.name).toBe(dto.name);
+    expect(productInDb!.description).toBe(product.description);
+    expect(productInDb!.value).toBe(dto.value);
+    expect(productInDb!.category).toBe(dto.category);
+    expect(productInDb!.store.id).toBe(store.id);
+    expect(productInDb!.productOptions).toHaveLength(3);
+
+    const optionNames = productInDb!.productOptions.map((opt) => opt.name);
+    expect(optionNames).toContain('Updated Option 1');
+    expect(optionNames).toContain('Original Option 3');
+    expect(optionNames).toContain('New Option 4');
   });
 });

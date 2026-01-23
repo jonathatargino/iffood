@@ -3,11 +3,7 @@ import { FindAllProductFilters } from './dto/product.request.dto';
 import { Product } from './product.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  ProductWithCounts,
-  RepositoryCreateProductDto,
-} from './dto/product.repository.dto';
-import { Store } from '../store/store.entity';
+import { ProductWithCounts } from './dto/product.repository.dto';
 
 @Injectable()
 export class ProductRepository {
@@ -111,17 +107,6 @@ export class ProductRepository {
 
     const [products, count] = await queryBuilder.getManyAndCount();
     return { products, count };
-  }
-
-  // Mover pra transaction, já que tenta criar entidade aninhada
-  async create(data: RepositoryCreateProductDto) {
-    const product = Product.create({
-      ...data,
-      store: { id: data.storeId } as Store,
-    });
-
-    const result = await this.typeormProductRepository.save(product);
-    return result;
   }
 
   async delete({ productId, userId }: { productId: string; userId: string }) {

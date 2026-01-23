@@ -13,6 +13,6 @@ export interface ServiceCreateProductDto
   extends ServiceBaseProductDto, CreateProductCoreDto {}
 
 export interface ServiceUpdateProductDto
-  extends ServiceBaseProductDto, UpdateProductCoreDto {
+  extends Partial<ServiceBaseProductDto>, Partial<UpdateProductCoreDto> {
   id: string;
 }
