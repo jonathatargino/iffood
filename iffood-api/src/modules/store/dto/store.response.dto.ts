@@ -38,5 +38,5 @@ export class IsAvailableStoreResponseDto {
   @ApiProperty({
     description: 'Indicates if there is at least one available store',
   })
-  isAvailable: boolean;
+  available: boolean;
 }
