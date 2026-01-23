@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Store } from './store.entity';
 import { StoreRepository } from './store.repository';
 import { ImagesService } from '../../infra/images/images.service';
@@ -10,6 +14,7 @@ import {
 import { DataSource } from 'typeorm';
 import { StoreUser } from './store-user/store-user.entity';
 import { UserProfile } from '../user-profile/user-profile.entity';
+import { StoreAvailability } from './store-availability/store-availability.entity';
 
 @Injectable()
 export class StoreService {
@@ -124,11 +129,26 @@ export class StoreService {
   }: {
     userId: string;
     storeId: string;
-  }): Promise<void> {
-    const isDeleted = await this.storeRepository.delete({ storeId, userId });
+  }): Promise<boolean> {
+    return await this.dataSource.transaction(async (entityManager) => {
+      const store = await entityManager.findOne(Store, {
+        where: { id: storeId, storeUsers: { userProfile: { id: userId } } },
+        relations: {
+          storeUsers: {
+            userProfile: true,
+          },
+          products: {
+            productOptions: true,
+          },
+        },
+      });
 
-    if (!isDeleted) {
-      throw new NotFoundException();
-    }
+      if (!store) throw new ForbiddenException();
+
+      const result = await entityManager.softRemove(store);
+      await entityManager.delete(StoreAvailability, { store: { id: storeId } });
+
+      return !!result;
+    });
   }
 }

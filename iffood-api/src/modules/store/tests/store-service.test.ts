@@ -12,6 +12,7 @@ import { Store } from '../store.entity';
 import { Product, ProductCategory } from '../../product/product.entity';
 import { StoreAvailability } from '../store-availability/store-availability.entity';
 import { ProductOption } from '../../product/product-option/product-option.entity';
+import { ForbiddenException } from '@nestjs/common';
 
 jest.setTimeout(60_000);
 
@@ -353,5 +354,147 @@ describe('Store Service', () => {
     });
 
     expect(result.available).toBe(false);
+  });
+
+  it("update() should throw ForbiddenException when user isn't store user", async () => {
+    const userProfile = await givenUserProfile(dataSource);
+    const anotherUserProfile = await givenUserProfile(dataSource);
+
+    const store = Store.create({
+      name: 'Store to Update',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    await expect(
+      storeService.update({
+        storeId: store.id,
+        userId: anotherUserProfile.id,
+        description: 'Updated Description',
+        name: 'Updated Name',
+        whatsapp: '85900000000',
+        status: false,
+      }),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('update should update store when user is store user', async () => {
+    const userProfile = await givenUserProfile(dataSource);
+
+    const store = Store.create({
+      name: 'Store to Update',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    const updatedStore = await storeService.update({
+      storeId: store.id,
+      userId: userProfile.id,
+      name: 'Updated Name',
+      whatsapp: '85900000000',
+      status: false,
+    });
+
+    expect(updatedStore).toBeDefined();
+    expect(updatedStore.name).toBe('Updated Name');
+    expect(updatedStore.description).toBe('A store for testing');
+    expect(updatedStore.whatsapp).toBe('85900000000');
+    expect(updatedStore.status).toBe(false);
+  });
+
+  it("delete() should throw ForbiddenException when user isn't store user", async () => {
+    const userProfile = await givenUserProfile(dataSource);
+    const anotherUserProfile = await givenUserProfile(dataSource);
+
+    const store = Store.create({
+      name: 'Store to Delete',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    await expect(
+      storeService.delete({
+        storeId: store.id,
+        userId: anotherUserProfile.id,
+      }),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('delete() should soft delete the store and product, store availability & store user related entities', async () => {
+    const userProfile = await givenUserProfile(dataSource);
+
+    const store = Store.create({
+      name: 'Store to Delete',
+      description: 'A store for testing',
+      whatsapp: '85985454176',
+      photoUrl: 'http://image.url/photo.jpg',
+      storeUsers: [{ userProfile } as StoreUser],
+      availabilities: [
+        StoreAvailability.create({ weekday: 1, start: '08:00', end: '18:00' }),
+        StoreAvailability.create({ weekday: 2, start: '09:00', end: '17:00' }),
+      ],
+      products: [
+        Product.create({
+          name: 'Product 1',
+          description: 'A product Lorem Ipsum',
+          photoUrl: 'http://image.url/product1.jpg',
+          value: 10,
+          category: ProductCategory.Savory,
+          productOptions: [
+            ProductOption.create({ name: 'Option 1', quantity: 5 }),
+          ],
+        }),
+      ],
+    });
+    store.status = true;
+
+    await dataSource.getRepository(Store).save(store);
+
+    await storeService.delete({
+      storeId: store.id,
+      userId: userProfile.id,
+    });
+
+    const storeInDb = await dataSource
+      .getRepository(Store)
+      .findOne({ where: { id: store.id }, withDeleted: true });
+    expect(storeInDb).toBeDefined();
+    expect(storeInDb!.deletedAt).toBeInstanceOf(Date);
+
+    const storeAvailabilitiesInDb = await dataSource
+      .getRepository(StoreAvailability)
+      .find({ where: { store: { id: store.id } }, withDeleted: true });
+    expect(storeAvailabilitiesInDb).toHaveLength(0);
+
+    const productsInDb = await dataSource
+      .getRepository(Product)
+      .find({ where: { store: { id: store.id } }, withDeleted: true });
+    expect(productsInDb).toHaveLength(1);
+    productsInDb.forEach((product) => {
+      expect(product.deletedAt).toBeInstanceOf(Date);
+    });
+
+    const storeUsersInDb = await dataSource
+      .getRepository(StoreUser)
+      .find({ where: { store: { id: store.id } }, withDeleted: true });
+    expect(storeUsersInDb).toHaveLength(1);
+    storeUsersInDb.forEach((storeUser) => {
+      expect(storeUser.deletedAt).toBeInstanceOf(Date);
+    });
   });
 });

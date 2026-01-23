@@ -129,30 +129,4 @@ export class StoreRepository {
     store.updateDetails(data);
     return await this.typeormStoreRepository.save(store);
   }
-
-  async delete({
-    storeId,
-    userId,
-  }: {
-    storeId: string;
-    userId: string;
-  }): Promise<boolean> {
-    const store = await this.typeormStoreRepository.findOne({
-      where: { id: storeId, storeUsers: { userProfile: { id: userId } } },
-      relations: {
-        storeUsers: {
-          userProfile: true,
-        },
-        products: {
-          productOptions: true,
-        },
-      },
-    });
-
-    if (!store) return false;
-
-    const result = await this.typeormStoreRepository.softRemove(store);
-
-    return !!result;
-  }
 }
