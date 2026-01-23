@@ -1,5 +1,7 @@
 import { InvalidStorePhotoUrlError } from '../domain/invalid-store-photo-url.error';
 import { InvalidWhatsappNumberError } from '../domain/invalid-whatsapp-number-error';
+import { DuplicatedAvailabilityWeekdayError } from '../store-availability/domain/errors/duplicated-availability-weekday.error';
+import { StoreAvailability } from '../store-availability/store-availability.entity';
 import { Store } from '../store.entity';
 
 describe('Store Entity', () => {
@@ -66,5 +68,64 @@ describe('Store Entity', () => {
     expect(createdStore.description).toBe(props.description);
     expect(createdStore.whatsapp).toBe(props.whatsapp);
     expect(createdStore.photoUrl).toBe(new URL(props.photoUrl).toString());
+  });
+
+  it("setAvailabilities() should set store's availabilities when receive valid availabilities", () => {
+    const availabilities = [
+      {
+        weekday: 1,
+        startTime: '09:00',
+        endTime: '18:00',
+      },
+      {
+        weekday: 2,
+        startTime: '10:00',
+        endTime: '17:00',
+      },
+    ].map((data) => {
+      const availability = StoreAvailability.create({
+        weekday: data.weekday,
+        start: data.startTime,
+        end: data.endTime,
+        store: { id: 'some-store-id' } as Store,
+      });
+      return availability;
+    });
+
+    store.storeAvailabilities = [];
+
+    expect(() => {
+      store.setAvailabilities(availabilities);
+    }).not.toThrow();
+    expect(store.storeAvailabilities).toHaveLength(2);
+  });
+
+  it('setAvailabilities() should throw DuplicatedAvailabilityWeekdayError when receive availabilities with duplicated weekdays', () => {
+    const availabilities = [
+      {
+        weekday: 1,
+        startTime: '09:00',
+        endTime: '18:00',
+      },
+      {
+        weekday: 1,
+        startTime: '10:00',
+        endTime: '17:00',
+      },
+    ].map((data) => {
+      const availability = StoreAvailability.create({
+        weekday: data.weekday,
+        start: data.startTime,
+        end: data.endTime,
+        store: { id: 'some-store-id' } as Store,
+      });
+      return availability;
+    });
+
+    store.storeAvailabilities = [];
+
+    expect(() => {
+      store.setAvailabilities(availabilities);
+    }).toThrow(DuplicatedAvailabilityWeekdayError);
   });
 });

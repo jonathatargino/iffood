@@ -17,6 +17,7 @@ import { InvalidStoreNameError } from './domain/invalid-store-name.error';
 import { WhatsappNumber } from './domain/value-objects/whatsapp-number.vo';
 import { applyPatch } from '../../common/domain/apply-patch';
 import { ServiceUpdateStoreDto } from './dto/store.service.dto';
+import { DuplicatedAvailabilityWeekdayError } from './store-availability/domain/errors/duplicated-availability-weekday.error';
 
 @Entity({
   name: 'stores',
@@ -169,5 +170,23 @@ export class Store {
       },
       allowNull: false,
     });
+  }
+
+  setAvailabilities(availabilities: StoreAvailability[]) {
+    this.validateAvailabilities(availabilities);
+    this.storeAvailabilities = availabilities;
+  }
+
+  private validateAvailabilities(availabilities: StoreAvailability[]) {
+    const availabilityWeekdaySet = new Set<number>();
+
+    for (const currentAvailability of availabilities) {
+      const weekday = currentAvailability.weekday;
+      if (availabilityWeekdaySet.has(weekday)) {
+        throw new DuplicatedAvailabilityWeekdayError(weekday);
+      }
+
+      availabilityWeekdaySet.add(weekday);
+    }
   }
 }

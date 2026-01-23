@@ -34,11 +34,3 @@ export class ListStoreAvailabilityResponseDto {
   @ApiProperty({ type: [ListItemStoreAvailabilityResponseDtoUnit] })
   availabilities: ListItemStoreAvailabilityResponseDtoUnit[];
 }
-
-export class ListStoreAvailabilityWithStoreIdResponseDto {
-  @ApiProperty({ type: [ListItemStoreAvailabilityResponseDtoUnit] })
-  availabilities: ListItemStoreAvailabilityResponseDtoUnit[];
-
-  @ApiProperty({ format: 'uuid' })
-  storeId: string;
-}

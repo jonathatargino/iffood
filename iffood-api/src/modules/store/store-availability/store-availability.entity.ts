@@ -38,7 +38,9 @@ export class StoreAvailability {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Store, (store) => store.storeAvailabilities)
+  @ManyToOne(() => Store, (store) => store.storeAvailabilities, {
+    orphanedRowAction: 'delete',
+  })
   @JoinColumn({ name: 'store_id' })
   store: Store;
 
