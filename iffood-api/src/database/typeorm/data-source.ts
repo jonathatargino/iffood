@@ -8,6 +8,6 @@ export default new DataSource({
   type: process.env.DB_TYPE as 'postgres' | 'mysql',
   url: process.env.DB_URL,
   entities: ['src/**/*.entity.ts'],
-  migrations: ['src/database/migrations/*.ts'],
+  migrations: ['src/database/typeorm/migrations/*.ts'],
   synchronize: false,
 });
