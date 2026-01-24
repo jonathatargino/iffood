@@ -77,8 +77,8 @@ export class ProductRepository {
     }
 
     if (filters.name) {
-      queryBuilder.andWhere('product.name ILIKE %:name%', {
-        name: filters.name,
+      queryBuilder.andWhere('product.name ILIKE :name', {
+        name: `%${filters.name}%`,
       });
     }
 
