@@ -62,7 +62,7 @@ This project is split into two folders:
 Run the command below to clone the repository and install dependencies in both projects:
 
 ```shell
-git clone https://github.com/jonathatargino/iffood.git && cd ./iffood-api && npm install && cd ../iffood-front && npm install
+git clone https://github.com/jonathatargino/iffood.git && cd ./iffood/iffood-api && npm install && cd ../iffood-front && npm install
 ```
 
 2. Add environment variables
