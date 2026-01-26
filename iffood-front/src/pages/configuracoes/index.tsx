@@ -151,6 +151,27 @@ export function ConfiguracoesPage() {
             )}
           </CardContent>
         </Card>
+        <Card className="rounded-3xl border-0 shadow-lg p-4">
+          <CardContent className="p-0">
+            <MenuOption
+              icon={
+                <img
+                  src="https://cdn.simpleicons.org/discord"
+                  alt="Discord"
+                  className="size-6"
+                />
+              }
+              label="Acesse nosso Discord"
+              onClick={() =>
+                window.open("https://discord.gg/PTkjGrSXBP", "_blank")
+              }
+            />
+            <p className="text-xs text-gray-400 px-5 pt-3 pb-1 leading-relaxed">
+              Tem dúvidas, reports ou quer fazer parte da comunidade? Acesse
+              nosso Discord :)
+            </p>
+          </CardContent>
+        </Card>
 
         {/* <Card className="rounded-3xl border-0 shadow-lg p-4">
           <CardContent className="p-0">
