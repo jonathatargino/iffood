@@ -111,6 +111,13 @@ Happy hacking! 👾
 
 </details>
 
+<details open>
+<summary>
+  Docs
+</summary>
+  You can access the API Swagger docs by url: http://localhost:<api_application_port>/docs (example: https://iffood.com.br/api/docs)
+</details>
+
 ## Resources
 
 - **[Website](https://iffood.com.br)** overview of the product.
