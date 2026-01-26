@@ -425,6 +425,11 @@ export function ProductForm({ storeId }: ProductFormProps) {
     }
   };
 
+  const buttonsDisabled =
+    updateProductMutation.isPending ||
+    createProductMutation.isPending ||
+    deleteProductMutation.isPending;
+
   const handleDelete = () => {
     deleteProductMutation.mutate(productId!);
     setShowDeleteModal(false);
@@ -650,9 +655,20 @@ export function ProductForm({ storeId }: ProductFormProps) {
         </div>
 
         {/* Actions */}
+        {isEditMode && (
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            disabled={buttonsDisabled}
+            className="py-4 px-4 w-full rounded-2xl bg-red-600 text-white hover:bg-red-700 active:scale-95 transition transform disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {deleteProductMutation.isPending ? "Deletando..." : "Deletar"}
+          </button>
+        )}
         <div className="flex gap-3">
           <button
             type="button"
+            disabled={buttonsDisabled}
             onClick={() => navigate("/minha-loja")}
             className="flex-1 py-4 border-2 border-gray-200 text-gray-700 rounded-2xl hover:bg-gray-50 transition-colors"
           >
@@ -660,9 +676,7 @@ export function ProductForm({ storeId }: ProductFormProps) {
           </button>
           <button
             type="submit"
-            disabled={
-              updateProductMutation.isPending || createProductMutation.isPending
-            }
+            disabled={buttonsDisabled}
             className="flex-1 py-4 bg-gradient-to-br from-[#FF7622] to-[#E6661A] text-white rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {updateProductMutation.isPending || createProductMutation.isPending

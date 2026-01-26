@@ -135,7 +135,6 @@ export class ProductRepository {
       .createQueryBuilder('product')
       .leftJoin('product.productOptions', 'productOption')
       .where('product.store_id = :storeId', { storeId })
-      .withDeleted()
       .select('product.id', 'id')
       .addSelect('product.value', 'value')
       .addSelect('product.name', 'name')
