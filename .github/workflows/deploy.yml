@@ -74,7 +74,7 @@ jobs:
             pm2 reload ecosystem.config.js --env production
 
             # Frontend
-            sudo mkdir -p /var/www/spa
-            sudo rm -rf /var/www/spa/*
-            sudo tar -xzf /home/deploy/spa.tar.gz -C /var/www/spa
+            sudo -n mkdir -p /var/www/spa
+            sudo -n rm -rf /var/www/spa/*
+            sudo -n tar -xzf /home/deploy/spa.tar.gz -C /var/www/spa
             rm -f /home/deploy/spa.tar.gz
