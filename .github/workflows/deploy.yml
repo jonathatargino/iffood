@@ -61,7 +61,6 @@ jobs:
           script: |
             set -e
 
-            ls
             cd /home/ec2-user/iffood
 
             # Sync
