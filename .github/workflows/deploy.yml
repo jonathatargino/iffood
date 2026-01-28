@@ -61,7 +61,7 @@ jobs:
           script: |
             set -e
 
-            cd /home/ec2-user/iffood
+            cd /var/www/iffood/
 
             # Sync
             git fetch origin "$GIT_SHA"
@@ -71,7 +71,6 @@ jobs:
             # API
             cd iffood-api
             npm ci
-            npm run build
             pm2 reload ecosystem.config.js --env production
 
             # Frontend
