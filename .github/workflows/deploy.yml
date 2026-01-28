@@ -61,7 +61,8 @@ jobs:
           script: |
             set -e
 
-            cd /iffood
+            ls
+            cd /home/ec2-user/iffood
 
             # Sync
             git fetch origin "$GIT_SHA"
