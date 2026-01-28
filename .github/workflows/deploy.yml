@@ -1,0 +1,78 @@
+name: Deploy IF Food
+
+on:
+  push:
+    branches: ["master"]
+
+concurrency:
+  group: deploy-master
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Build frontend (ZIP)
+        working-directory: iffood/iffood-front
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_APPLICATION_URL: ${{ vars.VITE_APPLICATION_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_LOCAL_STORAGE_KEY: ${{ vars.VITE_SUPABASE_LOCAL_STORAGE_KEY }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Pack SPA artifact
+        run: |
+          tar -czf spa.tar.gz -C iffood/iffood-front/dist .
+
+      - name: Upload SPA artifact to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "spa.tar.gz"
+          target: "/home/deploy"
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GIT_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: GIT_SHA
+          script: |
+            set -e
+
+            cd /iffood
+
+            # Sync
+            git fetch origin "$GIT_SHA"
+            git reset --hard "$GIT_SHA"
+
+
+            # API
+            cd /iffood/iffood-api
+            npm ci
+            npm run build
+            pm2 reload ecosystem.config.js --env production
+
+            # Frontend
+            sudo mkdir -p /var/www/spa
+            sudo rm -rf /var/www/spa/*
+            sudo tar -xzf /home/deploy/spa.tar.gz -C /var/www/spa
+            rm -f /home/deploy/spa.tar.gz
