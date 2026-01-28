@@ -69,7 +69,7 @@ jobs:
 
 
             # API
-            cd /iffood/iffood-api
+            cd iffood-api
             npm ci
             npm run build
             pm2 reload ecosystem.config.js --env production
