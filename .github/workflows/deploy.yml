@@ -44,7 +44,7 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
+          username: deploy
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "spa.tar.gz"
           target: "/home/deploy"
@@ -55,7 +55,7 @@ jobs:
           GIT_SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
+          username: deploy
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: GIT_SHA
           script: |
