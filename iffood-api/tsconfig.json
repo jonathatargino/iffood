@@ -20,5 +20,6 @@
     "noImplicitAny": false,
     "strictPropertyInitialization": false,
     "noFallthroughCasesInSwitch": false
-  }
+  },
+  "exclude": ["node_modules", "dist", "ecosystem.config.js"]
 }
