@@ -24,6 +24,22 @@ jobs:
             iffood-front/package-lock.json
             iffood-api/package-lock.json
 
+      - name: Install deps (backend)
+        working-directory: iffood-api
+        run: npm ci
+
+      - name: Lint (backend)
+        working-directory: iffood-api
+        run: npm run lint
+
+      - name: Test (backend)
+        working-directory: iffood-api
+        run: npm run test
+
+      - name: Build (backend)
+        working-directory: iffood-api
+        run: npm run build
+
       - name: Build frontend (ZIP)
         working-directory: iffood-front
         env:
@@ -71,6 +87,7 @@ jobs:
             # API
             cd iffood-api
             npm ci
+            npm run build
             pm2 reload ecosystem.config.js --env production
 
 
