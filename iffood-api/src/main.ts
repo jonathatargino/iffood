@@ -9,8 +9,9 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('IFood API')
+    .setTitle('IF Food API')
     .setVersion('0.0.1')
+    .addTag('MVP')
     .addBearerAuth(
       {
         type: 'http',

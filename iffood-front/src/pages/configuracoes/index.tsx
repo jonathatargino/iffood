@@ -168,7 +168,7 @@ export function ConfiguracoesPage() {
             />
             <p className="text-xs text-gray-400 px-5 pt-3 pb-1 leading-relaxed">
               Tem dúvidas, reports ou quer fazer parte da comunidade? Acesse
-              nosso Discord :)
+              nosso Discord :D
             </p>
           </CardContent>
         </Card>
