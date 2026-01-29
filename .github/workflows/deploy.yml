@@ -71,10 +71,7 @@ jobs:
             # API
             cd iffood-api
             npm ci
-            pm2 reload ecosystem.config.js \
-              --env production \
-              --env-file .env \
-              --update-env
+            pm2 reload ecosystem.config.js --env production
 
 
             # Frontend
