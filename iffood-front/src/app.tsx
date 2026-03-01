@@ -20,54 +20,65 @@ import { CartFloatButton } from "./components/cart-float-button";
 
 const router = createBrowserRouter([
   {
-    path: "/",
     element: (
-      <AvailabilityProvider>
+      <>
         <Outlet />
-      </AvailabilityProvider>
+        <CartFloatButton />
+        <Toaster richColors position="top-center" />
+      </>
     ),
     children: [
       {
-        index: true,
-        element: <Home />,
+        path: "/",
+        element: (
+          <AvailabilityProvider>
+            <Outlet />
+          </AvailabilityProvider>
+        ),
+        children: [
+          {
+            index: true,
+            element: <Home />,
+          },
+          {
+            path: "login",
+            element: <LoginPage />,
+          },
+          {
+            path: "configuracoes",
+            element: <ConfiguracoesPage />,
+          },
+        ],
       },
       {
-        path: "login",
-        element: <LoginPage />,
+        path: "minha-loja",
+        element: <MinhaLojaPage />,
       },
       {
-        path: "configuracoes",
-        element: <ConfiguracoesPage />,
+        path: "produto/:productId",
+        element: <ProductFormWrapper />,
+      },
+      {
+        path: "produto-detalhes/:productId",
+        element: <ProductDetail />,
+      },
+      {
+        path: "loja/:storeId",
+        element: <RestaurantView />,
+      },
+      {
+        path: "carrinho",
+        element: <CartPage />,
+      },
+      {
+        path: "busca",
+        element: <SearchPage />,
+      },
+      {
+        path: ":type",
+        element: <ViewAllPage />,
       },
     ],
-  },
-  {
-    path: "minha-loja",
-    element: <MinhaLojaPage />,
-  },
-  {
-    path: "produto/:productId",
-    element: <ProductFormWrapper />,
-  },
-  {
-    path: "produto-detalhes/:productId",
-    element: <ProductDetail />,
-  },
-  {
-    path: "loja/:storeId",
-    element: <RestaurantView />,
-  },
-  {
-    path: "carrinho",
-    element: <CartPage />,
-  },
-  {
-    path: "busca",
-    element: <SearchPage />,
-  },
-  {
-    path: ":type",
-    element: <ViewAllPage />,
   },
 ]);
 
@@ -83,8 +94,6 @@ export function App() {
       <QueryProvider>
         <CartProvider>
           <RouterProvider router={router} />
-          <CartFloatButton />
-          <Toaster richColors position="top-center" />
         </CartProvider>
       </QueryProvider>
     </AuthProvider>
