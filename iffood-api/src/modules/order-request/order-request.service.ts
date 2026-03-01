@@ -41,10 +41,10 @@ export class OrderRequestService {
       const productOptions = await em
         .getRepository(ProductOption)
         .createQueryBuilder('po')
-        .setLock('pessimistic_write')
-        .leftJoinAndSelect('po.product', 'product')
-        .leftJoinAndSelect('product.store', 'store')
+        .innerJoinAndSelect('po.product', 'product')
+        .innerJoinAndSelect('product.store', 'store')
         .whereInIds(optionIds)
+        .setLock('pessimistic_write')
         .getMany();
 
       const optionMap = new Map<string, ProductOption>();
