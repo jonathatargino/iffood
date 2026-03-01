@@ -27,9 +27,7 @@ export class OrderRequestService {
   ) {}
 
   async createOrder(dto: ServiceCreateOrderDto) {
-    const existing = await this.orderRequestRepository.findByCartId(
-      dto.cartId,
-    );
+    const existing = await this.orderRequestRepository.findByCartId(dto.cartId);
     if (existing) {
       return {
         order: existing,
@@ -59,7 +57,10 @@ export class OrderRequestService {
         storeIds.add(po.product.store.id);
       }
 
-      if (storeIds.size > 1 || (storeIds.size === 1 && !storeIds.has(dto.storeId))) {
+      if (
+        storeIds.size > 1 ||
+        (storeIds.size === 1 && !storeIds.has(dto.storeId))
+      ) {
         throw new MultipleStoresNotAllowedError();
       }
 
@@ -185,11 +186,10 @@ export class OrderRequestService {
     orderRequestId: string,
     userId: string,
   ): Promise<OrderRequest> {
-    const order =
-      await this.orderRequestRepository.findByIdAndStoreUserId(
-        orderRequestId,
-        userId,
-      );
+    const order = await this.orderRequestRepository.findByIdAndStoreUserId(
+      orderRequestId,
+      userId,
+    );
 
     if (!order) {
       throw new ForbiddenException();

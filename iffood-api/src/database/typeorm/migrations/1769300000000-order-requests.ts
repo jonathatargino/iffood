@@ -79,8 +79,6 @@ export class OrderRequests1769300000000 implements MigrationInterface {
     );
     await queryRunner.query(`DROP TABLE "order_request_items"`);
     await queryRunner.query(`DROP TABLE "order_requests"`);
-    await queryRunner.query(
-      `DROP TYPE "public"."order_requests_status_enum"`,
-    );
+    await queryRunner.query(`DROP TYPE "public"."order_requests_status_enum"`);
   }
 }
