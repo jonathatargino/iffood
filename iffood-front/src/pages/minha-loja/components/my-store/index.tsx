@@ -7,6 +7,7 @@ import { TabsContainer } from "./components/tabs";
 import { GeneralTab } from "./components/general-tab";
 import { AvailabilityTab } from "./components/availability-tab";
 import { ProductsTab } from "./components/products-tab";
+import { OrdersTab } from "./components/orders-tab";
 import type { TabType } from "./types";
 import { useNavigate } from "react-router";
 
@@ -43,6 +44,8 @@ export function MyStore({ store }: MyStoreProps) {
         {activeTab === "availability" && <AvailabilityTab store={store} />}
 
         {activeTab === "products" && <ProductsTab storeId={store.id} />}
+
+        {activeTab === "orders" && <OrdersTab storeId={store.id} />}
       </div>
 
       <PhotoUploadModal

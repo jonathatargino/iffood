@@ -9,11 +9,14 @@ import ViewAllPage from "./pages/ver-todos";
 import { ProductFormWrapper } from "./pages/produto/wrapper";
 import { ProductDetail } from "./pages/produto-detalhes";
 import { RestaurantView } from "./pages/loja";
+import { CartPage } from "./pages/carrinho";
 import { AuthProvider } from "./contexts/auth";
 import { QueryProvider } from "./contexts/query";
+import { CartProvider } from "./contexts/cart";
 import { createBrowserRouter, Outlet, RouterProvider } from "react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { AvailabilityProvider } from "./contexts/availability";
+import { CartFloatButton } from "./components/cart-float-button";
 
 const router = createBrowserRouter([
   {
@@ -55,6 +58,10 @@ const router = createBrowserRouter([
     element: <RestaurantView />,
   },
   {
+    path: "carrinho",
+    element: <CartPage />,
+  },
+  {
     path: "busca",
     element: <SearchPage />,
   },
@@ -74,8 +81,11 @@ export function App() {
   return (
     <AuthProvider>
       <QueryProvider>
-        <RouterProvider router={router} />
-        <Toaster richColors position="top-center" />
+        <CartProvider>
+          <RouterProvider router={router} />
+          <CartFloatButton />
+          <Toaster richColors position="top-center" />
+        </CartProvider>
       </QueryProvider>
     </AuthProvider>
   );

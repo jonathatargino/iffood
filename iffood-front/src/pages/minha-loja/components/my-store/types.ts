@@ -1,4 +1,4 @@
-export type TabType = "general" | "availability" | "products";
+export type TabType = "general" | "availability" | "products" | "orders";
 
 export type WeekDay = {
   weekday: number;

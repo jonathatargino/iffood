@@ -36,6 +36,7 @@ export function TabsContainer({ activeTab, onTabChange }: TabsContainerProps) {
   const generalTabRef = useRef<HTMLButtonElement>(null);
   const availabilityTabRef = useRef<HTMLButtonElement>(null);
   const productsTabRef = useRef<HTMLButtonElement>(null);
+  const ordersTabRef = useRef<HTMLButtonElement>(null);
 
   return (
     <div className="overflow-x-auto scrollbar-hide mb-6">
@@ -60,6 +61,13 @@ export function TabsContainer({ activeTab, onTabChange }: TabsContainerProps) {
           ref={productsTabRef}
         >
           Produtos
+        </Tab>
+        <Tab
+          active={activeTab === "orders"}
+          onClick={() => onTabChange("orders")}
+          ref={ordersTabRef}
+        >
+          Pedidos
         </Tab>
       </div>
     </div>

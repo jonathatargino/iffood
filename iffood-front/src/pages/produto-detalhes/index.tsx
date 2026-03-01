@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Minus, Plus, MessageCircle, Package } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Package } from "lucide-react";
 import { productService } from "@/services/product";
 import {
   formatCentsToReaisWithSymbol,
   formatCentsToReais,
 } from "@/utils/currency";
+import { useCart } from "@/contexts/cart/context";
+import { ConfirmationModal } from "@/components/confirmation-modal";
+import { toast } from "sonner";
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
@@ -36,6 +39,8 @@ export function ProductDetail() {
   const navigate = useNavigate();
   const { productId } = useParams<{ productId: string }>();
   const [selectedFlavors, setSelectedFlavors] = useState<SelectedFlavor[]>([]);
+  const [showStoreSwitchModal, setShowStoreSwitchModal] = useState(false);
+  const cart = useCart();
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product-public", productId],
@@ -82,27 +87,82 @@ export function ProductDetail() {
     );
   };
 
-  const handleWhatsAppOrder = () => {
-    if (!product || selectedFlavors.length === 0) return;
+  const addAllToCart = (forceSwitchStore = false) => {
+    if (!product || selectedFlavors.length === 0 || !product.store) return;
 
-    const flavorsList = selectedFlavors
-      .map((sf) => `  • ${sf.flavor.name} (${sf.quantity}x)`)
-      .join("\n");
+    const store = {
+      id: product.store.id,
+      name: product.store.name,
+      whatsapp: product.store.whatsapp,
+    };
 
-    const totalQuantity = selectedFlavors.reduce(
-      (sum, sf) => sum + sf.quantity,
-      0
-    );
+    if (forceSwitchStore) {
+      const firstItem = selectedFlavors[0];
+      cart.switchStoreAndAdd(
+        {
+          productId: product.id,
+          productOptionId: firstItem.flavor.id,
+          productName: product.name,
+          productValue: product.value,
+          optionName: firstItem.flavor.name,
+          quantity: firstItem.quantity,
+          maxQuantity: firstItem.flavor.quantity,
+          photoUrl: product.photoUrl,
+        },
+        store,
+      );
+      for (let i = 1; i < selectedFlavors.length; i++) {
+        const sf = selectedFlavors[i];
+        cart.addItem(
+          {
+            productId: product.id,
+            productOptionId: sf.flavor.id,
+            productName: product.name,
+            productValue: product.value,
+            optionName: sf.flavor.name,
+            quantity: sf.quantity,
+            maxQuantity: sf.flavor.quantity,
+            photoUrl: product.photoUrl,
+          },
+          store,
+        );
+      }
+    } else {
+      for (const sf of selectedFlavors) {
+        cart.addItem(
+          {
+            productId: product.id,
+            productOptionId: sf.flavor.id,
+            productName: product.name,
+            productValue: product.value,
+            optionName: sf.flavor.name,
+            quantity: sf.quantity,
+            maxQuantity: sf.flavor.quantity,
+            photoUrl: product.photoUrl,
+          },
+          store,
+        );
+      }
+    }
 
-    const message = `Olá! Gostaria de pedir:\n\n${
-      product.name
-    }\n${flavorsList}\n\nQuantidade total: ${totalQuantity}\nValor: R$ ${formatCentsToReais(
-      product.value * totalQuantity
-    )}`;
-    const whatsappUrl = `https://wa.me/55${
-      product.store?.whatsapp
-    }?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
+    toast.success("Adicionado ao carrinho!");
+    setSelectedFlavors([]);
+  };
+
+  const handleAddToCart = () => {
+    if (!product || selectedFlavors.length === 0 || !product.store) return;
+
+    if (cart.needsStoreSwitch(product.store.id)) {
+      setShowStoreSwitchModal(true);
+      return;
+    }
+
+    addAllToCart();
+  };
+
+  const handleConfirmStoreSwitch = () => {
+    setShowStoreSwitchModal(false);
+    addAllToCart(true);
   };
 
   if (isLoading) {
@@ -331,19 +391,29 @@ export function ProductDetail() {
             </div>
           </div>
           <button
-            onClick={handleWhatsAppOrder}
+            onClick={handleAddToCart}
             disabled={!canOrder}
-            className="w-full flex-1 bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white py-4 px-6 rounded-full flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:from-gray-300 disabled:to-gray-400"
+            className="w-full flex-1 bg-gradient-to-r from-[#FF7622] to-[#E6661A] text-white py-4 px-6 rounded-full flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:from-gray-300 disabled:to-gray-400"
           >
-            <MessageCircle className="w-5 h-5" />
+            <ShoppingCart className="w-5 h-5" />
             {selectedFlavors.length === 0
               ? "Selecione ao menos um sabor"
               : canOrder
-              ? "Pedir no WhatsApp"
+              ? "Adicionar ao Carrinho"
               : "Indisponível"}
           </button>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showStoreSwitchModal}
+        title="Trocar de loja?"
+        message="Você só pode adicionar itens de uma loja por vez. Deseja esvaziar o carrinho e adicionar este item?"
+        confirmText="Esvaziar e adicionar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmStoreSwitch}
+        onCancel={() => setShowStoreSwitchModal(false)}
+      />
     </div>
   );
 }
