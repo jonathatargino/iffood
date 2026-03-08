@@ -4,9 +4,13 @@ export class OrderRequests1769300000000 implements MigrationInterface {
   name = 'OrderRequests1769300000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `CREATE TYPE "public"."order_requests_status_enum" AS ENUM('PENDING', 'CONCLUDED', 'REJECTED', 'CHANGED_AND_CONCLUDED')`,
-    );
+    await queryRunner.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_requests_status_enum') THEN
+          CREATE TYPE "public"."order_requests_status_enum" AS ENUM('PENDING', 'CONCLUDED', 'REJECTED', 'CHANGED_AND_CONCLUDED');
+        END IF;
+      END $$
+    `);
 
     await queryRunner.query(
       `CREATE TABLE "order_requests" (
