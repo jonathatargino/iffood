@@ -9,6 +9,7 @@ export class OrderRequestItemMapper {
       id: item.id,
       quantity: item.quantity,
       productName: item.productName,
+      productOptionName: item.productOptionName,
       productValue: item.productValue,
       productId: item.product?.id,
       productOptionId: item.productOption?.id,

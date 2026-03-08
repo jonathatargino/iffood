@@ -90,6 +90,7 @@ export class OrderRequestService {
         return OrderRequestItem.create({
           quantity: item.quantity,
           productName: option.product.name,
+          productOptionName: option.name,
           productValue: option.product.value,
           product: { id: item.productId } as Product,
           productOption: { id: item.productOptionId } as ProductOption,
@@ -176,6 +177,7 @@ export class OrderRequestService {
     const newItems = dto.items.map((item) => {
       const orderItem = new OrderRequestItem();
       orderItem.productName = item.productName;
+      orderItem.productOptionName = item.productOptionName;
       orderItem.productValue = item.productValue;
       orderItem.quantity = item.quantity;
       return orderItem;
@@ -207,15 +209,12 @@ export class OrderRequestService {
   private buildWhatsappUrl(order: OrderRequest): string {
     const whatsapp = order.store.whatsapp;
     const itemsList = order.items
-      .map(
-        (item) =>
-          `  • ${item.productName} (${item.quantity}x) - R$ ${(
-            (item.productValue * item.quantity) /
-            100
-          )
-            .toFixed(2)
-            .replace('.', ',')}`,
-      )
+      .map((item) => {
+        const price = ((item.productValue * item.quantity) / 100)
+          .toFixed(2)
+          .replace('.', ',');
+        return `  • ${item.productName} ${item.productOptionName} (${item.quantity}x) - R$ ${price}`;
+      })
       .join('\n');
 
     const total = order.items.reduce(

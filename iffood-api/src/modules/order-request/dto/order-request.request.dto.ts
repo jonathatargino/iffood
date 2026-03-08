@@ -53,6 +53,11 @@ export class ChangeAndConcludeItemRequestDto {
   productName: string;
 
   @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  productOptionName: string;
+
+  @ApiProperty()
   @IsNumber()
   @IsInt()
   @Min(0)

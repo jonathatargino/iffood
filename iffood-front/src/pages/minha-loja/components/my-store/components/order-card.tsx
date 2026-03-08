@@ -62,7 +62,8 @@ export function OrderCard({
             className="flex items-center justify-between text-sm"
           >
             <div className="text-[#2e2e2e]">
-              {item.quantity}x {item.productName}
+              {item.quantity}x {item.productName}{' '}
+              <span className="text-gray-500 font-normal">({item.productOptionName})</span>
             </div>
             <div className="text-gray-500">
               {formatCentsToReaisWithSymbol(item.productValue * item.quantity)}

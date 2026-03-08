@@ -21,6 +21,7 @@ export interface OrderRequestItemResponse {
   id: string;
   quantity: number;
   productName: string;
+  productOptionName: string;
   productValue: number;
   productId: string;
   productOptionId: string;

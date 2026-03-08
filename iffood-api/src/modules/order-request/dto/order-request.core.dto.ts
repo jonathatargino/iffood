@@ -12,6 +12,7 @@ export interface CreateOrderCoreDto {
 
 export interface ChangeAndConcludeItemCoreDto {
   productName: string;
+  productOptionName: string;
   productValue: number;
   quantity: number;
 }

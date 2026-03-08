@@ -23,6 +23,9 @@ export class OrderRequestItem {
   @Column({ name: 'product_name' })
   productName: string;
 
+  @Column({ name: 'product_option_name' })
+  productOptionName: string;
+
   @Column({ name: 'product_value' })
   productValue: number;
 
@@ -50,6 +53,7 @@ export class OrderRequestItem {
   static create(props: {
     quantity: number;
     productName: string;
+    productOptionName: string;
     productValue: number;
     product: Product;
     productOption: ProductOption;
@@ -58,6 +62,7 @@ export class OrderRequestItem {
     const item = new OrderRequestItem();
     item.quantity = props.quantity;
     item.productName = props.productName;
+    item.productOptionName = props.productOptionName;
     item.productValue = props.productValue;
     item.product = props.product;
     item.productOption = props.productOption;

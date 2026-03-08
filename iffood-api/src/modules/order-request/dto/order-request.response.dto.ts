@@ -11,6 +11,9 @@ export class OrderRequestItemResponseDto {
   productName: string;
 
   @ApiProperty()
+  productOptionName: string;
+
+  @ApiProperty()
   productValue: number;
 
   @ApiProperty({ format: 'uuid' })

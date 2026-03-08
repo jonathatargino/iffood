@@ -29,6 +29,7 @@ export class OrderRequests1769300000000 implements MigrationInterface {
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "quantity" integer NOT NULL,
         "product_name" character varying NOT NULL,
+        "product_option_name" character varying NOT NULL,
         "product_value" integer NOT NULL,
         "created_at" TIMESTAMP NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
