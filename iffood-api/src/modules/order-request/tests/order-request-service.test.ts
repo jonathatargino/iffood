@@ -13,7 +13,7 @@ import { Store } from '../../store/store.entity';
 import { StoreUser } from '../../store/store-user/store-user.entity';
 import { givenUserProfile } from '../../store/tests/helpers/given-user-profile';
 import { OutOfStockError } from '../domain/errors/out-of-stock.error';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InvalidOrderStatusTransitionError } from '../domain/errors/invalid-order-status-transition.error';
 import { ServiceCreateOrderDto } from '../dto/order-request.service.dto';
 
@@ -134,7 +134,7 @@ describe('OrderRequest Service', () => {
     const updatedOption = await dataSource
       .getRepository(ProductOption)
       .findOne({ where: { id: optionA.id } });
-    expect(updatedOption!.quantity).toBe(7);
+    expect(updatedOption!.quantity).toBe(10); // stock unchanged until conclude
   });
 
   it('should be idempotent via cartId', async () => {
@@ -165,7 +165,7 @@ describe('OrderRequest Service', () => {
     const updatedOption = await dataSource
       .getRepository(ProductOption)
       .findOne({ where: { id: optionA.id } });
-    expect(updatedOption!.quantity).toBe(8);
+    expect(updatedOption!.quantity).toBe(10); // stock unchanged until conclude
   });
 
   it('should throw OutOfStockError when quantity exceeds stock', async () => {
@@ -282,5 +282,253 @@ describe('OrderRequest Service', () => {
     await expect(
       service.conclude({ orderRequestId: order.id, userId: seller.id }),
     ).rejects.toThrow(InvalidOrderStatusTransitionError);
+  });
+
+  describe('changeAndConclude', () => {
+    it('should replace items, decrement stock for new items and mark as CHANGED_AND_CONCLUDED', async () => {
+      const buyer = await givenUserProfile(dataSource);
+      const seller = await givenUserProfile(dataSource);
+      const { store, product } = await createStoreWithProduct(seller);
+
+      const optionA = product.productOptions.find(
+        (o) => o.name === 'Option A',
+      )!;
+      const optionB = product.productOptions.find(
+        (o) => o.name === 'Option B',
+      )!;
+
+      const { order } = await service.createOrder({
+        cartId: 'cart-change-1',
+        storeId: store.id,
+        items: [
+          { productId: product.id, productOptionId: optionA.id, quantity: 2 },
+        ],
+        userId: buyer.id,
+      });
+
+      // Replace with optionB x3
+      await service.changeAndConclude({
+        orderRequestId: order.id,
+        userId: seller.id,
+        items: [{ productOptionId: optionB.id, quantity: 3 }],
+      });
+
+      const updated = await dataSource.getRepository(OrderRequest).findOne({
+        where: { id: order.id },
+        relations: { items: { product: true, productOption: true } },
+      });
+
+      expect(updated!.status).toBe(OrderRequestStatus.ChangedAndConcluded);
+      const activeItems = updated!.items.filter((i) => !i.deletedAt);
+      expect(activeItems).toHaveLength(1);
+      expect(activeItems[0].productName).toBe('Test Product');
+      expect(activeItems[0].productOptionName).toBe('Option B');
+      expect(activeItems[0].productValue).toBe(1000);
+      expect(activeItems[0].quantity).toBe(3);
+      expect(activeItems[0].product.id).toBe(product.id);
+      expect(activeItems[0].productOption.id).toBe(optionB.id);
+
+      const updatedOptionB = await dataSource
+        .getRepository(ProductOption)
+        .findOne({ where: { id: optionB.id } });
+      expect(updatedOptionB!.quantity).toBe(2); // 5 - 3
+    });
+
+    it('should soft-delete the original items when replacing', async () => {
+      const buyer = await givenUserProfile(dataSource);
+      const seller = await givenUserProfile(dataSource);
+      const { store, product } = await createStoreWithProduct(seller);
+
+      const optionA = product.productOptions.find(
+        (o) => o.name === 'Option A',
+      )!;
+      const optionB = product.productOptions.find(
+        (o) => o.name === 'Option B',
+      )!;
+
+      const { order } = await service.createOrder({
+        cartId: 'cart-change-soft-delete-1',
+        storeId: store.id,
+        items: [
+          { productId: product.id, productOptionId: optionA.id, quantity: 1 },
+        ],
+        userId: buyer.id,
+      });
+
+      const originalItemId = order.items[0].id;
+
+      await service.changeAndConclude({
+        orderRequestId: order.id,
+        userId: seller.id,
+        items: [{ productOptionId: optionB.id, quantity: 1 }],
+      });
+
+      const softDeleted = await dataSource
+        .getRepository(OrderRequestItem)
+        .findOne({
+          where: { id: originalItemId },
+          withDeleted: true,
+        });
+
+      expect(softDeleted!.deletedAt).not.toBeNull();
+    });
+
+    it('should throw OutOfStockError when the new item exceeds available stock', async () => {
+      const buyer = await givenUserProfile(dataSource);
+      const seller = await givenUserProfile(dataSource);
+      const { store, product } = await createStoreWithProduct(seller);
+
+      const optionA = product.productOptions.find(
+        (o) => o.name === 'Option A',
+      )!;
+      const optionB = product.productOptions.find(
+        (o) => o.name === 'Option B',
+      )!; // stock = 5
+
+      const { order } = await service.createOrder({
+        cartId: 'cart-change-oos-1',
+        storeId: store.id,
+        items: [
+          { productId: product.id, productOptionId: optionA.id, quantity: 1 },
+        ],
+        userId: buyer.id,
+      });
+
+      await expect(
+        service.changeAndConclude({
+          orderRequestId: order.id,
+          userId: seller.id,
+          items: [{ productOptionId: optionB.id, quantity: 99 }],
+        }),
+      ).rejects.toThrow(OutOfStockError);
+
+      // Order should remain PENDING
+      const unchanged = await dataSource
+        .getRepository(OrderRequest)
+        .findOne({ where: { id: order.id } });
+      expect(unchanged!.status).toBe(OrderRequestStatus.Pending);
+    });
+
+    it('should throw ForbiddenException when a non-member tries to changeAndConclude', async () => {
+      const buyer = await givenUserProfile(dataSource);
+      const seller = await givenUserProfile(dataSource);
+      const outsider = await givenUserProfile(dataSource);
+      const { store, product } = await createStoreWithProduct(seller);
+
+      const optionA = product.productOptions.find(
+        (o) => o.name === 'Option A',
+      )!;
+
+      const { order } = await service.createOrder({
+        cartId: 'cart-change-forbidden-1',
+        storeId: store.id,
+        items: [
+          { productId: product.id, productOptionId: optionA.id, quantity: 1 },
+        ],
+        userId: buyer.id,
+      });
+
+      await expect(
+        service.changeAndConclude({
+          orderRequestId: order.id,
+          userId: outsider.id,
+          items: [{ productOptionId: optionA.id, quantity: 1 }],
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw NotFoundException when productOptionId does not exist', async () => {
+      const buyer = await givenUserProfile(dataSource);
+      const seller = await givenUserProfile(dataSource);
+      const { store, product } = await createStoreWithProduct(seller);
+
+      const optionA = product.productOptions.find(
+        (o) => o.name === 'Option A',
+      )!;
+
+      const { order } = await service.createOrder({
+        cartId: 'cart-change-notfound-1',
+        storeId: store.id,
+        items: [
+          { productId: product.id, productOptionId: optionA.id, quantity: 1 },
+        ],
+        userId: buyer.id,
+      });
+
+      await expect(
+        service.changeAndConclude({
+          orderRequestId: order.id,
+          userId: seller.id,
+          items: [
+            {
+              productOptionId: '00000000-0000-0000-0000-000000000000',
+              quantity: 1,
+            },
+          ],
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException when productOption belongs to a different store', async () => {
+      const buyer = await givenUserProfile(dataSource);
+      const seller = await givenUserProfile(dataSource);
+      const otherSeller = await givenUserProfile(dataSource);
+      const { store, product } = await createStoreWithProduct(seller);
+      const { product: otherProduct } =
+        await createStoreWithProduct(otherSeller);
+
+      const optionA = product.productOptions.find(
+        (o) => o.name === 'Option A',
+      )!;
+      const otherOptionA = otherProduct.productOptions.find(
+        (o) => o.name === 'Option A',
+      )!;
+
+      const { order } = await service.createOrder({
+        cartId: 'cart-change-cross-store-1',
+        storeId: store.id,
+        items: [
+          { productId: product.id, productOptionId: optionA.id, quantity: 1 },
+        ],
+        userId: buyer.id,
+      });
+
+      await expect(
+        service.changeAndConclude({
+          orderRequestId: order.id,
+          userId: seller.id,
+          items: [{ productOptionId: otherOptionA.id, quantity: 1 }],
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw InvalidOrderStatusTransitionError when order is not PENDING', async () => {
+      const buyer = await givenUserProfile(dataSource);
+      const seller = await givenUserProfile(dataSource);
+      const { store, product } = await createStoreWithProduct(seller);
+
+      const optionA = product.productOptions.find(
+        (o) => o.name === 'Option A',
+      )!;
+
+      const { order } = await service.createOrder({
+        cartId: 'cart-change-already-concluded-1',
+        storeId: store.id,
+        items: [
+          { productId: product.id, productOptionId: optionA.id, quantity: 1 },
+        ],
+        userId: buyer.id,
+      });
+
+      await service.conclude({ orderRequestId: order.id, userId: seller.id });
+
+      await expect(
+        service.changeAndConclude({
+          orderRequestId: order.id,
+          userId: seller.id,
+          items: [{ productOptionId: optionA.id, quantity: 1 }],
+        }),
+      ).rejects.toThrow(InvalidOrderStatusTransitionError);
+    });
   });
 });

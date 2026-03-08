@@ -21,6 +21,7 @@ type OrderCardProps = {
   order: OrderRequestResponse;
   onConclude: (id: string) => void;
   onReject: (id: string) => void;
+  onEdit: (id: string) => void;
   isConcluding: boolean;
   isRejecting: boolean;
 };
@@ -29,6 +30,7 @@ export function OrderCard({
   order,
   onConclude,
   onReject,
+  onEdit,
   isConcluding,
   isRejecting,
 }: OrderCardProps) {
@@ -62,8 +64,10 @@ export function OrderCard({
             className="flex items-center justify-between text-sm"
           >
             <div className="text-[#2e2e2e]">
-              {item.quantity}x {item.productName}{' '}
-              <span className="text-gray-500 font-normal">({item.productOptionName})</span>
+              {item.quantity}x {item.productName}{" "}
+              <span className="text-gray-500 font-normal">
+                ({item.productOptionName})
+              </span>
             </div>
             <div className="text-gray-500">
               {formatCentsToReaisWithSymbol(item.productValue * item.quantity)}
@@ -80,6 +84,12 @@ export function OrderCard({
 
       {isPending && (
         <div className="flex gap-2 mt-4">
+          <button
+            onClick={() => onEdit(order.id)}
+            className="flex-1 bg-gray-100 text-[#2e2e2e] py-2.5 rounded-full text-sm font-medium transition-all active:scale-95"
+          >
+            Editar
+          </button>
           <button
             onClick={() => onConclude(order.id)}
             disabled={isConcluding}

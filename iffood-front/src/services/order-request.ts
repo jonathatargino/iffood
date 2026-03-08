@@ -41,8 +41,7 @@ export interface OrderRequestResponse {
 }
 
 export interface ChangeAndConcludeItem {
-  productName: string;
-  productValue: number;
+  productOptionId: string;
   quantity: number;
 }
 

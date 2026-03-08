@@ -2,8 +2,6 @@ import {
   IsArray,
   IsInt,
   IsNotEmpty,
-  IsNumber,
-  IsString,
   IsUUID,
   Min,
   ValidateNested,
@@ -47,21 +45,10 @@ export class CreateOrderRequestDto {
 }
 
 export class ChangeAndConcludeItemRequestDto {
-  @ApiProperty()
-  @IsString()
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
   @IsNotEmpty()
-  productName: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  productOptionName: string;
-
-  @ApiProperty()
-  @IsNumber()
-  @IsInt()
-  @Min(0)
-  productValue: number;
+  productOptionId: string;
 
   @ApiProperty({ minimum: 1 })
   @IsInt()

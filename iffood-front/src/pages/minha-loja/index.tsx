@@ -62,5 +62,5 @@ export function MinhaLojaPage() {
     );
   }
 
-  return <MyStore store={stores?.[1]!} />;
+  return <MyStore store={stores?.[0]!} />;
 }

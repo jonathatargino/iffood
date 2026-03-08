@@ -5,12 +5,14 @@ import {
 } from "../../../hooks/use-order-mutations";
 import { OrderCard } from "./order-card";
 import { ClipboardList } from "lucide-react";
+import { useNavigate } from "react-router";
 
 type OrdersTabProps = {
   storeId: string;
 };
 
 export function OrdersTab({ storeId }: OrdersTabProps) {
+  const navigate = useNavigate();
   const { data: orders, isLoading } = useOrdersByStore(storeId, true);
   const concludeMutation = useConcludeOrder(storeId);
   const rejectMutation = useRejectOrder(storeId);
@@ -19,10 +21,7 @@ export function OrdersTab({ storeId }: OrdersTabProps) {
     return (
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
-          <div
-            key={i}
-            className="bg-gray-200 rounded-3xl h-[140px] animate-pulse"
-          />
+          <div key={i} className="bg-gray-200 rounded-3xl h-35 animate-pulse" />
         ))}
       </div>
     );
@@ -50,6 +49,7 @@ export function OrdersTab({ storeId }: OrdersTabProps) {
           order={order}
           onConclude={(id) => concludeMutation.mutate(id)}
           onReject={(id) => rejectMutation.mutate(id)}
+          onEdit={(id) => navigate(`/minha-loja/pedidos/${id}/editar`)}
           isConcluding={concludeMutation.isPending}
           isRejecting={rejectMutation.isPending}
         />

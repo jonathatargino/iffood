@@ -3,6 +3,7 @@ import { LoginPage } from "./pages/login";
 import { DesktopNotSupported } from "./pages/desktop-not-supported";
 import { ConfiguracoesPage } from "./pages/configuracoes";
 import { MinhaLojaPage } from "./pages/minha-loja";
+import { EditarPedidoPage } from "./pages/minha-loja/editar-pedido";
 import Home from "./pages/home";
 import SearchPage from "./pages/busca";
 import ViewAllPage from "./pages/ver-todos";
@@ -53,6 +54,10 @@ const router = createBrowserRouter([
       {
         path: "minha-loja",
         element: <MinhaLojaPage />,
+      },
+      {
+        path: "minha-loja/pedidos/:orderId/editar",
+        element: <EditarPedidoPage />,
       },
       {
         path: "produto/:productId",

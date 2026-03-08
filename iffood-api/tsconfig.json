@@ -20,7 +20,7 @@
     "noImplicitAny": false,
     "strictPropertyInitialization": false,
     "noFallthroughCasesInSwitch": false,
-    "types": ["node", "multer"]
+    "types": ["node", "multer", "jest"]
   },
   "exclude": ["node_modules", "dist", "ecosystem.config.js"]
 }

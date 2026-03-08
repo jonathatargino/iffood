@@ -174,17 +174,65 @@ export class OrderRequestService {
       dto.userId,
     );
 
-    const newItems = dto.items.map((item) => {
-      const orderItem = new OrderRequestItem();
-      orderItem.productName = item.productName;
-      orderItem.productOptionName = item.productOptionName;
-      orderItem.productValue = item.productValue;
-      orderItem.quantity = item.quantity;
-      return orderItem;
-    });
-
     return this.dataSource.transaction(async (em) => {
+      const optionIds = dto.items.map((i) => i.productOptionId);
+
+      const productOptions = await em
+        .getRepository(ProductOption)
+        .createQueryBuilder('po')
+        .innerJoinAndSelect('po.product', 'product')
+        .innerJoinAndSelect('product.store', 'store')
+        .whereInIds(optionIds)
+        .setLock('pessimistic_write')
+        .getMany();
+
+      const optionMap = new Map<string, ProductOption>();
+      for (const po of productOptions) {
+        optionMap.set(po.id, po);
+      }
+
+      for (const po of productOptions) {
+        if (po.product.store.id !== order.store.id) {
+          throw new ForbiddenException();
+        }
+      }
+
+      for (const item of dto.items) {
+        const option = optionMap.get(item.productOptionId);
+        if (!option) {
+          throw new NotFoundException(
+            `Product option ${item.productOptionId} not found`,
+          );
+        }
+        if (option.quantity < item.quantity) {
+          throw new OutOfStockError(
+            item.productOptionId,
+            item.quantity,
+            option.quantity,
+          );
+        }
+      }
+
+      for (const item of dto.items) {
+        const option = optionMap.get(item.productOptionId)!;
+        option.changeQuantity(option.quantity - item.quantity);
+      }
+      await em.save(ProductOption, [...optionMap.values()]);
+
       await em.softRemove(OrderRequestItem, order.items);
+
+      const newItems = dto.items.map((item) => {
+        const option = optionMap.get(item.productOptionId)!;
+        return OrderRequestItem.create({
+          quantity: item.quantity,
+          productName: option.product.name,
+          productOptionName: option.name,
+          productValue: option.product.value,
+          product: { id: option.product.id } as Product,
+          productOption: { id: option.id } as ProductOption,
+        });
+      });
+
       order.changeAndConclude(newItems);
       return em.save(OrderRequest, order);
     });
