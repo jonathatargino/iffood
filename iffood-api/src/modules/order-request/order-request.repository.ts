@@ -48,7 +48,9 @@ export class OrderRequestRepository {
       relations: {
         store: { storeUsers: true },
         buyer: true,
-        items: true,
+        items: {
+          productOption: true,
+        },
       },
     });
   }

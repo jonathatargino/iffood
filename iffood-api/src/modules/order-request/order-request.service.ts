@@ -84,13 +84,6 @@ export class OrderRequestService {
         }
       }
 
-      for (const item of dto.items) {
-        const option = optionMap.get(item.productOptionId)!;
-        option.changeQuantity(option.quantity - item.quantity);
-      }
-
-      await em.save(ProductOption, [...optionMap.values()]);
-
       const store = productOptions[0].product.store;
       const orderItems = dto.items.map((item) => {
         const option = optionMap.get(item.productOptionId)!;
@@ -148,8 +141,21 @@ export class OrderRequestService {
       dto.orderRequestId,
       dto.userId,
     );
-    order.conclude();
-    return this.dataSource.getRepository(OrderRequest).save(order);
+
+    return this.dataSource.transaction(async (em) => {
+      for (const item of order.items) {
+        const productOption = item.productOption;
+        productOption.changeQuantity(productOption.quantity - item.quantity);
+      }
+
+      await em.save(
+        ProductOption,
+        order.items.map((i) => i.productOption),
+      );
+
+      order.conclude();
+      return em.save(OrderRequest, order);
+    });
   }
 
   async reject(dto: ServiceUpdateOrderStatusDto) {
