@@ -143,6 +143,10 @@ export class OrderRequestService {
       dto.userId,
     );
 
+    if (!order) {
+      throw new NotFoundException(`Order ${dto.orderRequestId} not found`);
+    }
+
     return this.dataSource.transaction(async (em) => {
       for (const item of order.items) {
         const productOption = item.productOption;
@@ -164,6 +168,11 @@ export class OrderRequestService {
       dto.orderRequestId,
       dto.userId,
     );
+
+    if (!order) {
+      throw new NotFoundException(`Order ${dto.orderRequestId} not found`);
+    }
+
     order.reject();
     return this.dataSource.getRepository(OrderRequest).save(order);
   }
@@ -173,6 +182,10 @@ export class OrderRequestService {
       dto.orderRequestId,
       dto.userId,
     );
+
+    if (!order) {
+      throw new NotFoundException(`Order ${dto.orderRequestId} not found`);
+    }
 
     return this.dataSource.transaction(async (em) => {
       const optionIds = dto.items.map((i) => i.productOptionId);
