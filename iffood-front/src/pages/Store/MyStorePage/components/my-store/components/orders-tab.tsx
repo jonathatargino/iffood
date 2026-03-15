@@ -1,27 +1,19 @@
 import { useOrdersByStore } from "../../../hooks/use-order-queries";
-import {
-  useConcludeOrder,
-  useRejectOrder,
-} from "../../../hooks/use-order-mutations";
-import { OrderCard } from "./order-card";
+import { OrderCard } from "./OrderCard";
 import { ClipboardList } from "lucide-react";
-import { useNavigate } from "react-router";
 
 type OrdersTabProps = {
   storeId: string;
 };
 
 export function OrdersTab({ storeId }: OrdersTabProps) {
-  const navigate = useNavigate();
   const { data: orders, isLoading } = useOrdersByStore(storeId, true);
-  const concludeMutation = useConcludeOrder(storeId);
-  const rejectMutation = useRejectOrder(storeId);
 
   if (isLoading) {
     return (
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-gray-200 rounded-3xl h-35 animate-pulse" />
+          <div key={i} className="h-35 animate-pulse rounded-3xl bg-gray-200" />
         ))}
       </div>
     );
@@ -29,11 +21,11 @@ export function OrdersTab({ storeId }: OrdersTabProps) {
 
   if (!orders || orders.length === 0) {
     return (
-      <div className="text-center py-16">
-        <div className="size-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <ClipboardList className="w-10 h-10 text-gray-400" />
+      <div className="py-16 text-center">
+        <div className="mx-auto mb-4 flex size-20 items-center justify-center rounded-full bg-gray-100">
+          <ClipboardList className="h-10 w-10 text-gray-400" />
         </div>
-        <p className="text-gray-500 mb-1">Nenhum pedido</p>
+        <p className="mb-1 text-gray-500">Nenhum pedido</p>
         <p className="text-sm text-gray-400">
           Os pedidos dos clientes aparecerão aqui
         </p>
@@ -44,15 +36,7 @@ export function OrdersTab({ storeId }: OrdersTabProps) {
   return (
     <div className="space-y-4">
       {orders.map((order) => (
-        <OrderCard
-          key={order.id}
-          order={order}
-          onConclude={(id) => concludeMutation.mutate(id)}
-          onReject={(id) => rejectMutation.mutate(id)}
-          onEdit={(id) => navigate(`/minha-loja/pedidos/${id}/editar`)}
-          isConcluding={concludeMutation.isPending}
-          isRejecting={rejectMutation.isPending}
-        />
+        <OrderCard key={order.id} order={order} />
       ))}
     </div>
   );

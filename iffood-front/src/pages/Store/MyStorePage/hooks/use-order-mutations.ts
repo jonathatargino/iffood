@@ -20,7 +20,10 @@ export const useConcludeOrder = (storeId: string) => {
   });
 };
 
-export const useRejectOrder = (storeId: string) => {
+export const useRejectOrder = (
+  storeId: string,
+  { onFinish }: { onFinish?: () => void },
+) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -28,9 +31,11 @@ export const useRejectOrder = (storeId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["store-orders", storeId] });
       toast.success("Pedido rejeitado");
+      onFinish?.();
     },
     onError: () => {
       toast.error("Erro ao rejeitar pedido");
+      onFinish?.();
     },
   });
 };
