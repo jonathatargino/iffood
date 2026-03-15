@@ -19,7 +19,7 @@ export function CurrentStoreInfo() {
         <p className="text-xs">
           Total <span className="font-bold text-[#FF7622]">sem taxas</span>
         </p>
-        <p className="font-bold">
+        <p className="font-bold text-nowrap">
           R$ {formatCentsToReais(total)}{" "}
           <span className="text-xs font-normal text-gray-500">
             / {itemCount} {itemCount === 1 ? "item" : "itens"}
