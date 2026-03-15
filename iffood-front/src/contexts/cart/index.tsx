@@ -10,9 +10,7 @@ function loadCart(): CartState {
     if (raw) return JSON.parse(raw);
   } catch {}
   return {
-    storeId: null,
-    storeName: null,
-    storeWhatsapp: null,
+    store: null,
     items: [],
     cartId: crypto.randomUUID(),
   };
@@ -36,12 +34,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const needsStoreSwitch = useCallback(
     (storeId: string) => {
       return (
-        state.storeId !== null &&
-        state.storeId !== storeId &&
+        state.store?.id !== null &&
+        state.store?.id !== storeId &&
         state.items.length > 0
       );
     },
-    [state.storeId, state.items.length],
+    [state.store, state.items],
   );
 
   const addItem = useCallback(
@@ -86,9 +84,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const switchStoreAndAdd = useCallback(
     (item: CartItem, store: { id: string; name: string; whatsapp: string }) => {
       updateState(() => ({
-        storeId: store.id,
-        storeName: store.name,
-        storeWhatsapp: store.whatsapp,
+        store: store,
         items: [item],
         cartId: crypto.randomUUID(),
       }));
@@ -104,9 +100,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         );
         if (newItems.length === 0) {
           return {
-            storeId: null,
-            storeName: null,
-            storeWhatsapp: null,
+            store: null,
             items: [],
             cartId: crypto.randomUUID(),
           };
@@ -139,9 +133,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => {
     updateState(() => ({
-      storeId: null,
-      storeName: null,
-      storeWhatsapp: null,
+      store: null,
       items: [],
       cartId: crypto.randomUUID(),
     }));

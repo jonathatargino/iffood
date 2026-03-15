@@ -1,4 +1,5 @@
 import type { Product, ProductOption } from "@/services/product";
+import type { Store } from "@/services/store";
 
 export interface CartItem {
   product: Product;
@@ -7,9 +8,7 @@ export interface CartItem {
 }
 
 export interface CartState {
-  storeId: string | null;
-  storeName: string | null;
-  storeWhatsapp: string | null;
+  store: Pick<Store, "id" | "name" | "whatsapp"> | null;
   items: CartItem[];
   cartId: string;
 }
