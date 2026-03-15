@@ -3,15 +3,11 @@ import { ProductOptionSingleSelection } from "./components/ProductOptionSingleSe
 import React from "react";
 
 interface ProductOptionsSectionProps {
-  onOptionSelect: (option: ProductOption) => void;
   productOptions: ProductOption[];
-  selectedProductOption: ProductOption;
 }
 
 export function ProductOptionsSection({
-  onOptionSelect,
   productOptions,
-  selectedProductOption,
 }: ProductOptionsSectionProps) {
   return (
     <div>
@@ -26,8 +22,6 @@ export function ProductOptionsSection({
             <ProductOptionSingleSelection
               key={option.id}
               productOption={option}
-              onOptionSelect={onOptionSelect}
-              selectedProductOption={selectedProductOption}
             />
           </React.Fragment>
         ))}

@@ -1,12 +1,9 @@
+import type { Product, ProductOption } from "@/services/product";
+
 export interface CartItem {
-  productId: string;
-  productOptionId: string;
-  productName: string;
-  productValue: number;
-  optionName: string;
+  product: Product;
+  productOption: ProductOption;
   quantity: number;
-  maxQuantity: number;
-  photoUrl: string;
 }
 
 export interface CartState {

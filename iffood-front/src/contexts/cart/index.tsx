@@ -35,7 +35,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const needsStoreSwitch = useCallback(
     (storeId: string) => {
-      return state.storeId !== null && state.storeId !== storeId && state.items.length > 0;
+      return (
+        state.storeId !== null &&
+        state.storeId !== storeId &&
+        state.items.length > 0
+      );
     },
     [state.storeId, state.items.length],
   );
@@ -51,7 +55,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       updateState((prev) => {
         const existingIndex = prev.items.findIndex(
-          (i) => i.productOptionId === item.productOptionId,
+          (i) => i.productOption.id === item.productOption.id,
         );
 
         let newItems: CartItem[];
@@ -80,10 +84,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const switchStoreAndAdd = useCallback(
-    (
-      item: CartItem,
-      store: { id: string; name: string; whatsapp: string },
-    ) => {
+    (item: CartItem, store: { id: string; name: string; whatsapp: string }) => {
       updateState(() => ({
         storeId: store.id,
         storeName: store.name,
@@ -99,7 +100,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     (productOptionId: string) => {
       updateState((prev) => {
         const newItems = prev.items.filter(
-          (i) => i.productOptionId !== productOptionId,
+          (i) => i.productOption.id !== productOptionId,
         );
         if (newItems.length === 0) {
           return {
@@ -121,8 +122,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       updateState((prev) => ({
         ...prev,
         items: prev.items.map((item) =>
-          item.productOptionId === productOptionId
-            ? { ...item, quantity: Math.max(1, Math.min(quantity, item.maxQuantity)) }
+          item.productOption.id === productOptionId
+            ? {
+                ...item,
+                quantity: Math.max(
+                  1,
+                  Math.min(quantity, item.productOption.quantity),
+                ),
+              }
             : item,
         ),
       }));
@@ -146,7 +153,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const total = useMemo(
-    () => state.items.reduce((sum, i) => sum + i.productValue * i.quantity, 0),
+    () => state.items.reduce((sum, i) => sum + i.product.value * i.quantity, 0),
     [state.items],
   );
 

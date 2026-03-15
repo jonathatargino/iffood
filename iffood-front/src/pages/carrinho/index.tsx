@@ -20,8 +20,8 @@ export function CartPage() {
         cartId: state.cartId,
         storeId: state.storeId!,
         items: state.items.map((item) => ({
-          productId: item.productId,
-          productOptionId: item.productOptionId,
+          productId: item.product.id,
+          productOptionId: item.productOption.id,
           quantity: item.quantity,
         })),
       }),
@@ -112,28 +112,30 @@ export function CartPage() {
       <div className="px-6 py-6 space-y-4">
         {state.items.map((item) => (
           <div
-            key={item.productOptionId}
+            key={item.productOption.id}
             className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 flex gap-4"
           >
             <img
-              src={item.photoUrl}
-              alt={item.productName}
+              src={item.product.photoUrl}
+              alt={item.product.name}
               className="w-20 h-20 rounded-2xl object-cover"
             />
             <div className="flex-1 min-w-0">
               <div className="text-sm text-[#2e2e2e] font-medium mb-0.5 truncate">
-                {item.productName}
+                {item.product.name}
               </div>
-              <div className="text-xs text-gray-400 mb-2">{item.optionName}</div>
+              <div className="text-xs text-gray-400 mb-2">
+                {item.productOption.name}
+              </div>
               <div className="text-sm text-[#FF7622] font-medium">
-                {formatCentsToReaisWithSymbol(item.productValue)}
+                {formatCentsToReaisWithSymbol(item.product.value)}
               </div>
 
               <div className="flex items-center justify-between mt-2">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() =>
-                      updateQuantity(item.productOptionId, item.quantity - 1)
+                      updateQuantity(item.productOption.id, item.quantity - 1)
                     }
                     disabled={item.quantity <= 1}
                     className={`size-7 rounded-full flex items-center justify-center transition-all ${
@@ -149,11 +151,11 @@ export function CartPage() {
                   </span>
                   <button
                     onClick={() =>
-                      updateQuantity(item.productOptionId, item.quantity + 1)
+                      updateQuantity(item.productOption.id, item.quantity + 1)
                     }
-                    disabled={item.quantity >= item.maxQuantity}
+                    disabled={item.quantity >= item.productOption.quantity}
                     className={`size-7 rounded-full flex items-center justify-center transition-all ${
-                      item.quantity >= item.maxQuantity
+                      item.quantity >= item.productOption.quantity
                         ? "bg-gray-200 text-gray-400"
                         : "bg-[#FF7622] text-white active:scale-95"
                     }`}
@@ -162,7 +164,7 @@ export function CartPage() {
                   </button>
                 </div>
                 <button
-                  onClick={() => removeItem(item.productOptionId)}
+                  onClick={() => removeItem(item.productOption.id)}
                   className="text-red-500 hover:text-red-600 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
