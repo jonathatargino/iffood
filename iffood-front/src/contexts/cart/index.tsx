@@ -1,178 +1,137 @@
-import { useState, useCallback, useMemo, type ReactNode } from "react";
+import {
+  useState,
+  useCallback,
+  useMemo,
+  type ReactNode,
+  useReducer,
+  useEffect,
+} from "react";
 import { CartContext } from "./context";
-import type { CartItem, CartState } from "./types";
-
-const STORAGE_KEY = "iffood-cart";
-
-function loadCart(): CartState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return {
-    store: null,
-    items: [],
-    cartId: crypto.randomUUID(),
-  };
-}
-
-function saveCart(state: CartState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
+import type { CartItem } from "./types";
+import { ConfirmationModal } from "@/components/confirmation-modal";
+import { loadCartFromLocalStorage, persistCartInLocalStorage } from "./utils";
+import { cartReducer } from "./reducer";
+import type { Store } from "@/services/store";
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<CartState>(loadCart);
+  const [cartState, dispatch] = useReducer(
+    cartReducer,
+    loadCartFromLocalStorage(),
+  );
+  const [isStoreSwitchModalOpen, setIsStoreSwitchModalOpen] = useState(false);
 
-  const updateState = useCallback((updater: (prev: CartState) => CartState) => {
-    setState((prev) => {
-      const next = { ...updater(prev), cartId: crypto.randomUUID() };
-      saveCart(next);
-      return next;
-    });
-  }, []);
+  useEffect(() => {
+    persistCartInLocalStorage(cartState);
+  }, [cartState]);
 
   const needsStoreSwitch = useCallback(
     (storeId: string) => {
-      return (
-        state.store?.id !== null &&
-        state.store?.id !== storeId &&
-        state.items.length > 0
-      );
+      const currentStoreId = cartState.store?.id;
+      if (!currentStoreId) return false;
+
+      return currentStoreId !== storeId;
     },
-    [state.store, state.items],
+    [cartState.store, cartState.items],
   );
 
   const addItem = useCallback(
-    (
-      item: CartItem,
-      store: { id: string; name: string; whatsapp: string },
-    ): boolean => {
+    (item: CartItem, store: Store) => {
       if (needsStoreSwitch(store.id)) {
+        setIsStoreSwitchModalOpen(true);
         return false;
       }
 
-      updateState((prev) => {
-        const existingIndex = prev.items.findIndex(
-          (i) => i.productOption.id === item.productOption.id,
-        );
-
-        let newItems: CartItem[];
-        if (existingIndex >= 0) {
-          newItems = prev.items.map((existing, idx) =>
-            idx === existingIndex
-              ? { ...existing, quantity: existing.quantity + item.quantity }
-              : existing,
-          );
-        } else {
-          newItems = [...prev.items, item];
-        }
-
-        return {
-          ...prev,
-          storeId: store.id,
-          storeName: store.name,
-          storeWhatsapp: store.whatsapp,
-          items: newItems,
-        };
+      dispatch({
+        type: "ADD_ITEM",
+        payload: {
+          item,
+          store,
+        },
       });
 
       return true;
     },
-    [needsStoreSwitch, updateState],
-  );
-
-  const switchStoreAndAdd = useCallback(
-    (item: CartItem, store: { id: string; name: string; whatsapp: string }) => {
-      updateState(() => ({
-        store: store,
-        items: [item],
-        cartId: crypto.randomUUID(),
-      }));
-    },
-    [updateState],
+    [needsStoreSwitch, dispatch],
   );
 
   const removeItem = useCallback(
     (productOptionId: string) => {
-      updateState((prev) => {
-        const newItems = prev.items.filter(
-          (i) => i.productOption.id !== productOptionId,
-        );
-        if (newItems.length === 0) {
-          return {
-            store: null,
-            items: [],
-            cartId: crypto.randomUUID(),
-          };
-        }
-        return { ...prev, items: newItems };
+      dispatch({
+        type: "REMOVE_ITEM",
+        payload: {
+          productOptionId,
+        },
       });
     },
-    [updateState],
+    [dispatch],
   );
 
   const updateQuantity = useCallback(
     (productOptionId: string, quantity: number) => {
-      updateState((prev) => ({
-        ...prev,
-        items: prev.items.map((item) =>
-          item.productOption.id === productOptionId
-            ? {
-                ...item,
-                quantity: Math.max(
-                  1,
-                  Math.min(quantity, item.productOption.quantity),
-                ),
-              }
-            : item,
-        ),
-      }));
+      dispatch({
+        type: "UPDATE_QUANTITY",
+        payload: {
+          productOptionId,
+          quantity,
+        },
+      });
     },
-    [updateState],
+    [dispatch],
   );
 
   const clearCart = useCallback(() => {
-    updateState(() => ({
-      store: null,
-      items: [],
-      cartId: crypto.randomUUID(),
-    }));
-  }, [updateState]);
+    dispatch({ type: "CLEAR_CART" });
+  }, [dispatch]);
+
+  function handleClearCartModalConfirmation() {
+    clearCart();
+    setIsStoreSwitchModalOpen(false);
+  }
 
   const itemCount = useMemo(
-    () => state.items.reduce((sum, i) => sum + i.quantity, 0),
-    [state.items],
+    () => cartState.items.reduce((sum, i) => sum + i.quantity, 0),
+    [cartState.items],
   );
 
   const total = useMemo(
-    () => state.items.reduce((sum, i) => sum + i.product.value * i.quantity, 0),
-    [state.items],
+    () =>
+      cartState.items.reduce((sum, i) => sum + i.product.value * i.quantity, 0),
+    [cartState.items],
   );
 
   const value = useMemo(
     () => ({
-      state,
+      state: cartState,
       addItem,
       removeItem,
       updateQuantity,
       clearCart,
       itemCount,
       total,
-      needsStoreSwitch,
-      switchStoreAndAdd,
     }),
     [
-      state,
+      cartState,
       addItem,
       removeItem,
       updateQuantity,
       clearCart,
       itemCount,
       total,
-      needsStoreSwitch,
-      switchStoreAndAdd,
     ],
   );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}{" "}
+      <ConfirmationModal
+        isOpen={isStoreSwitchModalOpen}
+        title="Esvaziar carrinho?"
+        message="Você só pode adicionar itens de uma loja por vez. Deseja esvaziar o carrinho?"
+        confirmText="Esvaziar"
+        cancelText="Cancelar"
+        onConfirm={handleClearCartModalConfirmation}
+        onCancel={() => setIsStoreSwitchModalOpen(false)}
+      />
+    </CartContext.Provider>
+  );
 }

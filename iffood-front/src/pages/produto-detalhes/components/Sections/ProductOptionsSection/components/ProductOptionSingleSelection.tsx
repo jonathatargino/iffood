@@ -12,16 +12,28 @@ export function ProductOptionSingleSelection({
   const { control, watch } = useFormContext<ProductDetailFormData>();
   const selectedOption = watch("productOption");
 
-  return (
-    <div className="flex items-center justify-between py-5 cursor-pointer text-sm font-medium text-gray-800 px-4">
-      <label htmlFor={productOption.id}>{productOption.name}</label>
+  const isOutOfStoke = productOption.quantity <= 0;
 
+  return (
+    <div className="flex cursor-pointer items-center justify-between px-4 py-5 text-sm font-medium text-gray-800">
+      <div className="flex flex-col">
+        <label
+          className={`text-sm ${isOutOfStoke ? "text-gray-300" : ""}`}
+          htmlFor={productOption.id}
+        >
+          {productOption.name}
+        </label>
+        {isOutOfStoke && (
+          <span className="text-xs text-red-400">Indisponível</span>
+        )}
+      </div>
       <Controller
         control={control}
         name="productOption"
         render={({ field: { onChange } }) => (
           <input
             id={productOption.id}
+            disabled={isOutOfStoke}
             onChange={() => onChange(productOption)}
             type="radio"
             className="h-5 w-5 accent-[#FF7622]"

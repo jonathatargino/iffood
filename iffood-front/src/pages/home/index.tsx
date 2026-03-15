@@ -10,9 +10,9 @@ function MenuIcon({ onClick }: { onClick?: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="size-11 bg-white rounded-2xl shadow-xl flex items-center justify-center hover:shadow-2xl transition-all active:scale-95"
+      className="flex size-11 items-center justify-center rounded-2xl bg-white shadow-xl transition-all hover:shadow-2xl active:scale-95"
     >
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24">
         <path
           d="M4 18h10M4 12h16M4 6h7"
           stroke="#FF7622"
@@ -34,21 +34,21 @@ function ProductCard({ product, onClick }: ProductCardProps) {
   return (
     <button
       onClick={onClick}
-      className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all overflow-hidden min-w-[170px] snap-start text-left border border-gray-100 active:scale-[0.98]"
+      className="min-w-[170px] snap-start overflow-hidden rounded-3xl border border-gray-100 bg-white text-left shadow-sm transition-all hover:shadow-xl active:scale-[0.98]"
     >
       <div className="relative h-[120px] w-full overflow-hidden">
         <img
           src={product.photoUrl}
           alt={product.name}
-          className="w-full h-full object-cover"
+          className="h-full w-full object-cover"
         />
-        <div className="absolute top-2 right-2 bg-[#FF7622] text-white text-xs px-2.5 py-1 rounded-full shadow-md">
+        <div className="absolute top-2 right-2 rounded-full bg-[#FF7622] px-2.5 py-1 text-xs text-white shadow-md">
           {formatCentsToReaisWithSymbol(product.value)}
         </div>
       </div>
       <div className="p-4">
         <div className="mb-1 line-clamp-1 text-[#2e2e2e]">{product.name}</div>
-        <div className="text-xs text-gray-400 line-clamp-1">
+        <div className="line-clamp-1 text-xs text-gray-400">
           {product.description}
         </div>
       </div>
@@ -65,18 +65,18 @@ function StoreCard({ store, onClick }: StoreCardProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full mb-4 text-left bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100 active:scale-[0.98]"
+      className="mb-4 w-full overflow-hidden rounded-3xl border border-gray-100 bg-white text-left shadow-sm transition-all hover:shadow-xl active:scale-[0.98]"
     >
       <div className="relative h-[160px] overflow-hidden">
         <img
           src={store.photoUrl}
           alt={store.name}
-          className="w-full h-full object-cover"
+          className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+        <div className="absolute right-0 bottom-0 left-0 p-4 text-white">
           <div className="mb-1">{store.name}</div>
-          <div className="text-xs text-white/80 line-clamp-1">
+          <div className="line-clamp-1 text-xs text-white/80">
             {store.description}
           </div>
         </div>
@@ -137,29 +137,24 @@ export default function Home() {
     navigate("/restaurantes");
   };
 
-  const handleMenuClick = () => {
-    navigate("/configuracoes");
-  };
-
   return (
-    <div className="bg-[#fafafa] min-h-screen">
+    <div className="min-h-screen bg-[#fafafa]">
       {/* Header with gradient */}
-      <div className="bg-gradient-to-br from-[#FF7622] to-[#E6661A] px-6 pt-14 pb-8 rounded-b-[32px] shadow-lg">
+      <div className="rounded-b-[32px] bg-gradient-to-br from-[#FF7622] to-[#E6661A] px-6 pt-14 pb-8 shadow-lg">
         {/* Top Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <MenuIcon onClick={handleMenuClick} />
+        <div className="mb-8 flex items-center gap-3">
           <div className="flex-1">
-            <h1 className="text-white text-lg">Olá, {username}! 👋</h1>
-            <p className="text-white/80 text-sm">O que vai pedir hoje?</p>
+            <h1 className="text-lg text-white">Olá, {username}! 👋</h1>
+            <p className="text-sm text-white/80">O que vai pedir hoje?</p>
           </div>
         </div>
 
         {/* Search Bar */}
         <button
           onClick={handleSearchClick}
-          className="bg-white rounded-2xl w-full px-5 py-4 flex items-center gap-3 shadow-xl hover:shadow-2xl transition-shadow active:scale-[0.98]"
+          className="flex w-full items-center gap-3 rounded-2xl bg-white px-5 py-4 shadow-xl transition-shadow hover:shadow-2xl active:scale-[0.98]"
         >
-          <Search className="w-5 h-5 text-gray-400" />
+          <Search className="h-5 w-5 text-gray-400" />
           <span className="text-sm text-gray-400">
             Buscar pratos e restaurantes...
           </span>
@@ -168,14 +163,14 @@ export default function Home() {
 
       {/* Products Carousel */}
       <div className="mt-8 mb-8">
-        <div className="px-6 mb-5 flex items-center justify-between">
+        <div className="mb-5 flex items-center justify-between px-6">
           <h2 className="text-[#2e2e2e]">Destaques para você</h2>
           <button
-            className="text-[#FF7622] text-sm flex items-center gap-1 hover:gap-2 transition-all"
+            className="flex items-center gap-1 text-sm text-[#FF7622] transition-all hover:gap-2"
             onClick={handleViewAllProducts}
           >
             <span>Ver todos</span>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24">
               <path
                 d="M9 18l6-6-6-6"
                 stroke="currentColor"
@@ -188,17 +183,17 @@ export default function Home() {
         </div>
 
         {loadingProducts ? (
-          <div className="px-6 flex gap-4">
+          <div className="flex gap-4 px-6">
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="bg-gray-200 rounded-3xl min-w-[170px] h-[200px] animate-pulse"
+                className="h-[200px] min-w-[170px] animate-pulse rounded-3xl bg-gray-200"
               />
             ))}
           </div>
         ) : (
-          <div className="overflow-x-auto scrollbar-hide">
-            <div className="flex gap-4 px-6 snap-x snap-mandatory pb-2">
+          <div className="scrollbar-hide overflow-x-auto">
+            <div className="flex snap-x snap-mandatory gap-4 px-6 pb-2">
               {products.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -216,11 +211,11 @@ export default function Home() {
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-[#2e2e2e]">Restaurantes abertos</h2>
           <button
-            className="text-[#FF7622] text-sm flex items-center gap-1 hover:gap-2 transition-all"
+            className="flex items-center gap-1 text-sm text-[#FF7622] transition-all hover:gap-2"
             onClick={handleViewAllStores}
           >
             <span>Ver todos</span>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24">
               <path
                 d="M9 18l6-6-6-6"
                 stroke="currentColor"
@@ -237,7 +232,7 @@ export default function Home() {
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="bg-gray-200 rounded-3xl h-[200px] animate-pulse"
+                className="h-[200px] animate-pulse rounded-3xl bg-gray-200"
               />
             ))}
           </div>

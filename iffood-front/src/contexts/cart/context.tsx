@@ -15,8 +15,6 @@ export const CartContext = createContext<CartContextValue>({
   clearCart: () => {},
   itemCount: 0,
   total: 0,
-  needsStoreSwitch: () => false,
-  switchStoreAndAdd: () => {},
 });
 
 export function useCart() {

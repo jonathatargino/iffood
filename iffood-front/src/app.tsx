@@ -1,7 +1,6 @@
 import { useMediaQuery } from "./hooks/use-media-query";
 import { LoginPage } from "./pages/login";
 import { DesktopNotSupported } from "./pages/desktop-not-supported";
-import { ConfiguracoesPage } from "./pages/configuracoes";
 import { MinhaLojaPage } from "./pages/minha-loja";
 import { EditarPedidoPage } from "./pages/minha-loja/editar-pedido";
 import Home from "./pages/home";
@@ -17,71 +16,73 @@ import { CartProvider } from "./contexts/cart";
 import { createBrowserRouter, Outlet, RouterProvider } from "react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { AvailabilityProvider } from "./contexts/availability";
-import { CartFloatButton } from "./components/cart-float-button";
+import { MenuLayout } from "./layouts/MenuLayout";
+import { CartCTALayout } from "./layouts/CartCTALayout";
 
 const router = createBrowserRouter([
   {
     element: (
       <>
         <Outlet />
-        <CartFloatButton />
         <Toaster richColors position="top-center" />
       </>
     ),
     children: [
       {
+        path: "login",
+        element: <LoginPage />,
+      },
+      {
         path: "/",
         element: (
-          <AvailabilityProvider>
-            <Outlet />
-          </AvailabilityProvider>
+          <MenuLayout>
+            <CartCTALayout>
+              <Outlet />
+            </CartCTALayout>
+          </MenuLayout>
         ),
         children: [
           {
             index: true,
-            element: <Home />,
+            element: (
+              <AvailabilityProvider>
+                <Home />
+              </AvailabilityProvider>
+            ),
           },
           {
-            path: "login",
-            element: <LoginPage />,
+            path: "minha-loja",
+            element: <MinhaLojaPage />,
           },
           {
-            path: "configuracoes",
-            element: <ConfiguracoesPage />,
+            path: "minha-loja/pedidos/:orderId/editar",
+            element: <EditarPedidoPage />,
+          },
+          {
+            path: "produto/:productId",
+            element: <ProductFormWrapper />,
+          },
+          {
+            path: "produto-detalhes/:productId",
+            element: <ProductDetail />,
+          },
+          {
+            path: "loja/:storeId",
+            element: <RestaurantView />,
+          },
+          {
+            path: "carrinho",
+            element: <CartPage />,
+          },
+          {
+            path: "busca",
+            element: <SearchPage />,
+          },
+          {
+            path: ":type",
+            element: <ViewAllPage />,
           },
         ],
-      },
-      {
-        path: "minha-loja",
-        element: <MinhaLojaPage />,
-      },
-      {
-        path: "minha-loja/pedidos/:orderId/editar",
-        element: <EditarPedidoPage />,
-      },
-      {
-        path: "produto/:productId",
-        element: <ProductFormWrapper />,
-      },
-      {
-        path: "produto-detalhes/:productId",
-        element: <ProductDetail />,
-      },
-      {
-        path: "loja/:storeId",
-        element: <RestaurantView />,
-      },
-      {
-        path: "carrinho",
-        element: <CartPage />,
-      },
-      {
-        path: "busca",
-        element: <SearchPage />,
-      },
-      {
-        path: ":type",
-        element: <ViewAllPage />,
       },
     ],
   },

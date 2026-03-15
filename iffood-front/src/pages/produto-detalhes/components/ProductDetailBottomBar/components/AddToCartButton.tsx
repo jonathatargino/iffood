@@ -23,7 +23,7 @@ export function AddToCartButton({ productValue }: AddToCartButtonProps) {
         type="submit"
         form="product-detail-form"
         disabled={!isValid}
-        className={`w-full bg-[#FF7622] flex ${shouldShowPrice ? "justify-between" : "justify-center"} text-white py-4 px-6 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed disabled:from-gray-300 disabled:to-gray-400`}
+        className={`flex w-full bg-[#FF7622] ${shouldShowPrice ? "justify-between" : "justify-center"} rounded-md px-6 py-4 text-white shadow-lg transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:from-gray-300 disabled:to-gray-400 disabled:text-gray-500`}
       >
         Adicionar
         {shouldShowPrice && <span>R${formatCentsToReais(totalPrice)}</span>}

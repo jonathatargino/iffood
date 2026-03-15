@@ -21,7 +21,7 @@ export function MyStore({ store }: MyStoreProps) {
   const nagivate = useNavigate();
 
   const updatePhotoMutation = useUpdateStorePhoto(store.id, () =>
-    setShowPhotoModal(false)
+    setShowPhotoModal(false),
   );
 
   const handlePhotoUpload = async (file: File) => {
@@ -29,10 +29,10 @@ export function MyStore({ store }: MyStoreProps) {
   };
 
   return (
-    <div className="bg-[#fafafa] min-h-screen pb-8">
+    <div className="min-h-screen bg-[#fafafa] pb-8">
       <StoreHeader
         photoUrl={store.photoUrl}
-        onBack={() => nagivate("/configuracoes")}
+        onBack={() => nagivate("/")}
         onPhotoUpload={() => setShowPhotoModal(true)}
       />
 

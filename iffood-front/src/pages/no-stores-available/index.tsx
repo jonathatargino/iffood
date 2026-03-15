@@ -5,9 +5,9 @@ function MenuIcon({ onClick }: { onClick?: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="size-11 bg-white rounded-2xl shadow-xl flex items-center justify-center hover:shadow-2xl transition-all active:scale-95"
+      className="flex size-11 items-center justify-center rounded-2xl bg-white shadow-xl transition-all hover:shadow-2xl active:scale-95"
     >
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24">
         <path
           d="M4 18h10M4 12h16M4 6h7"
           stroke="#FF7622"
@@ -33,30 +33,22 @@ export default function NoStoresAvailable() {
       ? "Ops! Você chegou cedo demais"
       : "Ops! Você chegou tarde demais";
 
-  const handleMenuClick = () => {
-    navigate("/configuracoes");
-  };
-
   return (
-    <div className="bg-gradient-to-br from-[#FF7622] to-[#E6661A] min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-[#FF7622] to-[#E6661A]">
       <div className="px-6 pt-14 pb-8">
-        <div className="flex items-center mb-8">
-          <MenuIcon onClick={handleMenuClick} />
-        </div>
-
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center px-4 pb-20">
-          <div className="bg-white/10 backdrop-blur-sm rounded-full p-8 mb-8">
-            <Clock className="w-24 h-24 text-white" strokeWidth={1.5} />
+        <div className="flex min-h-[calc(100vh-200px)] flex-col items-center justify-center px-4 pb-20 text-center">
+          <div className="mb-8 rounded-full bg-white/10 p-8 backdrop-blur-sm">
+            <Clock className="h-24 w-24 text-white" strokeWidth={1.5} />
           </div>
 
-          <h1 className="text-white text-3xl font-bold mb-4">{message}</h1>
+          <h1 className="mb-4 text-3xl font-bold text-white">{message}</h1>
 
-          <p className="text-white/90 text-lg mb-3 max-w-md leading-relaxed">
+          <p className="mb-3 max-w-md text-lg leading-relaxed text-white/90">
             No momento não há nenhum restaurante em funcionamento ou com
             produtos disponíveis.
           </p>
 
-          <p className="text-white/70 text-sm max-w-sm leading-relaxed">
+          <p className="max-w-sm text-sm leading-relaxed text-white/70">
             Volte mais tarde para encontrar opções disponíveis para você!
           </p>
         </div>
