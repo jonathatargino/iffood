@@ -1,6 +1,8 @@
+import { lazy } from "react";
 import type { RouteObject } from "react-router";
-import { ProductPage } from "./ProductPage/wrapper";
-import { ProductDetailPage } from "./ProductDetailPage";
+
+const ProductPage = lazy(() => import("./ProductPage/wrapper"));
+const ProductDetailPage = lazy(() => import("./ProductDetailPage"));
 
 export const productRoutes: RouteObject[] = [
   {

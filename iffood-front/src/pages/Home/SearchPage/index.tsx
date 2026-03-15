@@ -90,7 +90,7 @@ function ProductResultCard({ product, onClick }: ProductResultCardProps) {
   );
 }
 
-export default function SearchPage() {
+export function SearchPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchType, setSearchType] = useState<SearchType>("stores");
@@ -371,3 +371,5 @@ export default function SearchPage() {
     </div>
   );
 }
+
+export default SearchPage;

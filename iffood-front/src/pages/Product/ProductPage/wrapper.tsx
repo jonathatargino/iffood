@@ -35,3 +35,5 @@ export function ProductPage() {
 
   return <ProductForm storeId={actualStoreId} />;
 }
+
+export default ProductPage;

@@ -232,3 +232,5 @@ export function StorePage() {
     </div>
   );
 }
+
+export default StorePage;

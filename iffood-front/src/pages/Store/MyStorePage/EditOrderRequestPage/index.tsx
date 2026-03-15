@@ -15,7 +15,7 @@ type EditItem = {
   quantity: number;
 };
 
-export function EditarPedidoPage() {
+export function EditOrderRequestPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
 
@@ -297,3 +297,5 @@ export function EditarPedidoPage() {
     </div>
   );
 }
+
+export default EditOrderRequestPage;

@@ -27,7 +27,7 @@ export function LoginPage() {
     <div
       className={cn(
         "relative flex h-screen w-full flex-col items-center overflow-hidden",
-        "bg-linear-to-br from-[#FF7622] via-[#FF7622] to-[#E6661A]"
+        "bg-linear-to-br from-[#FF7622] via-[#FF7622] to-[#E6661A]",
       )}
     >
       <BgAsset />
@@ -40,17 +40,17 @@ export function LoginPage() {
           </p>
         </header>
 
-        <Card className="w-full max-w-sm rounded-[32px] border-0 bg-white shadow-2xl py-8 px-4">
-          <CardContent className="space-y-5 ">
+        <Card className="w-full max-w-sm rounded-[32px] border-0 bg-white px-4 py-8 shadow-2xl">
+          <CardContent className="space-y-5">
             <Button
               onClick={handleGoogleLogin}
               variant="outline"
               size="lg"
               className={cn(
                 "w-full rounded-full border border-[#FF7622] bg-white py-6",
-                "text-[#FF7622] shadow-sm transition-all text-sm",
-                "hover:bg-orange-50 hover:shadow-md ",
-                "active:scale-[0.98]"
+                "text-sm text-[#FF7622] shadow-sm transition-all",
+                "hover:bg-orange-50 hover:shadow-md",
+                "active:scale-[0.98]",
               )}
             >
               <GoogleIcon />
@@ -67,9 +67,9 @@ export function LoginPage() {
               onClick={handleGuestContinue}
               size="lg"
               className={cn(
-                "w-full rounded-full bg-linear-to-r from-[#FF7622] to-[#E6661A] border-0",
+                "w-full rounded-full border-0 bg-linear-to-r from-[#FF7622] to-[#E6661A]",
                 "py-6 text-white transition-all",
-                "hover:shadow-lg active:scale-[0.98]"
+                "hover:shadow-lg active:scale-[0.98]",
               )}
             >
               Continuar como Visitante
@@ -92,3 +92,5 @@ export function LoginPage() {
     </div>
   );
 }
+
+export default LoginPage;

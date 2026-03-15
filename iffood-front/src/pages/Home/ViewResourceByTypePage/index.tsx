@@ -90,7 +90,7 @@ function ProductCard({ product, onClick }: ProductCardProps) {
   );
 }
 
-export default function ViewAllResourceByTypePage() {
+export function ViewAllResourceByTypePage() {
   const navigate = useNavigate();
   const { type } = useParams<{ type: "produtos" | "restaurantes" }>();
   const [searchQuery, setSearchQuery] = useState("");
@@ -381,3 +381,5 @@ export default function ViewAllResourceByTypePage() {
     </div>
   );
 }
+
+export default ViewAllResourceByTypePage;

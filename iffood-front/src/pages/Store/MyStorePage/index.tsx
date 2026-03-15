@@ -5,7 +5,7 @@ import { NoStore } from "./components/no-store";
 import { StoreForm } from "./components/store-form";
 import { MyStore } from "./components/my-store";
 
-export function MinhaLojaPage() {
+export function MyStorePage() {
   const [view, setView] = useState<
     "check" | "no-store" | "create-store" | "my-store"
   >("check");
@@ -32,9 +32,9 @@ export function MinhaLojaPage() {
 
   if (isLoading || view === "check") {
     return (
-      <div className="bg-[#fafafa] min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
         <div className="text-center">
-          <div className="size-12 border-4 border-[#FF7622] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-[#FF7622] border-t-transparent" />
           <p className="text-gray-500">Carregando...</p>
         </div>
       </div>
@@ -64,3 +64,5 @@ export function MinhaLojaPage() {
 
   return <MyStore store={stores?.[0]!} />;
 }
+
+export default MyStorePage;

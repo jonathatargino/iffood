@@ -1,5 +1,7 @@
+import { lazy } from "react";
 import type { RouteObject } from "react-router";
-import { LoginPage } from "./LoginPage";
+
+const LoginPage = lazy(() => import("./LoginPage"));
 
 export const authRoutes: RouteObject[] = [
   {

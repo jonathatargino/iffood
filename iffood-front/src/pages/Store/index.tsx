@@ -1,7 +1,11 @@
 import type { RouteObject } from "react-router";
 import { StorePage } from "./StorePage";
-import { MinhaLojaPage } from "./MyStorePage";
-import { EditarPedidoPage } from "./MyStorePage/editar-pedido";
+import { lazy } from "react";
+
+const MyStorePage = lazy(() => import("./MyStorePage"));
+const EditOrderRequestPage = lazy(
+  () => import("./MyStorePage/EditOrderRequestPage"),
+);
 
 export const storeRoutes: RouteObject[] = [
   {
@@ -16,11 +20,11 @@ export const storeRoutes: RouteObject[] = [
         children: [
           {
             index: true,
-            element: <MinhaLojaPage />,
+            element: <MyStorePage />,
           },
           {
             path: "pedidos/:orderId/editar",
-            element: <EditarPedidoPage />,
+            element: <EditOrderRequestPage />,
           },
         ],
       },
