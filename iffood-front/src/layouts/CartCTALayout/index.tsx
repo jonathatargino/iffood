@@ -8,7 +8,7 @@ export function CartCTALayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   const shouldShow =
-    itemCount > 0 && !location.pathname.includes("/produto-detalhes/");
+    itemCount > 0 && !location.pathname.includes("/produto/detalhes/");
   if (!shouldShow) return <>{children}</>;
 
   const isMainMobileMenuOmitted = omitMenuLayoutPathList.includes(

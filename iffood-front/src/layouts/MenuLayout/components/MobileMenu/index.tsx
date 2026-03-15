@@ -13,7 +13,7 @@ export function MobileMenu() {
       <MobileMenuOption
         icon={<StoreIcon width={24} height={24} />}
         label="Minha Loja"
-        path="/minha-loja"
+        path="/loja/minha-loja"
       />
     </div>
   );
