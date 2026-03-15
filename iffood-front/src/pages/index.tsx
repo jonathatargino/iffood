@@ -6,6 +6,7 @@ import { authRoutes } from "./Auth";
 import { homeRoutes } from "./Home";
 import { MenuLayout } from "@/layouts/MenuLayout";
 import { CartCTALayout } from "@/layouts/CartCTALayout";
+import { NotFoundPage } from "./NotFoundPage";
 
 export const appRoutes: RouteObject[] = [
   ...authRoutes,
@@ -18,5 +19,9 @@ export const appRoutes: RouteObject[] = [
       </MenuLayout>
     ),
     children: [...homeRoutes, ...productRoutes, ...storeRoutes, ...cartRoutes],
+  },
+  {
+    path: "*",
+    element: <NotFoundPage />,
   },
 ];
