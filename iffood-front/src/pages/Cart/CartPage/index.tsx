@@ -2,6 +2,7 @@ import { useCart } from "@/contexts/cart/context";
 import { StoreInfoWidget } from "./components/StoreInfoWidget";
 import { CartItemList } from "./components/CartItemList";
 import { EmptyCartView } from "./views/EmptyCartView";
+import { PageHeader } from "@/components/PageHeader";
 
 export function CartPage() {
   const { state } = useCart();
@@ -11,7 +12,8 @@ export function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white pt-6 pb-48">
+    <div className="min-h-screen bg-white pb-48">
+      <PageHeader text="CARRINHO" />
       <StoreInfoWidget />
       <CartItemList />
     </div>

@@ -6,17 +6,27 @@ type TabProps = {
   children: React.ReactNode;
   onClick: () => void;
   ref: React.RefObject<HTMLButtonElement | null>;
+  scrollToComponentRef: React.RefObject<HTMLButtonElement | null>;
 };
 
-export function Tab({ active, children, onClick, ref }: TabProps) {
+export function Tab({
+  active,
+  children,
+  onClick,
+  ref,
+  scrollToComponentRef,
+}: TabProps) {
   return (
     <button
       onClick={() => {
-        ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        scrollToComponentRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
         onClick();
       }}
       ref={ref}
-      className={`px-5 py-3 rounded-full whitespace-nowrap transition-all ${
+      className={`rounded-full px-5 py-3 whitespace-nowrap transition-all ${
         active
           ? "bg-[#FF7622] text-white"
           : "bg-white text-[#2e2e2e] hover:shadow-md"
@@ -39,12 +49,13 @@ export function TabsContainer({ activeTab, onTabChange }: TabsContainerProps) {
   const ordersTabRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <div className="overflow-x-auto scrollbar-hide mb-6">
+    <div className="scrollbar-hide mb-6 overflow-x-auto">
       <div className="flex gap-2 pb-2">
         <Tab
           active={activeTab === "general"}
           onClick={() => onTabChange("general")}
           ref={generalTabRef}
+          scrollToComponentRef={generalTabRef}
         >
           Geral
         </Tab>
@@ -52,6 +63,7 @@ export function TabsContainer({ activeTab, onTabChange }: TabsContainerProps) {
           active={activeTab === "availability"}
           onClick={() => onTabChange("availability")}
           ref={availabilityTabRef}
+          scrollToComponentRef={generalTabRef}
         >
           Disponibilidade
         </Tab>
@@ -59,6 +71,7 @@ export function TabsContainer({ activeTab, onTabChange }: TabsContainerProps) {
           active={activeTab === "products"}
           onClick={() => onTabChange("products")}
           ref={productsTabRef}
+          scrollToComponentRef={ordersTabRef}
         >
           Produtos
         </Tab>
@@ -66,6 +79,7 @@ export function TabsContainer({ activeTab, onTabChange }: TabsContainerProps) {
           active={activeTab === "orders"}
           onClick={() => onTabChange("orders")}
           ref={ordersTabRef}
+          scrollToComponentRef={ordersTabRef}
         >
           Pedidos
         </Tab>
