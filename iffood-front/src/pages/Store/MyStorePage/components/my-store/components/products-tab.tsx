@@ -11,7 +11,7 @@ export function ProductsTab({ storeId }: ProductsTabProps) {
 
   const { data: productsData, isLoading: loadingProducts } = useStoreProducts(
     storeId,
-    true
+    true,
   );
 
   const handleEditProduct = (productId: string) => {
@@ -23,12 +23,14 @@ export function ProductsTab({ storeId }: ProductsTabProps) {
   };
 
   return (
-    <ProductsList
-      products={productsData?.products || []}
-      totalProducts={productsData?.total || 0}
-      isLoading={loadingProducts}
-      onEditProduct={handleEditProduct}
-      onCreateProduct={handleCreateProduct}
-    />
+    <div className="px-6">
+      <ProductsList
+        products={productsData?.products || []}
+        totalProducts={productsData?.total || 0}
+        isLoading={loadingProducts}
+        onEditProduct={handleEditProduct}
+        onCreateProduct={handleCreateProduct}
+      />
+    </div>
   );
 }

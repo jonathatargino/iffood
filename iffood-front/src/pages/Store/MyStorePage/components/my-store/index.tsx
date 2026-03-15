@@ -29,23 +29,27 @@ export function MyStore({ store }: MyStoreProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa] pb-8">
+    <div className="min-h-screen bg-white pb-8">
       <StoreHeader
         photoUrl={store.photoUrl}
         onBack={() => nagivate("/")}
         onPhotoUpload={() => setShowPhotoModal(true)}
       />
 
-      <div className="px-6 py-6">
-        <TabsContainer activeTab={activeTab} onTabChange={setActiveTab} />
+      <div className="py-6">
+        <div className="px-6">
+          <TabsContainer activeTab={activeTab} onTabChange={setActiveTab} />
+        </div>
 
-        {activeTab === "general" && <GeneralTab store={store} />}
+        <div>
+          {activeTab === "general" && <GeneralTab store={store} />}
 
-        {activeTab === "availability" && <AvailabilityTab store={store} />}
+          {activeTab === "availability" && <AvailabilityTab store={store} />}
 
-        {activeTab === "products" && <ProductsTab storeId={store.id} />}
+          {activeTab === "products" && <ProductsTab storeId={store.id} />}
 
-        {activeTab === "orders" && <OrdersTab storeId={store.id} />}
+          {activeTab === "orders" && <OrdersTab storeId={store.id} />}
+        </div>
       </div>
 
       <PhotoUploadModal

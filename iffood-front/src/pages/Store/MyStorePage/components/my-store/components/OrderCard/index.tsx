@@ -9,7 +9,7 @@ interface OrderCardProps {
 
 export function OrderCard({ order }: OrderCardProps) {
   return (
-    <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+    <div className="p-5">
       <OrderCardHeader order={order} />
       <OrderItemsList orderItems={order.items} />
       <OrderCardFooter totalPrice={order.total} />

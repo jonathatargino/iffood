@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { OrderRequest } from './order-request.entity';
+import { OrderRequest, OrderRequestStatus } from './order-request.entity';
 import { OrderRequestItem } from './order-request-item/order-request-item.entity';
 import { OrderRequestRepository } from './order-request.repository';
 import { ProductOption } from '../product/product-option/product-option.entity';
@@ -126,7 +126,10 @@ export class OrderRequestService {
       throw new ForbiddenException();
     }
 
-    return this.orderRequestRepository.findByStoreId(storeId);
+    return this.orderRequestRepository.findByStoreId(
+      storeId,
+      OrderRequestStatus.Pending,
+    );
   }
 
   async findById(id: string) {

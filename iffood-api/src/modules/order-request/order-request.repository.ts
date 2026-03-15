@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { OrderRequest } from './order-request.entity';
+import { OrderRequest, OrderRequestStatus } from './order-request.entity';
 
 @Injectable()
 export class OrderRequestRepository {
@@ -28,9 +28,12 @@ export class OrderRequestRepository {
     });
   }
 
-  async findByStoreId(storeId: string): Promise<OrderRequest[]> {
+  async findByStoreId(
+    storeId: string,
+    status?: OrderRequestStatus,
+  ): Promise<OrderRequest[]> {
     return this.typeormRepository.find({
-      where: { store: { id: storeId } },
+      where: { store: { id: storeId }, status },
       relations: { buyer: true, items: true },
       order: { createdAt: 'DESC' },
     });

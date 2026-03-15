@@ -29,8 +29,8 @@ export function AvailabilityTab({ store }: AvailabilityTabProps) {
   const handleWeekDayChange = (updatedDay: WeekDay) => {
     setWeekDays(
       weekDays.map((day) =>
-        day.weekday === updatedDay.weekday ? updatedDay : day
-      )
+        day.weekday === updatedDay.weekday ? updatedDay : day,
+      ),
     );
   };
 
@@ -61,7 +61,7 @@ export function AvailabilityTab({ store }: AvailabilityTabProps) {
       setWeekDays((current) =>
         current.map((day) => {
           const availability = availabilities.find(
-            (a) => a.weekday === day.weekday
+            (a) => a.weekday === day.weekday,
           );
           if (availability) {
             return {
@@ -72,14 +72,14 @@ export function AvailabilityTab({ store }: AvailabilityTabProps) {
             };
           }
           return day;
-        })
+        }),
       );
     }
   }, [availabilities]);
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-6 px-6">
         <StoreStatusSection store={store} onToggleStatus={handleStatusToggle} />
 
         <AvailabilityList
@@ -91,7 +91,7 @@ export function AvailabilityTab({ store }: AvailabilityTabProps) {
         <button
           onClick={handleSaveAvailabilities}
           disabled={updateAvailabilitiesMutation.isPending}
-          className="w-full bg-gradient-to-r from-[#FF7622] to-[#E6661A] text-white py-4 rounded-full uppercase transition-all shadow-lg hover:shadow-xl active:scale-[0.98] disabled:opacity-50"
+          className="w-full rounded-full bg-gradient-to-r from-[#FF7622] to-[#E6661A] py-4 text-white uppercase shadow-lg transition-all hover:shadow-xl active:scale-[0.98] disabled:opacity-50"
         >
           {updateAvailabilitiesMutation.isPending ? "Salvando..." : "Salvar"}
         </button>

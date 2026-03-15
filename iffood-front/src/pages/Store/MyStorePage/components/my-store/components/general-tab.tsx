@@ -16,7 +16,7 @@ export function GeneralTab({ store }: GeneralTabProps) {
   const [isEditing, setIsEditing] = useState(false);
 
   const updateStoreMutation = useUpdateStore(store.id, () =>
-    setIsEditing(false)
+    setIsEditing(false),
   );
   const deleteStoreMutation = useDeleteStore();
 
@@ -32,7 +32,7 @@ export function GeneralTab({ store }: GeneralTabProps) {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-6 px-6">
         <EditableStoreInfo
           store={store}
           onSave={handleSaveGeneralInfo}
@@ -44,7 +44,7 @@ export function GeneralTab({ store }: GeneralTabProps) {
         <button
           onClick={() => setShowDeleteModal(true)}
           disabled={deleteStoreMutation.isPending}
-          className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-full uppercase transition-all shadow-lg hover:shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-full bg-red-600 py-4 text-white uppercase shadow-lg transition-all hover:bg-red-700 hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {deleteStoreMutation.isPending ? "Deletando..." : "Deletar Loja"}
         </button>
