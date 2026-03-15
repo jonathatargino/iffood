@@ -18,7 +18,7 @@ export function OrderCardHeader({ order }: OrderCardHeaderProps) {
   const isPending = order.status === "PENDING";
 
   return (
-    <div className="mb-3 flex items-start justify-between">
+    <div className="mb-1 flex items-start justify-between">
       <div>
         <div className="flex items-center gap-2 text-sm font-medium text-[#2e2e2e]">
           {order.buyerName}
@@ -26,7 +26,11 @@ export function OrderCardHeader({ order }: OrderCardHeaderProps) {
             className={`h-2 w-2 rounded-full ${STATUS_COLORS[order.status]} ${isPending ? "animate-pulse" : ""}`}
           ></div>
         </div>
-        <div className="text-xs text-gray-400">{formattedDate}</div>
+        <div className="flex gap-2 text-xs text-gray-400">
+          {/* TODO: get customer whatsapp number */}
+          <span>+55 8598545-4176</span>
+          {formattedDate}
+        </div>
       </div>
 
       <OrderCardActions order={order} />
