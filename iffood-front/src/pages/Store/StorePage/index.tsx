@@ -4,6 +4,7 @@ import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { storeService } from "@/services/store";
 import { productService, type Product } from "@/services/product";
 import { formatCentsToReaisWithSymbol } from "@/utils/currency";
+import { LoadingView } from "@/views/LoadingView";
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
@@ -118,14 +119,7 @@ export function StorePage() {
   }, [handleObserver]);
 
   if (loadingStore || loadingProducts) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
-        <div className="text-center">
-          <div className="mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-[#FF7622] border-t-transparent" />
-          <p className="text-gray-500">Carregando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingView />;
   }
 
   if (!store) {

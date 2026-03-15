@@ -6,7 +6,7 @@ export type BouncingDotsProps = {
 
 export function BouncingDots({
   size = 8,
-  colorClass = "bg-[#FF7622]",
+  colorClass = "bg-[#FF7622]/70",
   speed = 0.6,
 }: BouncingDotsProps) {
   const style = { width: size, height: size, animationDuration: `${speed}s` };

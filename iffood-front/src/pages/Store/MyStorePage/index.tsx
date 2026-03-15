@@ -4,6 +4,7 @@ import { storeService } from "@/services/store";
 import { NoStore } from "./components/no-store";
 import { StoreForm } from "./components/store-form";
 import { MyStore } from "./components/my-store";
+import { LoadingView } from "@/views/LoadingView";
 
 export function MyStorePage() {
   const [view, setView] = useState<
@@ -31,14 +32,7 @@ export function MyStorePage() {
   }, [isLoading, stores, view]);
 
   if (isLoading || view === "check") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
-        <div className="text-center">
-          <div className="mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-[#FF7622] border-t-transparent" />
-          <p className="text-gray-500">Carregando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingView />;
   }
 
   if (view === "no-store") {

@@ -10,6 +10,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { productDetailFormSchema, type ProductDetailFormData } from "./schema";
 import type { Store } from "@/services/store";
+import { LoadingView } from "@/views/LoadingView";
 
 export function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
@@ -58,14 +59,7 @@ export function ProductDetailPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
-        <div className="text-center">
-          <div className="mx-auto mb-4 size-12 animate-spin rounded-full border-4 border-[#FF7622] border-t-transparent" />
-          <p className="text-gray-500">Carregando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingView />;
   }
 
   if (!product) {
