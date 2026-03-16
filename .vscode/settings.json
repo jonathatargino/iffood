@@ -6,6 +6,6 @@
   },
   "editor.formatOnType": false,
   "eslint.validate": ["javascript", "typescript"],
-  "eslint.workingDirectories": ["./iffood-api", "./iffood-front"],
+  "eslint.workingDirectories": ["./iffood-front"],
   "editor.tabSize": 2
 }

@@ -31,6 +31,7 @@ export class OrderRequestMapper {
       storeName: order.store?.name,
       buyerUserId: order.buyer?.id,
       buyerName: order.buyer?.name,
+      buyerPhotoUrl: order.buyer?.photoUrl ?? null,
       items,
       total,
     };

@@ -9,6 +9,8 @@ interface OrderPendingListProps {
 export function OrderPendingList({ storeId }: OrderPendingListProps) {
   const { data: orders } = useOrdersByStore(storeId, true);
 
+  const hasPendingOrders = orders && orders.length > 0;
+
   if (!orders) {
     return (
       <div className="space-y-4">
@@ -23,7 +25,11 @@ export function OrderPendingList({ storeId }: OrderPendingListProps) {
     <div>
       <SectionHeader
         title="Pedidos pendentes"
-        description="Responda-os para subtrair automaticamente os produtos"
+        description={
+          hasPendingOrders
+            ? "Responda-os para subtrair automaticamente os produtos"
+            : "Nenhum pedido pendente"
+        }
       />
       <div className="flex flex-col gap-3">
         {orders.map((order, index) => (

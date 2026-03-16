@@ -48,6 +48,9 @@ export class OrderRequestResponseDto {
   @ApiProperty()
   buyerName: string;
 
+  @ApiProperty({ nullable: true })
+  buyerPhotoUrl: string | null;
+
   @ApiProperty({ type: [OrderRequestItemResponseDto] })
   items: OrderRequestItemResponseDto[];
 
