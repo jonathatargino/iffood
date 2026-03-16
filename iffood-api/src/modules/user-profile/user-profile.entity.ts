@@ -34,6 +34,9 @@ export class UserProfile {
   @Column({ name: 'user_auth_id' })
   userAuthId: string;
 
+  @Column({ name: 'photo_url', nullable: true })
+  photoUrl?: string;
+
   @OneToMany(() => StoreUser, (storeUser) => storeUser.userProfile, {
     cascade: true,
   })
