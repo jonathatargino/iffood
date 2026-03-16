@@ -37,6 +37,9 @@ export class UserProfile {
   @Column({ name: 'photo_url', nullable: true })
   photoUrl?: string;
 
+  @Column({ nullable: true })
+  whatsapp?: string;
+
   @OneToMany(() => StoreUser, (storeUser) => storeUser.userProfile, {
     cascade: true,
   })
