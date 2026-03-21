@@ -36,8 +36,24 @@ export class OrderRequestService {
     }
 
     return this.dataSource.transaction(async (em) => {
-      const optionIds = dto.items.map((i) => i.productOptionId);
+      const store = await em.findOne(Store, {
+        where: {
+          id: dto.storeId,
+        },
+        relations: {
+          storeAvailabilities: true,
+        },
+      });
 
+      if (!store) {
+        throw new NotFoundException('Store not found');
+      }
+
+      if (!store.isAvailableNow()) {
+        throw new ForbiddenException('Store is not available now');
+      }
+
+      const optionIds = dto.items.map((i) => i.productOptionId);
       const productOptions = await em
         .getRepository(ProductOption)
         .createQueryBuilder('po')
@@ -84,7 +100,6 @@ export class OrderRequestService {
         }
       }
 
-      const store = productOptions[0].product.store;
       const orderItems = dto.items.map((item) => {
         const option = optionMap.get(item.productOptionId)!;
         return OrderRequestItem.create({
