@@ -1,6 +1,7 @@
 import { AuthProvider } from "@/contexts/auth";
 import { AvailabilityProvider } from "@/contexts/availability";
 import { CartProvider } from "@/contexts/cart";
+import { OrderProvider } from "@/contexts/order";
 import { QueryProvider } from "@/contexts/query";
 import { appRoutes } from "@/pages";
 import { createBrowserRouter, RouterProvider } from "react-router";
@@ -11,15 +12,17 @@ const router = createBrowserRouter(appRoutes);
 export function AppProviders() {
   return (
     <>
-      <AuthProvider>
-        <QueryProvider>
+      <QueryProvider>
+        <AuthProvider>
           <CartProvider>
-            <AvailabilityProvider>
-              <RouterProvider router={router} />
-            </AvailabilityProvider>
+            <OrderProvider>
+              <AvailabilityProvider>
+                <RouterProvider router={router} />
+              </AvailabilityProvider>
+            </OrderProvider>
           </CartProvider>
-        </QueryProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </QueryProvider>
       <Toaster richColors position="top-center" />
     </>
   );

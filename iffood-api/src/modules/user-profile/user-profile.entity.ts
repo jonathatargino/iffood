@@ -27,10 +27,10 @@ export class UserProfile {
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date;
 
-  @Column()
+  @Column({ name: 'name' })
   private _name: string;
 
-  @Column()
+  @Column({ name: 'email' })
   private _email: string;
 
   @Column({ name: 'photo_url', nullable: true })

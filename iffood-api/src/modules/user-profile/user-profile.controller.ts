@@ -5,7 +5,7 @@ import { UserId } from '../../common/decorators/user-id';
 import { UpdateWhatsappRequestDto } from './dto/user-profile.request.dto';
 import { UserProfileBaseMapper } from './user-profile.mapper';
 
-@Controller('user')
+@Controller('user-profile')
 export class UserProfileController {
   constructor(
     readonly userProfileService: UserProfileService,

@@ -8,6 +8,7 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggingInterceptor } from './common/interceptors/logging-interceptor';
 import { envSchema } from './config/schema';
 import { GeneralExceptionsFilter } from './common/filters/general-exceptions.filter';
+import { UserProfileModule } from './modules/user-profile/user-profile.module';
 
 @Module({
   providers: [
@@ -48,6 +49,7 @@ import { GeneralExceptionsFilter } from './common/filters/general-exceptions.fil
     StoreModule,
     ProductsModule,
     OrderRequestModule,
+    UserProfileModule,
   ],
 })
 export class AppModule {}

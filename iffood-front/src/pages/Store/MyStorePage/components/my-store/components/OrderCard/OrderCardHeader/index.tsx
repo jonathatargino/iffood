@@ -31,8 +31,7 @@ export function OrderCardHeader({ order }: OrderCardHeaderProps) {
             ></div>
           </div>
           <div className="flex gap-2 text-xs text-gray-400">
-            {/* TODO: get customer whatsapp number */}
-            <span>+55 8598545-4176</span>
+            <span>{order.buyerWhatsapp}</span>
             {formattedDate}
           </div>
         </div>

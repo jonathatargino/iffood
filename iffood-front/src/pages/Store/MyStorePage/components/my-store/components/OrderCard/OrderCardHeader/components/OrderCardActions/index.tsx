@@ -30,7 +30,7 @@ export function OrderCardActions({ order }: OrderCardActionsProps) {
   return (
     <>
       <OrderCardActionsPopover>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 text-sm">
           <button
             className="flex h-6 items-center justify-center"
             onClick={handleViewOrderClick}

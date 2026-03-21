@@ -37,6 +37,7 @@ export interface OrderRequestResponse {
   buyerUserId: string;
   buyerName: string;
   buyerPhotoUrl: string;
+  buyerWhatsapp: string;
   items: OrderRequestItemResponse[];
   total: number;
 }

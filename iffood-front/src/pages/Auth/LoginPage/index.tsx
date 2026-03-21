@@ -2,22 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { GoogleIcon } from "./components/google-icon";
 import { BgAsset, BottomDecoration } from "./components/login-background";
-import { useAuth } from "@/contexts/auth/context";
 import { useNavigate } from "react-router";
+import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 
 export function LoginPage() {
-  const { signInWithGoogle } = useAuth();
   const navigate = useNavigate();
-
-  const handleGoogleLogin = async () => {
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   const handleGuestContinue = async () => {
     return await navigate("/");
@@ -42,20 +32,7 @@ export function LoginPage() {
 
         <Card className="w-full max-w-sm rounded-[32px] border-0 bg-white px-4 py-8 shadow-2xl">
           <CardContent className="space-y-5">
-            <Button
-              onClick={handleGoogleLogin}
-              variant="outline"
-              size="lg"
-              className={cn(
-                "w-full rounded-full border border-[#FF7622] bg-white py-6",
-                "text-sm text-[#FF7622] shadow-sm transition-all",
-                "hover:bg-orange-50 hover:shadow-md",
-                "active:scale-[0.98]",
-              )}
-            >
-              <GoogleIcon />
-              <span className="ml-1">Entrar com Google</span>
-            </Button>
+            <GoogleLoginButton />
 
             <div className="flex items-center gap-4 py-3">
               <Separator className="flex-1" />
