@@ -24,7 +24,7 @@ export function OrderCardActions({ order }: OrderCardActionsProps) {
   });
 
   function handleViewOrderClick() {
-    navigate(`/loja/minha-loja/pedidos/${order.id}/editar`);
+    navigate(`/loja/minha-loja/pedidos/editar/${order.id}`);
   }
 
   return (

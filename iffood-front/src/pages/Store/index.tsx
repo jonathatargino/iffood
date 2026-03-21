@@ -23,7 +23,7 @@ export const storeRoutes: RouteObject[] = [
             element: <MyStorePage />,
           },
           {
-            path: "pedidos/:orderId/editar",
+            path: "pedidos/editar/:orderId",
             element: <EditOrderRequestPage />,
           },
         ],

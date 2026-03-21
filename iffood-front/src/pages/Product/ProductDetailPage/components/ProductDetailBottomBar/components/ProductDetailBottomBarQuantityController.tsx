@@ -12,8 +12,6 @@ export function ProductDetailBottomBarQuantityController() {
   const canDecrease = quantity > 1;
   const canIncrease = quantity < productMaxQuantity;
 
-  console.log({ productMaxQuantity });
-
   return (
     <Controller
       name="quantity"
