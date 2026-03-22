@@ -103,11 +103,9 @@ export class ProductRepository {
       );
     }
 
-    queryBuilder.groupBy('product.id, productOption.id, store.id');
-
-    if (!filters.storeId) {
-      queryBuilder.having('COALESCE(SUM(productOption.quantity), 0) > 0');
-    }
+    queryBuilder
+      .groupBy('product.id, productOption.id, store.id')
+      .having('COALESCE(SUM(productOption.quantity), 0) > 0');
 
     // TODO: apply cursor pagination to infinite scroll
     queryBuilder

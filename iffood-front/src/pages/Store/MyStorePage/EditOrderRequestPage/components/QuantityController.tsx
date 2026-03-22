@@ -15,6 +15,8 @@ export function QuantityController({
   onRemove,
   allowRemove = false,
 }: OrderItemsEditQuantityControllerProps) {
+  console.log({ maxQuantity });
+
   return (
     <div className="flex h-10 w-fit items-center justify-center rounded-md bg-gray-100 p-2">
       {quantity === 1 && allowRemove ? (

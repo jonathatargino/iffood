@@ -44,6 +44,8 @@ export function OrderItemsEditSection({
     setCurrentQuantity(1);
   }
 
+  if (!products.length) return null;
+
   return (
     <div className="space-y-6 px-6 py-6">
       {/* Add item */}

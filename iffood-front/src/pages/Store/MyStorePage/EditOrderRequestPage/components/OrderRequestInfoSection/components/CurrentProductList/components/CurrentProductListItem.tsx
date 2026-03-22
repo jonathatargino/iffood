@@ -24,7 +24,7 @@ export function CurrentProductListItem({
   }
 
   const maxQuantity =
-    productOptionMaxQuantityMap.get(item.productOptionId) ?? 99;
+    productOptionMaxQuantityMap.get(item.productOptionId) ?? 0;
 
   return (
     <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
