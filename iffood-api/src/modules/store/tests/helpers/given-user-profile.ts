@@ -5,8 +5,8 @@ export async function givenUserProfile(dataSource: DataSource) {
   const repo = dataSource.getRepository(UserProfile);
 
   const user = repo.create({
-    name: 'John Doe',
-    email: 'johndoe@example.com',
+    _name: 'John Doe',
+    _email: 'johndoe@example.com',
     userAuthId: 'f436715f-7289-4ef6-9173-30449c96cb26',
   });
 

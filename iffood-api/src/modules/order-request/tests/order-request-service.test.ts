@@ -16,6 +16,7 @@ import { OutOfStockError } from '../domain/errors/out-of-stock.error';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InvalidOrderStatusTransitionError } from '../domain/errors/invalid-order-status-transition.error';
 import { ServiceCreateOrderDto } from '../dto/order-request.service.dto';
+import { StoreAvailability } from '../../store/store-availability/store-availability.entity';
 
 jest.setTimeout(60_000);
 
@@ -74,6 +75,14 @@ describe('OrderRequest Service', () => {
   });
 
   async function createStoreWithProduct(userProfile: any) {
+    const now = new Date();
+
+    const availability = StoreAvailability.create({
+      weekday: now.getDay(),
+      start: '00:00',
+      end: '23:59',
+    });
+
     const store = Store.create({
       name: 'Test Store',
       description: 'A test store',
@@ -93,6 +102,7 @@ describe('OrderRequest Service', () => {
           ],
         }),
       ],
+      availabilities: [availability],
     });
     store.status = true;
 
