@@ -26,15 +26,17 @@ export function OrderRequestInfoSection({
   return (
     <div>
       <SectionHeader title="Detalhes do pedido" />
-      <OrderCardHeader order={order} showActions={false} />
-      <CurrentProductList
-        items={items}
-        onQuantityChange={onQuantityChange}
-        onRemoveItem={onRemoveItem}
-        total={total}
-        productOptionMaxQuantityMap={productOptionMaxQuantityMap}
-        onClearItems={onClearItems}
-      />
+      <div className="flex flex-col gap-3 p-6">
+        <OrderCardHeader order={order} showActions={false} />
+        <CurrentProductList
+          items={items}
+          onQuantityChange={onQuantityChange}
+          onRemoveItem={onRemoveItem}
+          total={total}
+          productOptionMaxQuantityMap={productOptionMaxQuantityMap}
+          onClearItems={onClearItems}
+        />
+      </div>
     </div>
   );
 }

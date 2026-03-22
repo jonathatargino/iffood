@@ -44,23 +44,23 @@ export function OrderItemsEditSection({
     setCurrentQuantity(1);
   }
 
+  console.log({ selectedProduct });
+
   if (!products.length) return null;
 
   return (
     <div className="space-y-6 px-6 py-6">
-      {/* Add item */}
       <section>
         <h2 className="mb-3 text-sm font-semibold text-[#2e2e2e]">
           Adicionar item
         </h2>
         <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-          {/* Product */}
           <div>
             <label className="mb-1.5 block text-xs text-gray-500">
               Produto
             </label>
             <select
-              value={selectedProduct?.id}
+              value={selectedProduct?.id || ""}
               onChange={(e) => {
                 const product =
                   products.find((p) => p.id === e.target.value) ?? null;

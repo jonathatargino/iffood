@@ -20,7 +20,7 @@ export function CurrentProductList({
   onClearItems,
 }: CurrentProductListProps) {
   return (
-    <div className="space-y-6 px-6 py-6">
+    <div className="space-y-6">
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-[#2e2e2e]">

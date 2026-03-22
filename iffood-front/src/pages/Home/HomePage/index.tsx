@@ -5,6 +5,8 @@ import { storeService, type Store } from "@/services/store";
 import { useNavigate } from "react-router";
 import { formatCentsToReaisWithSymbol } from "@/utils/currency";
 import { useAuth } from "@/contexts/auth/context";
+import { useAvailability } from "@/contexts/availability/context";
+import NoStoresAvailable from "@/views/no-stores-available";
 
 interface ProductCardProps {
   product: Product;
@@ -117,6 +119,12 @@ export function HomePage() {
   const handleViewAllStores = () => {
     navigate("/restaurantes");
   };
+
+  const { isThereAvailableStore } = useAvailability();
+
+  if (!isThereAvailableStore) {
+    return <NoStoresAvailable />;
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
