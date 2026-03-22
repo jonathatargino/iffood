@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { AuthContext } from "./context";
 import type { Session } from "@supabase/supabase-js";
 import { supabaseClient } from "./supabase-client";
+import { useGetMe } from "@/hooks/useGetMe";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  const { data: userProfile } = useGetMe({ enabled: !!session });
 
   useEffect(() => {
     const initialize = async () => {
@@ -56,7 +59,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, isInitialized, signOut, signInWithGoogle }}
+      value={{
+        session,
+        isInitialized,
+        signOut,
+        signInWithGoogle,
+        userProfile: userProfile ?? null,
+      }}
     >
       {children}
     </AuthContext.Provider>

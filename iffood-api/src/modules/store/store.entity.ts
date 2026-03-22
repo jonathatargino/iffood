@@ -225,4 +225,14 @@ export class Store {
 
     return store;
   }
+
+  isAvailableNow(): boolean {
+    if (!this.storeAvailabilities) {
+      return false;
+    }
+
+    return (
+      this.status && this.storeAvailabilities.some((a) => a.isAvailableNow())
+    );
+  }
 }

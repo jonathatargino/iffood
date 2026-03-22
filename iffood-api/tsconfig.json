@@ -19,7 +19,8 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictPropertyInitialization": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "types": ["node", "multer", "jest"]
   },
   "exclude": ["node_modules", "dist", "ecosystem.config.js"]
 }

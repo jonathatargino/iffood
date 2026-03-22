@@ -87,4 +87,12 @@ export class StoreAvailability {
 
     return storeAvailability;
   }
+
+  isAvailableNow(): boolean {
+    const now = new Date();
+    const weekday = now.getDay();
+    const time = now.toTimeString().slice(0, 5);
+
+    return weekday === this.weekday && time >= this.start && time <= this.end;
+  }
 }

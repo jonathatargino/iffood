@@ -3,10 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { StoreModule } from './modules/store/store.module';
 import { ProductsModule } from './modules/product/product.module';
+import { OrderRequestModule } from './modules/order-request/order-request.module';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggingInterceptor } from './common/interceptors/logging-interceptor';
 import { envSchema } from './config/schema';
 import { GeneralExceptionsFilter } from './common/filters/general-exceptions.filter';
+import { UserProfileModule } from './modules/user-profile/user-profile.module';
 
 @Module({
   providers: [
@@ -46,6 +48,8 @@ import { GeneralExceptionsFilter } from './common/filters/general-exceptions.fil
     }),
     StoreModule,
     ProductsModule,
+    OrderRequestModule,
+    UserProfileModule,
   ],
 })
 export class AppModule {}
