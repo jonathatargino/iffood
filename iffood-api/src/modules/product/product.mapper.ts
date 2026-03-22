@@ -94,6 +94,9 @@ export class ProductMapper {
         store: {
           name: product.store.name,
         },
+        productOptions: product.productOptions.map((option) =>
+          this.productOptionMapper.toDto(option),
+        ),
       })),
       count: count,
     };

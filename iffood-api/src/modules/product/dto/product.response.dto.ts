@@ -41,6 +41,9 @@ class StoreNameDto {
 class ProductListItemResponseDto extends BaseProductResponseDto {
   @ApiProperty({ type: StoreNameDto })
   store: StoreNameDto;
+
+  @ApiProperty({ type: () => ProductOptionResponseDto, isArray: true })
+  productOptions: ProductOptionResponseDto[];
 }
 
 export class PaginatedProductListResponseDto {

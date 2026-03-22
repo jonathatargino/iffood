@@ -61,13 +61,17 @@ export class ProductRepository {
     const queryBuilder = this.typeormProductRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.productOptions', 'productOption')
-      .leftJoinAndSelect('product.store', 'store')
-      .where('store.status = :status', { status: true });
+      .leftJoinAndSelect('product.store', 'store');
+
+    console.log({ filters });
 
     if (filters.storeId) {
       queryBuilder.andWhere('product.store_id = :storeId', {
         storeId: filters.storeId,
       });
+    } else {
+      // Return unavaible products only if storeId is provided, otherwise filter them out
+      queryBuilder.andWhere('store.status = :status', { status: true });
     }
 
     if (filters.category) {
@@ -82,7 +86,7 @@ export class ProductRepository {
       });
     }
 
-    if (filters.weekday !== undefined && filters.hours) {
+    if (filters.weekday !== undefined && filters.hours && !filters.storeId) {
       queryBuilder.andWhere(
         `EXISTS (
           SELECT 1
@@ -99,9 +103,14 @@ export class ProductRepository {
       );
     }
 
+    queryBuilder.groupBy('product.id, productOption.id, store.id');
+
+    if (!filters.storeId) {
+      queryBuilder.having('COALESCE(SUM(productOption.quantity), 0) > 0');
+    }
+
+    // TODO: apply cursor pagination to infinite scroll
     queryBuilder
-      .groupBy('product.id, productOption.id, store.id')
-      .having('COALESCE(SUM(productOption.quantity), 0) > 0')
       .take(filters.pageSize)
       .skip((filters.page - 1) * filters.pageSize);
 
