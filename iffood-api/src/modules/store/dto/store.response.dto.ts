@@ -19,6 +19,9 @@ export class BaseStoreResponseDto {
 
   @ApiProperty()
   status: boolean;
+
+  @ApiProperty()
+  isAvailable: boolean;
 }
 
 export class StoreWithProductsResponseDto extends BaseStoreResponseDto {

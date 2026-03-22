@@ -15,6 +15,7 @@ export class StoreRepository {
       .createQueryBuilder('store')
       .leftJoin('store.products', 'product')
       .leftJoin('product.productOptions', 'productOption')
+      .leftJoinAndSelect('store.storeAvailabilities', 'store_availabilities')
       .where('store.status = :status', { status: true });
 
     if (filters.name) {
@@ -86,6 +87,7 @@ export class StoreRepository {
       where: { id: storeId },
       relations: {
         products: true,
+        storeAvailabilities: true,
       },
     });
   }
@@ -98,6 +100,9 @@ export class StoreRepository {
             id: userId,
           },
         },
+      },
+      relations: {
+        storeAvailabilities: true,
       },
     });
   }

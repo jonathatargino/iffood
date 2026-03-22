@@ -7,6 +7,7 @@ import { formatCentsToReaisWithSymbol } from "@/utils/currency";
 import { useAuth } from "@/contexts/auth/context";
 import { useAvailability } from "@/contexts/availability/context";
 import NoStoresAvailable from "@/views/no-stores-available";
+import { PageHeader } from "@/components/PageHeader";
 
 interface ProductCardProps {
   product: Product;
@@ -128,6 +129,7 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
+      <PageHeader text="IFCE Campus Maracanaú" hasBackButton={false} />
       {/* Header with gradient */}
       <div className="rounded-b-[32px] bg-gradient-to-br from-[#FF7622] to-[#E6661A] px-6 pt-14 pb-8 shadow-lg">
         {/* Top Header */}

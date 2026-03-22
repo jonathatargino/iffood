@@ -5,14 +5,22 @@ import { useUpdateStorePhoto } from "../../hooks/use-store-mutations";
 import { StoreHeader } from "./components/store-header";
 import { TabsContainer } from "./components/tabs";
 import { GeneralTab } from "./components/general-tab";
-import { AvailabilityTab } from "./components/availability-tab";
-import { ProductsTab } from "./components/products-tab";
+import { ProductsTab } from "./ProductsTab";
 import { OrdersTab } from "./components/orders-tab";
 import type { TabType } from "./types";
 import { useNavigate } from "react-router";
+import { PageHeader } from "@/components/PageHeader";
+import { AvailabilityTab } from "./components/AvailabilityTab";
 
 type MyStoreProps = {
   store: Store;
+};
+
+const tabLabels: Record<TabType, string> = {
+  general: "Geral",
+  availability: "Disponibilidade",
+  products: "Produtos",
+  orders: "Pedidos",
 };
 
 export function MyStore({ store }: MyStoreProps) {
@@ -30,6 +38,10 @@ export function MyStore({ store }: MyStoreProps) {
 
   return (
     <div className="min-h-screen bg-white pb-8">
+      <PageHeader
+        text={`Minha loja - ${tabLabels[activeTab]}`}
+        hideWhenNotScrolled
+      />
       <StoreHeader
         photoUrl={store.photoUrl}
         onBack={() => nagivate("/")}

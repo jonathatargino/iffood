@@ -13,7 +13,13 @@ export class OrderRequestRepository {
   async findByCartId(cartId: string): Promise<OrderRequest | null> {
     return this.typeormRepository.findOne({
       where: { cartId },
-      relations: { store: true, buyer: true, items: true },
+      relations: {
+        store: {
+          storeAvailabilities: true,
+        },
+        buyer: true,
+        items: true,
+      },
     });
   }
 
@@ -21,7 +27,9 @@ export class OrderRequestRepository {
     return this.typeormRepository.findOne({
       where: { id },
       relations: {
-        store: true,
+        store: {
+          storeAvailabilities: true,
+        },
         buyer: true,
         items: { product: true, productOption: true },
       },

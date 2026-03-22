@@ -226,6 +226,10 @@ export class Store {
     return store;
   }
 
+  get isAvailable(): boolean {
+    return this.isAvailableNow();
+  }
+
   isAvailableNow(): boolean {
     if (!this.storeAvailabilities) {
       return false;

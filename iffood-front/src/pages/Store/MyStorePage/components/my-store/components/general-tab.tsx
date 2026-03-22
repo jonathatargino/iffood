@@ -6,6 +6,8 @@ import {
   useDeleteStore,
 } from "../../../hooks/use-store-mutations";
 import { EditableStoreInfo } from "./editable-store-info";
+import { SectionHeader } from "@/components/SectionHeader";
+import { Edit, Edit2 } from "lucide-react";
 
 type GeneralTabProps = {
   store: Store;
@@ -32,7 +34,18 @@ export function GeneralTab({ store }: GeneralTabProps) {
 
   return (
     <>
-      <div className="space-y-6 px-6">
+      <SectionHeader
+        title="Informações da loja"
+        actions={
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className="mr-3 h-fit w-fit rounded-full bg-gradient-to-r from-[#FF7622] to-[#E6661A] p-2 text-white transition-all hover:shadow-xl active:scale-[0.98]"
+          >
+            <Edit className="size-4.5 text-white" />
+          </button>
+        }
+      />
+      <div className="mt-4 space-y-6 px-6">
         <EditableStoreInfo
           store={store}
           onSave={handleSaveGeneralInfo}
