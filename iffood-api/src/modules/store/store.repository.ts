@@ -42,7 +42,7 @@ export class StoreRepository {
     }
 
     queryBuilder
-      .groupBy('store.id')
+      .groupBy('store.id, store_availabilities.id')
       .having('COALESCE(SUM(productOption.quantity), 0) > 0')
       .take(filters.pageSize)
       .skip((filters.page - 1) * filters.pageSize);
