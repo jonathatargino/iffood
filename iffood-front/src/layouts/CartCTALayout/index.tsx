@@ -17,11 +17,11 @@ export function CartCTALayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-full">
-      <div className={`${isMainMobileMenuOmitted ? "pb-0" : "pb-[68px]"}`}>
+      <div className={`${isMainMobileMenuOmitted ? "pb-0" : "pb-[50px]"}`}>
         {children}
       </div>
       <div
-        className={`fixed ${isMainMobileMenuOmitted ? "bottom-0" : "bottom-[68px]"} w-full`}
+        className={`fixed ${isMainMobileMenuOmitted ? "bottom-0" : "bottom-[50px]"} w-full`}
       >
         <CartCTAMobile />
       </div>

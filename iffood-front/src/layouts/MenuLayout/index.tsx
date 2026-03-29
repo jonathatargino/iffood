@@ -10,8 +10,8 @@ export function MenuLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <div className="pb-[70px]">{children}</div>
-      <div className="fixed bottom-0 h-[70px] w-full">
+      <div className="pb-[50px]">{children}</div>
+      <div className="fixed bottom-0 h-[50px] w-full">
         <MobileMenu />
       </div>
     </div>

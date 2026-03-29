@@ -47,7 +47,7 @@ export function PageHeader({
         },
       )}
     >
-      <div>
+      <div className="h-6 w-6">
         {hasBackButton && (
           <button onClick={onBack}>
             <ChevronLeft className="h-6 w-6" strokeWidth={2.5} />
@@ -55,7 +55,9 @@ export function PageHeader({
         )}
       </div>
 
-      <p className="text-sm font-bold">{text}</p>
+      <p className="max-w-[60%] overflow-hidden text-sm font-bold text-ellipsis whitespace-nowrap">
+        {text}
+      </p>
 
       <div className={`${hasBackButton ? "min-w-6" : ""}`}>
         {actionsComponent && actionsComponent}
