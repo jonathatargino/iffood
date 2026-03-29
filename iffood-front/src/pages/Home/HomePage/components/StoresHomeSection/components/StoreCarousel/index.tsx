@@ -8,7 +8,7 @@ interface StoreCarouselProps {
 
 export function StoreCarousel({ stores, onClick }: StoreCarouselProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-6">
       {stores.slice(0, 4).map((store) => (
         <StoreCard
           key={store.id}
