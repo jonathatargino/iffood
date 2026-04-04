@@ -42,7 +42,7 @@ export function LoginPage() {
 
             <Button
               onClick={handleGuestContinue}
-              size="lg"
+              size="sm"
               className={cn(
                 "w-full rounded-full border-0 bg-linear-to-r from-[#FF7622] to-[#E6661A]",
                 "py-6 text-white transition-all",

@@ -4,11 +4,10 @@ import { PhotoUploadModal } from "@/components/photo-upload-modal";
 import { useUpdateStorePhoto } from "../../hooks/use-store-mutations";
 import { StoreHeader } from "./components/store-header";
 import { TabsContainer } from "./components/tabs";
-import { GeneralTab } from "./components/general-tab";
+import { GeneralTab } from "./components/GeneralTab";
 import { ProductsTab } from "./ProductsTab";
 import { OrdersTab } from "./components/orders-tab";
 import type { TabType } from "./types";
-import { useNavigate } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { AvailabilityTab } from "./components/AvailabilityTab";
 
@@ -26,7 +25,6 @@ const tabLabels: Record<TabType, string> = {
 export function MyStore({ store }: MyStoreProps) {
   const [activeTab, setActiveTab] = useState<TabType>("general");
   const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const nagivate = useNavigate();
 
   const updatePhotoMutation = useUpdateStorePhoto(store.id, () =>
     setShowPhotoModal(false),

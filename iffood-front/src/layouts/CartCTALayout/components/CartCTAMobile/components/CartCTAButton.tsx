@@ -31,7 +31,7 @@ export function CartCTAButton() {
 
   return (
     <Link to="/carrinho">
-      <Button className="flex-1 px-6 py-5">Ver carrinho</Button>
+      <Button className="px-6 py-5">Ver carrinho</Button>
     </Link>
   );
 }

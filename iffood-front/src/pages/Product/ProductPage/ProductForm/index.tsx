@@ -1,5 +1,5 @@
 import { FormProvider, useForm } from "react-hook-form";
-import type { ProductFormData } from "../schema";
+import { productFormSchema, type ProductFormData } from "../schema";
 import { ImageDropzoneInput } from "./components/ImageDropzoneInput";
 import { ProductFormInfoStep } from "./components/ProductFormInfoStep";
 import { ProductFormOptionsStep } from "./components/ProductFormOptionsStep";
@@ -7,6 +7,9 @@ import { ProductFormActions } from "./components/ProductFormActions";
 import type { Product } from "@/services/product";
 import { formatPriceInput } from "@/utils/currency";
 import { SectionHeader } from "@/components/SectionHeader";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 interface ProductFormProps {
   onSubmit: (data: ProductFormData) => void;
@@ -26,6 +29,7 @@ export function ProductForm({
   onDelete,
 }: ProductFormProps) {
   const form = useForm<ProductFormData>({
+    resolver: zodResolver(productFormSchema),
     defaultValues: product
       ? {
           name: product.name,
@@ -34,13 +38,38 @@ export function ProductForm({
           category: product.category as "sweet" | "savory",
           flavors: product.productOptions,
         }
-      : { flavors: [] },
+      : {
+          category: "savory",
+          flavors: [
+            {
+              id: "temp-id",
+              name: "",
+              quantity: 0,
+              status: "new",
+            },
+          ],
+        },
   });
 
   return (
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <SectionHeader title="Informações do produto" />
+        <SectionHeader
+          title="Informações do produto"
+          actions={
+            isEditing && (
+              <Button
+                type="button"
+                variant={"destructive"}
+                size={"icon"}
+                onClick={onDelete}
+                disabled={isDeleteLoading}
+              >
+                <Trash2 />
+              </Button>
+            )
+          }
+        />
 
         <div className="flex flex-col gap-4 px-6">
           <ImageDropzoneInput
@@ -54,12 +83,7 @@ export function ProductForm({
 
         <ProductFormOptionsStep />
 
-        <ProductFormActions
-          isDeleteLoading={isDeleteLoading}
-          isEditing={isEditing}
-          isLoading={isLoading}
-          setShowDeleteModal={onDelete}
-        />
+        <ProductFormActions isLoading={isLoading} />
       </form>
     </FormProvider>
   );

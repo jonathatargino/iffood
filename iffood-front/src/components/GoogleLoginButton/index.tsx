@@ -17,7 +17,7 @@ export function GoogleLoginButton() {
     <Button
       onClick={handleGoogleLogin}
       variant="outline"
-      size="lg"
+      size="sm"
       className={cn(
         "w-full rounded-full border border-[#FF7622] bg-white py-6",
         "text-sm text-[#FF7622] shadow-sm transition-all",

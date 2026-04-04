@@ -4,6 +4,7 @@ import { MAX_FLAVORS } from "../../../utils";
 import { Plus } from "lucide-react";
 import { ProductOptionFormCard } from "./components/ProductOptionFormCard";
 import { SectionHeader } from "@/components/SectionHeader";
+import { Button } from "@/components/ui/button";
 
 export function ProductFormOptionsStep() {
   const {
@@ -54,29 +55,25 @@ export function ProductFormOptionsStep() {
     }
   };
 
+  const handleQuantityChange = (index: number, newQuantity: number) => {
+    if (newQuantity < 0) return;
+    updateFlavorQuantity(index, newQuantity);
+  };
+
   return (
     <>
       <SectionHeader
-        title="Estoque total"
+        title="Sabores"
         description={`Total de unidades disponíveis: ${totalStock}`}
+        actions={
+          flavorsData.length < 10 && (
+            <Button type="button" onClick={addFlavor} size={"icon"}>
+              <Plus className="size-4" />
+            </Button>
+          )
+        }
       />
       <div className="px-6">
-        <div className="mb-4 flex items-center justify-between">
-          <label className="text-xs tracking-wider text-gray-400 uppercase">
-            Sabores
-          </label>
-          {flavorsData.length < 10 && (
-            <button
-              type="button"
-              onClick={addFlavor}
-              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm text-[#FF7622] transition-colors hover:bg-orange-50"
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar
-            </button>
-          )}
-        </div>
-
         <div className="space-y-3">
           {flavorsData.map((flavor, index) => (
             <>
@@ -84,17 +81,11 @@ export function ProductFormOptionsStep() {
                 <ProductOptionFormCard
                   key={flavor.id}
                   index={index}
-                  canDelete={flavorsData.length > 1}
-                  register={register}
-                  errors={errors}
                   quantity={flavor.quantity}
-                  onDecrease={() =>
-                    updateFlavorQuantity(index, flavor.quantity - 1)
-                  }
-                  onIncrease={() =>
-                    updateFlavorQuantity(index, flavor.quantity + 1)
-                  }
                   onDelete={() => deleteFlavor(index)}
+                  onQuantityChange={(newQuantity) =>
+                    handleQuantityChange(index, newQuantity)
+                  }
                 />
               )}
             </>

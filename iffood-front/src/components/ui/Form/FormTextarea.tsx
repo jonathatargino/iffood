@@ -1,25 +1,22 @@
-import type { HTMLInputTypeAttribute } from "react";
 import { Controller, type Control } from "react-hook-form";
-import { Input } from "../input";
 import { cn } from "@/lib/utils";
+import { Textarea } from "../textarea";
 
-interface FormInputProps {
+interface FormTextareaProps {
   label?: string;
   name: string;
   placeholder?: string;
-  type?: HTMLInputTypeAttribute;
   control: Control<any>;
   transformValue?: (value: any) => any;
 }
 
-export function FormInput({
+export function FormTextarea({
   label,
   name,
   placeholder,
-  type = "text",
   control,
   transformValue,
-}: FormInputProps) {
+}: FormTextareaProps) {
   return (
     <Controller
       name={name}
@@ -32,7 +29,7 @@ export function FormInput({
             </label>
           )}
           <div>
-            <Input
+            <Textarea
               {...field}
               onChange={(e) => {
                 const value = transformValue
@@ -40,7 +37,6 @@ export function FormInput({
                   : e.target.value;
                 field.onChange(value);
               }}
-              type={type}
               placeholder={placeholder}
               className={cn({ "border-red-500": error })}
             />

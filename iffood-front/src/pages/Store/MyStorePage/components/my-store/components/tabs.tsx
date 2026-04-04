@@ -26,10 +26,10 @@ export function Tab({
         onClick();
       }}
       ref={ref}
-      className={`rounded-full px-5 py-3 whitespace-nowrap transition-all ${
+      className={`rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-all ${
         active
           ? "bg-[#FF7622] text-white"
-          : "bg-white text-[#2e2e2e] hover:shadow-md"
+          : "border border-gray-100 bg-white text-[#2e2e2e]"
       }`}
     >
       {children}

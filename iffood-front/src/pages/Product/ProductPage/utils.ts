@@ -2,8 +2,8 @@ import { parsePriceInputToCents } from "@/utils/currency";
 import type { ProductFormData } from "./schema";
 
 export const PRODUCT_CATEGORIES = [
-  { id: "savory", name: "Salgado" },
-  { id: "sweet", name: "Doce" },
+  { value: "savory", label: "Salgado" },
+  { value: "sweet", label: "Doce" },
 ] as const;
 
 export const MAX_FLAVORS = 10;
