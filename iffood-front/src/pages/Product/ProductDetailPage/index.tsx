@@ -73,7 +73,7 @@ export function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-white pb-48">
-      <PageHeader hideWhenNotScrolled text={product.name} hasBackButton />
+      <PageHeader text={product.name} hasBackButton />
       <ProductImage product={product} />
 
       <div className="relative -mt-6 h-full rounded-t-lg bg-white">

@@ -2,9 +2,7 @@ import { useFormContext } from "react-hook-form";
 import type { ProductFormData } from "../../../schema";
 import { PRODUCT_CATEGORIES } from "../../../utils";
 import { formatPriceInput } from "@/utils/currency";
-import { FormInput } from "@/components/ui/Form/FormInput";
-import { FormTextarea } from "@/components/ui/Form/FormTextarea";
-import { FormSelect } from "@/components/ui/Form/FormSelect";
+import { FormInput, FormSelect, FormTextarea } from "@/components/Form";
 
 export function ProductFormInfoStep() {
   const { control } = useFormContext<ProductFormData>();

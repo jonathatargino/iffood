@@ -11,7 +11,7 @@ export function AvailabilityWeekDayRow({
   onChange,
 }: AvailabilityWeekDayRowProps) {
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-gray-100 bg-white p-4 transition-all">
       <div className="mb-3 flex items-center gap-4">
         <button
           onClick={() => onChange({ ...day, enabled: !day.enabled })}
@@ -23,7 +23,7 @@ export function AvailabilityWeekDayRow({
             <Check className="h-3 w-3 text-white" strokeWidth={3} />
           )}
         </button>
-        <span className="flex-1 text-[#2e2e2e]">{day.name}</span>
+        <span className="flex-1 text-sm text-[#2e2e2e]">{day.name}</span>
       </div>
 
       {day.enabled && (

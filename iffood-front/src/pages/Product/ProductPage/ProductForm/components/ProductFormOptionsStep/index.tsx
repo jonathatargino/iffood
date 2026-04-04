@@ -4,13 +4,12 @@ import { MAX_FLAVORS } from "../../../utils";
 import { Plus } from "lucide-react";
 import { ProductOptionFormCard } from "./components/ProductOptionFormCard";
 import { SectionHeader } from "@/components/SectionHeader";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 
 export function ProductFormOptionsStep() {
   const {
     control,
     watch,
-    register,
     formState: { errors },
   } = useFormContext<ProductFormData>();
 

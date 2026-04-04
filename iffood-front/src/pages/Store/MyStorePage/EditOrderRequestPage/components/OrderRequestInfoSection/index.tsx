@@ -1,5 +1,5 @@
 import { SectionHeader } from "@/components/SectionHeader";
-import { OrderCardHeader } from "../../../components/my-store/components/OrderCard/OrderCardHeader";
+import { OrderCardHeader } from "../../../components/my-store/components/OrderTab/components/OrderLists/components/OrderPendingList/components/OrderCard/OrderCardHeader";
 import type { OrderRequestResponse } from "@/services/order-request";
 import { CurrentProductList } from "./components/CurrentProductList";
 import type { EditOrderItem } from "../../types";

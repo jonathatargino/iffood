@@ -1,6 +1,6 @@
 import { WhatsappIcon } from "@/assets/whatsappIcon";
 import { BouncingDots } from "@/components/BoucingDots";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { useOrder } from "@/contexts/order/context";
 import { Link, useLocation } from "react-router";
 

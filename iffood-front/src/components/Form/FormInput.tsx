@@ -1,6 +1,6 @@
 import type { HTMLInputTypeAttribute } from "react";
 import { Controller, type Control } from "react-hook-form";
-import { Input } from "../input";
+import { Input } from "../Input";
 import { cn } from "@/lib/utils";
 
 interface FormInputProps {

@@ -1,3 +1,4 @@
+import { Button } from "@/components/Button";
 import type { WeekDay } from "../../../../types";
 import { AvailabilityWeekDayRow } from "./components/AvailabilityWeekDayRow";
 import { CenteredBouncingDots } from "@/components/CenteredBouncingDots";
@@ -36,13 +37,13 @@ export function AvailabilityList({
           />
         ))}
       </div>
-      <button
+      <Button
         onClick={onSaveAvailabilities}
         disabled={isUpdateLoading}
-        className="w-full rounded-full bg-gradient-to-r from-[#FF7622] to-[#E6661A] py-4 text-white uppercase shadow-lg transition-all hover:shadow-xl active:scale-[0.98] disabled:opacity-50"
+        className="w-full"
       >
         {isUpdateLoading ? "Salvando..." : "Salvar"}
-      </button>
+      </Button>
     </div>
   );
 }

@@ -8,7 +8,7 @@ import type { Product } from "@/services/product";
 import { formatPriceInput } from "@/utils/currency";
 import { SectionHeader } from "@/components/SectionHeader";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { Trash2 } from "lucide-react";
 
 interface ProductFormProps {

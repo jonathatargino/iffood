@@ -1,6 +1,6 @@
 import { SectionHeader } from "@/components/SectionHeader";
-import { useOrdersByStore } from "@/pages/Store/MyStorePage/hooks/use-order-queries";
-import { OrderCard } from "../../../OrderCard";
+import { useOrdersByStore } from "@/pages/Store/MyStorePage/hooks/useGetOrderByStore";
+import { OrderCard } from "./components/OrderCard";
 import { CenteredBouncingDots } from "@/components/CenteredBouncingDots";
 import { getOrderPendingListSectionDescription } from "./utils";
 

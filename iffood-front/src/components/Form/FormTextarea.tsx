@@ -1,6 +1,6 @@
 import { Controller, type Control } from "react-hook-form";
 import { cn } from "@/lib/utils";
-import { Textarea } from "../textarea";
+import { Textarea } from "../Textarea";
 
 interface FormTextareaProps {
   label?: string;

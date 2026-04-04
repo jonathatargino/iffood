@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
-import { ConfirmationModal } from "@/components/confirmation-modal";
+import { ConfirmationModal } from "@/components/ConfirmationModal";
 import { LoadingView } from "@/views/LoadingView";
 import { PageHeader } from "@/components/PageHeader";
 import { type ProductFormData } from "./schema";

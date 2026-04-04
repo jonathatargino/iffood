@@ -1,4 +1,4 @@
-import { FormInput } from "@/components/ui/Form/FormInput";
+import { FormInput } from "@/components/Form";
 import { QuantityController } from "@/pages/Store/MyStorePage/EditOrderRequestPage/components/QuantityController";
 import { useFormContext } from "react-hook-form";
 

@@ -1,8 +1,6 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
-import { BgAsset, BottomDecoration } from "./components/login-background";
+import { BgAsset, BottomDecoration } from "./components/LoginBackground";
 import { useNavigate } from "react-router";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 
@@ -30,30 +28,27 @@ export function LoginPage() {
           </p>
         </header>
 
-        <Card className="w-full max-w-sm rounded-[32px] border-0 bg-white px-4 py-8 shadow-2xl">
-          <CardContent className="space-y-5">
+        <div className="w-full max-w-sm rounded-[32px] border-0 bg-white px-4 py-8 shadow-2xl">
+          <div className="space-y-5 px-3">
             <GoogleLoginButton />
 
-            <div className="flex items-center gap-4 py-3">
-              <Separator className="flex-1" />
-              <span className="text-sm text-gray-400">ou</span>
-              <Separator className="flex-1" />
+            <div className="relative flex items-center py-3">
+              <hr className="w-full border-gray-300" />
+              <span className="absolute left-1/2 -translate-x-1/2 bg-white px-2 text-sm text-gray-400">
+                ou
+              </span>
             </div>
 
             <Button
               onClick={handleGuestContinue}
               size="sm"
-              className={cn(
-                "w-full rounded-full border-0 bg-linear-to-r from-[#FF7622] to-[#E6661A]",
-                "py-6 text-white transition-all",
-                "hover:shadow-lg active:scale-[0.98]",
-              )}
+              className={"w-full"}
             >
               Continuar como Visitante
             </Button>
-          </CardContent>
+          </div>
 
-          <p className="text-center text-xs leading-relaxed text-gray-400">
+          <p className="mt-4 text-center text-xs leading-relaxed text-gray-400">
             O login so é permitido para{" "}
             <span className="text-[#FF7622] hover:underline">
               alunos do Instituto Federal de Educação, Ciência e Tecnologia do
@@ -64,7 +59,7 @@ export function LoginPage() {
               email institucional.
             </span>{" "}
           </p>
-        </Card>
+        </div>
       </div>
     </div>
   );

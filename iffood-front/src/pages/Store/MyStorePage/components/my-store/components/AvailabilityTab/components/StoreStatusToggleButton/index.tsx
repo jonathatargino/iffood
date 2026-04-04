@@ -1,5 +1,5 @@
-import { ConfirmationModal } from "@/components/confirmation-modal";
-import { useUpdateStoreStatus } from "@/pages/Store/MyStorePage/hooks/use-store-mutations";
+import { ConfirmationModal } from "@/components/ConfirmationModal";
+import { useUpdateStoreStatus } from "@/pages/Store/MyStorePage/hooks/useStoreMutation";
 import type { Store } from "@/services/store";
 import { Check, X } from "lucide-react";
 import { useState } from "react";

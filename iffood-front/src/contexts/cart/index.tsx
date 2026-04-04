@@ -8,7 +8,7 @@ import {
 } from "react";
 import { CartContext } from "./context";
 import type { CartItem } from "./types";
-import { ConfirmationModal } from "@/components/confirmation-modal";
+import { ConfirmationModal } from "@/components/ConfirmationModal";
 import { loadCartFromLocalStorage, persistCartInLocalStorage } from "./utils";
 import { cartReducer } from "./reducer";
 import type { Store } from "@/services/store";

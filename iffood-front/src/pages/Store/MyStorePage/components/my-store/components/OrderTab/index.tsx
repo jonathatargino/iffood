@@ -1,4 +1,4 @@
-import { OrderPendingList } from "./OrderLists/components/OrderPendingList";
+import { OrderPendingList } from "./components/OrderLists/components/OrderPendingList";
 
 type OrdersTabProps = {
   storeId: string;

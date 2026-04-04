@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router";
-import { useStoreProducts } from "../../../hooks/use-store-queries";
+import { useStoreProducts } from "../../../hooks/useStoreQueries";
 import { ProductsList } from "./components/ProductList";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getProductsTabSectionDescription } from "./utils";
 import { Plus } from "lucide-react";
+import { Button } from "@/components/Button";
 
 type ProductsTabProps = {
   storeId: string;
@@ -34,12 +35,9 @@ export function ProductsTab({ storeId }: ProductsTabProps) {
         title="Meus produtos"
         description={sectionDescription}
         actions={
-          <button
-            onClick={handleCreateProduct}
-            className="mr-3 h-fit w-fit rounded-full bg-gradient-to-r from-[#FF7622] to-[#E6661A] p-1 text-white transition-all hover:shadow-xl active:scale-[0.98]"
-          >
-            <Plus className="size-6 text-white" />
-          </button>
+          <Button onClick={handleCreateProduct} size={"icon"}>
+            <Plus />
+          </Button>
         }
       />
       <div className="mt-4 px-6">

@@ -11,7 +11,7 @@ export function ProductCard({ product, onEdit }: ProductCardProps) {
   return (
     <div
       onClick={onEdit}
-      className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition-all hover:shadow-xl"
+      className="overflow-hidden rounded-3xl border border-gray-100 bg-white transition-all"
     >
       <div className="relative h-[110px] w-full overflow-hidden">
         <img

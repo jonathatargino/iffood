@@ -7,7 +7,7 @@ import { LoadingView } from "@/views/LoadingView";
 import { StoreProductSection } from "./components/StoreProductSection";
 import { PageHeader } from "@/components/PageHeader";
 import { StoreInfoSection } from "./components/StoreInfoSection";
-import { StoreHeader } from "../MyStorePage/components/my-store/components/store-header";
+import { StoreHeader } from "../MyStorePage/components/my-store/components/StoreHeader";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 export function StorePage() {
@@ -80,7 +80,7 @@ export function StorePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <PageHeader text={store.name} hasBackButton hideWhenNotScrolled />
+      <PageHeader text={store.name} hasBackButton />
       <StoreHeader photoUrl={store.photoUrl} />
 
       <div className="py-6">

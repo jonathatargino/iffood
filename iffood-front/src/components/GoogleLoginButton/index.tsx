@@ -1,6 +1,5 @@
-import { cn } from "@/lib/utils";
-import { Button } from "../ui/button";
-import { GoogleIcon } from "./components/google-icon";
+import { Button } from "../Button";
+import { GoogleIcon } from "./components/GoogleIcon";
 import { useAuth } from "@/contexts/auth/context";
 
 export function GoogleLoginButton() {
@@ -18,12 +17,7 @@ export function GoogleLoginButton() {
       onClick={handleGoogleLogin}
       variant="outline"
       size="sm"
-      className={cn(
-        "w-full rounded-full border border-[#FF7622] bg-white py-6",
-        "text-sm text-[#FF7622] shadow-sm transition-all",
-        "hover:bg-orange-50 hover:shadow-md",
-        "active:scale-[0.98]",
-      )}
+      className={"w-full"}
     >
       <GoogleIcon />
       <span className="ml-1">Entrar com Google</span>

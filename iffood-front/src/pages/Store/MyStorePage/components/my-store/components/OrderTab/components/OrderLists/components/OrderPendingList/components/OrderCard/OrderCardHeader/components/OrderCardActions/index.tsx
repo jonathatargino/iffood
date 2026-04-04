@@ -3,9 +3,9 @@ import { OrderCardActionsPopover } from "./components/OrderCardActionsPopover";
 import {
   useConcludeOrder,
   useRejectOrder,
-} from "@/pages/Store/MyStorePage/hooks/use-order-mutations";
+} from "@/pages/Store/MyStorePage/hooks/useOrderMutation";
 import { useNavigate } from "react-router";
-import { ConfirmationModal } from "@/components/confirmation-modal";
+import { ConfirmationModal } from "@/components/ConfirmationModal";
 import { useState } from "react";
 import { BouncingDots } from "@/components/BoucingDots";
 

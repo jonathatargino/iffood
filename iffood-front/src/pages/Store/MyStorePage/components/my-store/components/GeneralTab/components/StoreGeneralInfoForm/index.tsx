@@ -3,10 +3,9 @@ import { storeInfoSchema, type StoreInfoFormData } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formatWhatsApp } from "../../../utils";
 import type { Store, UpdateStoreData } from "@/services/store";
-import { FormInput } from "@/components/ui/Form/FormInput";
-import { FormTextarea } from "@/components/ui/Form/FormTextarea";
-import { Button } from "@/components/ui/button";
-import { useUpdateStore } from "@/pages/Store/MyStorePage/hooks/use-store-mutations";
+import { FormInput, FormTextarea } from "@/components/Form";
+import { Button } from "@/components/Button";
+import { useUpdateStore } from "@/pages/Store/MyStorePage/hooks/useStoreMutation";
 import { toStoreUpdateData } from "./utils";
 
 interface StoreGeneralInfoFormProps {

@@ -9,10 +9,10 @@ export function StoreResultCard({ store, onClick }: StoreResultCardProps) {
   return (
     <button
       onClick={onClick}
-      className="mb-3 w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all hover:shadow-lg active:scale-[0.98]"
+      className="mb-3 w-full overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all active:scale-[0.98]"
     >
       <div className="flex items-center gap-4 p-4">
-        <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl shadow-md">
+        <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl">
           <img
             src={store.photoUrl}
             alt={store.name}

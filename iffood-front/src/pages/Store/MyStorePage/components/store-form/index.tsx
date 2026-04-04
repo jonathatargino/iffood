@@ -1,25 +1,20 @@
-import { useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { useCreateStore } from "./use-create-store";
+import { useCreateStore } from "./useCreateStore";
 import { storeFormSchema, type StoreFormData } from "./schema";
-import { PhotoUploadField } from "./components/photo-upload-field";
-import { StoreInfoFields } from "./components/store-info-fields";
-import { FormHeader, InfoCard, SubmitButton } from "./components/form-sections";
+import { StoreInfoFields } from "./components/StoreInfoFields";
+import { PageHeader } from "@/components/PageHeader";
+import { ImageDropzoneInput } from "@/pages/Product/ProductPage/ProductForm/components/ImageDropzoneInput";
+import { Button } from "@/components/Button";
+import { toCreateStoreData } from "./utils";
 
 type StoreFormProps = {
-  onBack: () => void;
   onSave: () => void;
 };
 
-export function StoreForm({ onBack, onSave }: StoreFormProps) {
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<StoreFormData>({
+export function StoreForm({ onSave }: StoreFormProps) {
+  const form = useForm<StoreFormData>({
     resolver: zodResolver(storeFormSchema),
     mode: "onChange",
     reValidateMode: "onChange",
@@ -39,45 +34,31 @@ export function StoreForm({ onBack, onSave }: StoreFormProps) {
       toast.error("Erro ao criar loja", {
         description: "Não foi possível criar a loja. Tente novamente.",
       });
-    }
+    },
   );
 
-  const description = watch("description");
-
-  const handlePhotoSelect = (file: File) => {
-    setValue("photo", file, { shouldValidate: true });
-  };
-
   const onSubmit = (data: StoreFormData) => {
-    createStoreMutation.mutate({
-      name: data.name,
-      description: data.description,
-      whatsapp: data.whatsapp,
-      photo: data.photo,
-    });
+    createStoreMutation.mutate(toCreateStoreData(data));
   };
 
   return (
-    <div className="bg-[#fafafa] min-h-screen pb-8">
-      <FormHeader onBack={onBack} />
+    <div className="min-h-screen bg-white pb-8">
+      <PageHeader text="Criar Loja" />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-6 space-y-6">
-        <PhotoUploadField
-          error={errors.photo}
-          onPhotoSelect={handlePhotoSelect}
-        />
-
-        <StoreInfoFields
-          register={register}
-          setValue={setValue}
-          errors={errors}
-          descriptionLength={description?.length || 0}
-        />
-
-        <InfoCard />
-
-        <SubmitButton isSubmitting={createStoreMutation.isPending} />
-      </form>
+      <FormProvider {...form}>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-6 px-6 py-6"
+        >
+          <ImageDropzoneInput
+            control={form.control}
+            label="Imagem da Loja"
+            name="photo"
+          />
+          <StoreInfoFields />
+          <Button className="w-full">Criar Loja</Button>
+        </form>
+      </FormProvider>
     </div>
   );
 }

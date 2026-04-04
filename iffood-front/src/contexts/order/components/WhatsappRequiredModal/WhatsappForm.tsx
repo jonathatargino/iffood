@@ -1,9 +1,9 @@
-import { FormInput } from "@/components/ui/Form/FormInput";
+import { FormInput } from "@/components/Form";
 import { FormProvider, useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { userProfileService } from "@/services/userProfile";
+import { userProfileService } from "@/services/user-profile";
 import { toast } from "sonner";
-import { formatWhatsApp } from "@/pages/Store/MyStorePage/components/store-form/components/utils";
+import { formatWhatsApp } from "@/pages/Store/MyStorePage/components/my-store/components/utils";
 
 interface WhatsappFormProps {
   onCancel: () => void;

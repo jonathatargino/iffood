@@ -1,14 +1,14 @@
 import { useCart } from "@/contexts/cart/context";
 import { StoreInfoWidget } from "./components/StoreInfoWidget";
 import { CartItemList } from "./components/CartItemList";
-import { EmptyCartView } from "./views/EmptyCartView";
 import { PageHeader } from "@/components/PageHeader";
+import { Navigate } from "react-router";
 
 export function CartPage() {
   const { state } = useCart();
 
   if (state.items.length === 0) {
-    return <EmptyCartView />;
+    return <Navigate to="/" />;
   }
 
   return (

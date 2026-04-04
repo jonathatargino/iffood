@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { storeService } from "@/services/store";
 import { NoStore } from "./components/no-store";
 import { StoreForm } from "./components/store-form";
-import { MyStore } from "./components/my-store";
 import { LoadingView } from "@/views/LoadingView";
 
 export function MyStorePage() {
@@ -47,7 +46,6 @@ export function MyStorePage() {
   if (view === "create-store") {
     return (
       <StoreForm
-        onBack={() => setView("no-store")}
         onSave={async () => {
           await refetch();
           setView("my-store");
@@ -56,7 +54,12 @@ export function MyStorePage() {
     );
   }
 
-  return <MyStore store={stores?.[0]!} />;
+  return (
+    <NoStore
+      onBack={() => window.history.back()}
+      onCreateStore={() => setView("create-store")}
+    />
+  );
 }
 
 export default MyStorePage;

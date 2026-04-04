@@ -1,10 +1,10 @@
 import { useState } from "react";
 import type { Store } from "@/services/store";
-import { ConfirmationModal } from "@/components/confirmation-modal";
-import { useDeleteStore } from "../../../../hooks/use-store-mutations";
+import { ConfirmationModal } from "@/components/ConfirmationModal";
+import { useDeleteStore } from "../../../../hooks/useStoreMutation";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Edit, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { StoreGeneralInfoForm } from "./components/StoreGeneralInfoForm";
 import { StoreGeneralInfo } from "./components/StoreGeneralInfo";
 
