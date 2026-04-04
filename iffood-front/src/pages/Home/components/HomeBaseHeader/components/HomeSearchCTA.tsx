@@ -11,7 +11,7 @@ export function HomeSearchCTA() {
   return (
     <button
       onClick={handleSearchClick}
-      className="flex w-full items-center gap-3 rounded-2xl bg-white px-5 py-4 shadow-xl transition-shadow hover:shadow-2xl active:scale-[0.98]"
+      className="flex w-full items-center gap-3 rounded-lg bg-white px-5 py-4 shadow-xl transition-shadow hover:shadow-2xl active:scale-[0.98]"
     >
       <Search className="h-5 w-5 text-gray-400" />
       <span className="text-sm text-gray-400">

@@ -71,9 +71,6 @@ export function PhotoUploadModal({
 
       setPreview(imageUrl);
       setSelectedFile(file);
-      toast.success("Imagem selecionada", {
-        description: "Clique em salvar para atualizar a foto.",
-      });
     };
 
     img.onerror = () => {
@@ -105,43 +102,43 @@ export function PhotoUploadModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-t-3xl w-full max-w-md p-6 animate-in slide-in-from-bottom duration-300 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm">
+      <div className="animate-in slide-in-from-bottom max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-6 duration-300">
+        <div className="mb-4 flex items-center justify-between">
           <h3 className="text-xl font-semibold text-[#2e2e2e]">{title}</h3>
           <button
             onClick={handleClose}
-            className="size-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+            className="flex size-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200"
           >
-            <X className="w-4 h-4 text-gray-600" />
+            <X className="h-4 w-4 text-gray-600" />
           </button>
         </div>
 
         <div className="mb-6">
-          <div className="relative aspect-square bg-gray-50 rounded-2xl overflow-hidden border-2 border-dashed border-gray-200 hover:border-[#FF7622] transition-colors">
+          <div className="relative aspect-square overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 transition-colors hover:border-[#FF7622]">
             {selectedFile ? (
               <>
                 <img
                   src={preview}
                   alt="Preview"
-                  className="w-full h-full object-cover"
+                  className="h-full w-full object-cover"
                 />
                 <button
                   type="button"
                   onClick={handleRemovePreview}
-                  className="absolute top-3 right-3 size-8 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-colors shadow-lg"
+                  className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-full bg-red-600 shadow-lg transition-colors hover:bg-red-700"
                 >
-                  <X className="w-4 h-4 text-white" />
+                  <X className="h-4 w-4 text-white" />
                 </button>
               </>
             ) : null}
-            <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
+            <label className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center">
               {!selectedFile && (
                 <>
-                  <div className="size-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                    <Upload className="w-8 h-8 text-gray-400" />
+                  <div className="mb-3 flex size-16 items-center justify-center rounded-full bg-gray-100">
+                    <Upload className="h-8 w-8 text-gray-400" />
                   </div>
-                  <span className="text-sm text-gray-500 mb-1">
+                  <span className="mb-1 text-sm text-gray-500">
                     Clique para selecionar uma foto
                   </span>
                   <span className="text-xs text-gray-400">
@@ -162,18 +159,18 @@ export function PhotoUploadModal({
         <div className="flex gap-3">
           <button
             onClick={handleClose}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-[#2e2e2e] py-3 rounded-full transition-colors"
+            className="flex-1 rounded-full bg-gray-100 py-3 text-[#2e2e2e] transition-colors hover:bg-gray-200"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={!selectedFile || isLoading}
-            className="flex-1 bg-gradient-to-r from-[#FF7622] to-[#E6661A] text-white py-3 rounded-full transition-all shadow-lg hover:shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7622] to-[#E6661A] py-3 text-white shadow-lg transition-all hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading ? (
               <>
-                <div className="size-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="size-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 Salvando...
               </>
             ) : (

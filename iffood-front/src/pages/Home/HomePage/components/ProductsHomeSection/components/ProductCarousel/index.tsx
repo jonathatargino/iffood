@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { ProductCard } from "./components/ProductCard";
+import { ProductCard } from "../../../../../../../components/ProductCard";
 import type { Product } from "@/services/product";
 
 interface ProductCarouselProps {

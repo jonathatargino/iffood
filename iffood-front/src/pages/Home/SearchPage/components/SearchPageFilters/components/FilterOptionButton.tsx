@@ -17,12 +17,12 @@ export function FilterOptionButton({
     <button
       onClick={onClick}
       className={cn(
-        "flex-1 rounded-2xl bg-white py-3.5 text-[#2e2e2e] shadow-sm transition-all hover:shadow-md",
+        "flex-1 rounded-lg border border-gray-100 bg-white py-3.5 text-[#2e2e2e] transition-all",
         {
-          "bg-[#FF7622] text-white shadow-lg": isActive,
+          "border-0 bg-[#FF7622] text-white shadow-lg": isActive,
         },
         {
-          "rounded-xl py-2.5 text-sm": size === "small",
+          "py-2.5 text-sm": size === "small",
         },
       )}
     >

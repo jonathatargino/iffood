@@ -44,7 +44,6 @@ export function MyStore({ store }: MyStoreProps) {
       />
       <StoreHeader
         photoUrl={store.photoUrl}
-        onBack={() => nagivate("/")}
         onPhotoUpload={() => setShowPhotoModal(true)}
       />
 

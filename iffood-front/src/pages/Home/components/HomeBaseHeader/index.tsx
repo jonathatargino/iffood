@@ -10,7 +10,7 @@ export function HomeBaseHeader({ children }: HomeBaseHeaderProps) {
   const username = userProfile ? getFirstName(userProfile.name) : "Convidado";
 
   return (
-    <div className="flex flex-col gap-4 rounded-b-2xl bg-gradient-to-br from-[#FF7622] to-[#E6661A] px-6 pt-4 pb-4">
+    <div className="flex flex-col gap-4 rounded-b-lg bg-gradient-to-br from-[#FF7622] to-[#E6661A] px-6 pt-4 pb-4">
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <h1 className="text-md font-bold text-white">Olá, {username}! 👋</h1>

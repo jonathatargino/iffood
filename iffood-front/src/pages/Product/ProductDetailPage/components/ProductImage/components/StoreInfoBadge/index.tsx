@@ -11,9 +11,9 @@ export function StoreInfoBadge({
 }: StoreInfoBadgeProps) {
   return (
     <div
-      className={`pl-1 pr-3 py-1 rounded-full backdrop-blur-md bg-white/70 border border-white/20 shadow-lg p-6 flex items-center`}
+      className={`flex items-center rounded-full border bg-white p-6 py-1 pr-3 pl-1`}
     >
-      <img src={photoUrl} alt={name} className="w-10 h-10 rounded-full mr-2" />
+      <img src={photoUrl} alt={name} className="mr-2 h-10 w-10 rounded-full" />
       <div className="text-xs">
         <span className="font-bold">{name}</span>
         <br />

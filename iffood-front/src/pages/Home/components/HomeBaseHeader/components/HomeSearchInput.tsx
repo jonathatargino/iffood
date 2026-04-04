@@ -12,7 +12,7 @@ export function HomeSearchInput({
   setSearchQuery,
 }: HomeSearchInputProps) {
   return (
-    <div className="flex h-[52px] items-center gap-3 rounded-2xl bg-white px-5 py-4 shadow-xl">
+    <div className="flex h-[52px] items-center gap-3 rounded-lg bg-white px-5 py-4 shadow-xl">
       <Search className="h-5 w-5 flex-shrink-0 text-gray-400" />
       <input
         type="text"

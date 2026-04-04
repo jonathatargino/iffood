@@ -9,7 +9,7 @@ export function StoreCard({ store, onClick }: StoreCardProps) {
   return (
     <button
       onClick={onClick}
-      className="mb-4 w-full overflow-hidden rounded-3xl border border-gray-100 bg-white text-left shadow-sm transition-all hover:shadow-xl active:scale-[0.98]"
+      className="mb-4 w-full overflow-hidden rounded-lg border border-gray-100 bg-white text-left shadow-sm transition-all hover:shadow-xl active:scale-[0.98]"
     >
       <div className="relative h-[160px] overflow-hidden">
         <img

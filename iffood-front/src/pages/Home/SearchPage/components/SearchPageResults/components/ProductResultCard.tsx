@@ -1,3 +1,4 @@
+import { OutlinedCard } from "@/components/OutlinedCard";
 import type { Product } from "@/services/product";
 import { formatCentsToReaisWithSymbol } from "@/utils/currency";
 
@@ -11,11 +12,11 @@ export function ProductResultCard({
   onClick,
 }: ProductResultCardProps) {
   return (
-    <button
+    <OutlinedCard
       onClick={onClick}
-      className="mb-3 w-full overflow-hidden rounded-2xl border border-gray-100 bg-white text-left shadow-sm transition-all hover:shadow-lg active:scale-[0.98]"
+      className="mb-3 w-full overflow-hidden text-left transition-all active:scale-[0.98]"
     >
-      <div className="flex items-center gap-4 p-4">
+      <div className="flex items-center gap-4">
         <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl shadow-md">
           <img
             src={product.photoUrl}
@@ -33,6 +34,6 @@ export function ProductResultCard({
           </div>
         </div>
       </div>
-    </button>
+    </OutlinedCard>
   );
 }
