@@ -6,12 +6,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ReviewRatingInput } from "./ReviewRatingInput";
 import { LoadingButton } from "@/components/LoadingButton";
 import { useCreateReview } from "@/components/Guards/ReviewGuard/hooks/useCreateReview";
+import { toast } from "sonner";
+import { useNavigate } from "react-router";
 
 interface ReviewFormProps {
   reviewRequestId: string;
 }
 
 export function ReviewForm({ reviewRequestId }: ReviewFormProps) {
+  const navigate = useNavigate();
+
   const { control, handleSubmit } = useForm<ReviewFormData>({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
@@ -20,7 +24,15 @@ export function ReviewForm({ reviewRequestId }: ReviewFormProps) {
     },
   });
 
-  const createReviewMutation = useCreateReview();
+  const createReviewMutation = useCreateReview({
+    onSuccess: () => {
+      toast.success("Avaliação enviada com sucesso!");
+      navigate("/");
+    },
+    onError: () => {
+      toast.error("Erro ao enviar avaliação. Tente novamente.");
+    },
+  });
 
   function onSubmit(data: ReviewFormData) {
     createReviewMutation.mutate({ ...data, reviewRequestId });
