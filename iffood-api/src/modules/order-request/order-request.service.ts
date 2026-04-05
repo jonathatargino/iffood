@@ -18,12 +18,15 @@ import {
   ServiceUpdateOrderStatusDto,
   ServiceChangeAndConcludeDto,
 } from './dto/order-request.service.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventNames } from '../../events/event-names';
 
 @Injectable()
 export class OrderRequestService {
   constructor(
     private readonly orderRequestRepository: OrderRequestRepository,
     private readonly dataSource: DataSource,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createOrder(dto: ServiceCreateOrderDto) {
@@ -177,7 +180,9 @@ export class OrderRequestService {
       );
 
       order.conclude();
-      return em.save(OrderRequest, order);
+      const savedOrder = await em.save(OrderRequest, order);
+      this.eventEmitter.emit(EventNames.ORDER_REQUEST_ACCEPTED, savedOrder.id);
+      return savedOrder;
     });
   }
 
