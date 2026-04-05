@@ -4,6 +4,7 @@ import { storeService } from "@/services/store";
 import { NoStore } from "./components/no-store";
 import { StoreForm } from "./components/store-form";
 import { LoadingView } from "@/views/LoadingView";
+import { MyStore } from "./components/my-store";
 
 export function MyStorePage() {
   const [view, setView] = useState<
@@ -54,12 +55,7 @@ export function MyStorePage() {
     );
   }
 
-  return (
-    <NoStore
-      onBack={() => window.history.back()}
-      onCreateStore={() => setView("create-store")}
-    />
-  );
+  return <MyStore store={stores![0]} />;
 }
 
 export default MyStorePage;

@@ -54,6 +54,7 @@ export function ProductFormPage({ storeId, isEditing }: ProductFormProps) {
   const deleteProductMutation = useDeleteProduct({
     storeId,
     onSuccess: () => {
+      setShowDeleteModal(false);
       toast.success("Produto deletado com sucesso!");
       navigate("/loja/minha-loja");
     },
@@ -79,7 +80,6 @@ export function ProductFormPage({ storeId, isEditing }: ProductFormProps) {
 
   const handleDelete = () => {
     deleteProductMutation.mutate({ id: productId! });
-    setShowDeleteModal(false);
   };
 
   if (loadingProduct && isEditing) {
@@ -110,10 +110,12 @@ export function ProductFormPage({ storeId, isEditing }: ProductFormProps) {
       <ConfirmationModal
         isOpen={showDeleteModal}
         title="Deletar Produto"
+        variant="danger"
         message="Tem certeza que deseja deletar este produto? Esta ação não pode ser desfeita."
         confirmText="Deletar"
         cancelText="Cancelar"
         onConfirm={handleDelete}
+        isLoading={deleteProductMutation.isPending}
         onCancel={() => setShowDeleteModal(false)}
       />
     </div>

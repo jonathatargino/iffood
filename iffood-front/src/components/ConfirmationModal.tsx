@@ -1,4 +1,6 @@
 import { X } from "lucide-react";
+import { Button } from "./Button";
+import { LoadingButton } from "./LoadingButton";
 
 type ConfirmationModalProps = {
   isOpen: boolean;
@@ -29,37 +31,37 @@ export function ConfirmationModal({
     <div className="animate-in fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm">
       <div className="animate-in slide-in-from-bottom w-full max-w-md rounded-t-3xl bg-white p-6 duration-300">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-xl font-semibold text-[#2e2e2e]">{title}</h3>
-          <button
+          <h3 className="text-lg font-semibold text-[#2e2e2e]">{title}</h3>
+          <Button
+            size={"icon"}
             onClick={onCancel}
-            className="flex size-8 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200"
+            className="bg-gray-100 hover:bg-gray-200"
           >
-            <X className="h-4 w-4 text-gray-600" />
-          </button>
+            <X className="text-gray-600" />
+          </Button>
         </div>
 
-        <p className="mb-6 leading-relaxed text-gray-600">{message}</p>
+        <p className="mb-3 text-sm leading-relaxed text-gray-600">{message}</p>
 
         <div className="flex gap-3">
-          <button
+          <Button
             onClick={onCancel}
             disabled={isLoading}
-            className="flex-1 rounded-full bg-gray-100 py-3 text-[#2e2e2e] transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+            variant={"secondary"}
+            className="flex-1"
           >
             {cancelText}
-          </button>
-          <button
+          </Button>
+          <LoadingButton
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className={`flex-1 rounded-full py-3 text-white shadow-lg transition-all hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${
-              variant === "danger"
-                ? "bg-red-600 hover:bg-red-700"
-                : "bg-gradient-to-r from-[#FF7622] to-[#E6661A]"
-            }`}
+            variant={variant === "danger" ? "destructive" : "default"}
+            isLoading={isLoading}
+            className="flex-1"
           >
-            {isLoading ? "Processando..." : confirmText}
-          </button>
+            {confirmText}
+          </LoadingButton>
         </div>
       </div>
     </div>

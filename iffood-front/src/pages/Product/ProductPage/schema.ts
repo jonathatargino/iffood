@@ -10,7 +10,9 @@ export const flavorSchema = z.object({
 
 export const productFormSchema = z.object({
   name: z.string().min(1, "Nome do produto é obrigatório"),
-  description: z.string().min(1, "Descrição é obrigatória"),
+  description: z
+    .string()
+    .min(10, "Descrição deve ter pelo menos 10 caracteres"),
   price: z.string().min(1, "Preço é obrigatório"),
   category: z.enum(["sweet", "savory"]),
   image: z.file().optional(),

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { Store } from "@/services/store";
-import { PhotoUploadModal } from "@/components/PhotoUploadModal";
 import { useUpdateStorePhoto } from "../../hooks/useStoreMutation";
 import { TabsContainer } from "./components/Tabs";
 import { GeneralTab } from "./components/GeneralTab";
@@ -10,6 +9,7 @@ import type { TabType } from "./types";
 import { PageHeader } from "@/components/PageHeader";
 import { AvailabilityTab } from "./components/AvailabilityTab";
 import { StoreHeader } from "./components/StoreHeader";
+import { PhotoUploadModal } from "./components/PhotoUploadModal";
 
 type MyStoreProps = {
   store: Store;

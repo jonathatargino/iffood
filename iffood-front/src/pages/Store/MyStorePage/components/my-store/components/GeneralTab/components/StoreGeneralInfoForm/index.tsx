@@ -4,9 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { formatWhatsApp } from "../../../utils";
 import type { Store, UpdateStoreData } from "@/services/store";
 import { FormInput, FormTextarea } from "@/components/Form";
-import { Button } from "@/components/Button";
 import { useUpdateStore } from "@/pages/Store/MyStorePage/hooks/useStoreMutation";
 import { toStoreUpdateData } from "./utils";
+import { LoadingButton } from "@/components/LoadingButton";
 
 interface StoreGeneralInfoFormProps {
   store: Store;
@@ -43,14 +43,14 @@ export function StoreGeneralInfoForm({
         control={control}
         transformValue={formatWhatsApp}
       />
-      <Button
+      <LoadingButton
         size={"sm"}
         type="submit"
-        disabled={updateStoreMutation.isPending}
+        isLoading={updateStoreMutation.isPending}
         className="w-full"
       >
-        {updateStoreMutation.isPending ? "Salvando..." : "Salvar"}
-      </Button>
+        Salvar
+      </LoadingButton>
     </form>
   );
 }

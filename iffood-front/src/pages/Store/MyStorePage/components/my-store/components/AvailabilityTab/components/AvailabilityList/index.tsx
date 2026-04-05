@@ -2,6 +2,7 @@ import { Button } from "@/components/Button";
 import type { WeekDay } from "../../../../types";
 import { AvailabilityWeekDayRow } from "./components/AvailabilityWeekDayRow";
 import { CenteredBouncingDots } from "@/components/CenteredBouncingDots";
+import { LoadingButton } from "@/components/LoadingButton";
 
 type AvailabilityListProps = {
   weekDays: WeekDay[];
@@ -37,13 +38,13 @@ export function AvailabilityList({
           />
         ))}
       </div>
-      <Button
+      <LoadingButton
         onClick={onSaveAvailabilities}
-        disabled={isUpdateLoading}
+        isLoading={isUpdateLoading}
         className="w-full"
       >
-        {isUpdateLoading ? "Salvando..." : "Salvar"}
-      </Button>
+        Salvar
+      </LoadingButton>
     </div>
   );
 }

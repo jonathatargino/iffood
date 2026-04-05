@@ -1,4 +1,5 @@
 import { Button } from "@/components/Button";
+import { LoadingButton } from "@/components/LoadingButton";
 import { useNavigate } from "react-router";
 
 interface ProductFormActionsProps {
@@ -15,12 +16,13 @@ export function ProductFormActions({ isLoading }: ProductFormActionsProps) {
         variant={"secondary"}
         disabled={isLoading}
         onClick={() => navigate("/loja/minha-loja")}
+        className="flex-1"
       >
         Cancelar
       </Button>
-      <Button type="submit" disabled={isLoading}>
-        {isLoading ? "Salvando..." : "Salvar Produto"}
-      </Button>
+      <LoadingButton type="submit" isLoading={isLoading} className="flex-1">
+        Salvar Produto
+      </LoadingButton>
     </div>
   );
 }

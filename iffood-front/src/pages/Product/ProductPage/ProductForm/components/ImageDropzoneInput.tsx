@@ -13,7 +13,7 @@ import { toast } from "sonner";
 interface ImageDropzoneInputProps {
   name: string;
   control: Control<any>;
-  label: string;
+  label?: string;
   previewUrl?: string;
 }
 
@@ -88,9 +88,11 @@ export function ImageDropzoneInput({
       control={control}
       render={({ field: { value, onChange } }) => (
         <div>
-          <label className="mb-3 block text-xs tracking-wider text-gray-400 uppercase">
-            {label}
-          </label>
+          {label && (
+            <label className="mb-3 block text-xs tracking-wider text-gray-400 uppercase">
+              {label}
+            </label>
+          )}
           <div className="relative aspect-square overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 transition-colors hover:border-[#FF7622]">
             {value || preview ? (
               <>

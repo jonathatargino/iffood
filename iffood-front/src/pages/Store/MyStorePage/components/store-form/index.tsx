@@ -6,8 +6,8 @@ import { storeFormSchema, type StoreFormData } from "./schema";
 import { StoreInfoFields } from "./components/StoreInfoFields";
 import { PageHeader } from "@/components/PageHeader";
 import { ImageDropzoneInput } from "@/pages/Product/ProductPage/ProductForm/components/ImageDropzoneInput";
-import { Button } from "@/components/Button";
 import { toCreateStoreData } from "./utils";
+import { LoadingButton } from "@/components/LoadingButton";
 
 type StoreFormProps = {
   onSave: () => void;
@@ -56,7 +56,12 @@ export function StoreForm({ onSave }: StoreFormProps) {
             name="photo"
           />
           <StoreInfoFields />
-          <Button className="w-full">Criar Loja</Button>
+          <LoadingButton
+            className="w-full"
+            isLoading={createStoreMutation.isPending}
+          >
+            Criar Loja
+          </LoadingButton>
         </form>
       </FormProvider>
     </div>
