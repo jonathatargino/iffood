@@ -18,6 +18,7 @@ import { WhatsappNumber } from './domain/value-objects/whatsapp-number.vo';
 import { applyPatch } from '../../common/domain/apply-patch';
 import { DuplicatedAvailabilityWeekdayError } from './store-availability/domain/errors/duplicated-availability-weekday.error';
 import { OrderRequest } from '../order-request/order-request.entity';
+import { Review } from '../review/review.entity';
 
 type UpdateStoreDetailsInput = Partial<
   Pick<Store, 'photoUrl' | 'name' | 'description' | 'whatsapp' | 'status'>
@@ -246,15 +247,18 @@ export class Store {
     );
   }
 
-  get rating(): number {
+  get reviews(): Review[] {
     if (!this.orderRequests || this.orderRequests.length === 0) {
-      return 0;
+      return [];
     }
-    const reviews = this.orderRequests
+    return this.orderRequests
       .flatMap((orderRequest) => orderRequest.reviewRequests)
       .map((reviewRequest) => reviewRequest.review)
       .filter((review) => !!review);
+  }
 
+  get rating(): number {
+    const reviews = this.reviews;
     if (reviews.length === 0) {
       return 0;
     }

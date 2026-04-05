@@ -14,6 +14,7 @@ import { ReviewEventListener } from './review.event-listener';
 @Module({
   imports: [TypeOrmModule.forFeature([Review, ReviewRequest]), AuthModule],
   controllers: [ReviewController],
+  exports: [ReviewMapper],
   providers: [
     ReviewService,
     ReviewRepository,

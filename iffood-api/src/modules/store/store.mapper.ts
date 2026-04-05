@@ -5,10 +5,14 @@ import {
   StoreWithProductsResponseDto,
 } from './dto/store.response.dto';
 import { ProductBaseMapper } from '../product/product.base.mapper';
+import { ReviewMapper } from '../review/review.mapper';
 
 @Injectable()
 export class StoreMapper {
-  constructor(private productBaseMapper: ProductBaseMapper) {}
+  constructor(
+    private productBaseMapper: ProductBaseMapper,
+    private reviewMapper: ReviewMapper,
+  ) {}
 
   toDtoWithProducts(store: Store): StoreWithProductsResponseDto {
     return {
@@ -23,6 +27,7 @@ export class StoreMapper {
       ),
       isAvailable: store.isAvailable,
       rating: store.rating,
+      reviews: store.reviews.map((review) => this.reviewMapper.toDto(review)),
     };
   }
 

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { BaseProductResponseDto } from '../../product/dto/product.response.dto';
+import { ReviewResponseDto } from '../../review/dto/review.response.dto';
 
 export class BaseStoreResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -30,6 +31,9 @@ export class BaseStoreResponseDto {
 export class StoreWithProductsResponseDto extends BaseStoreResponseDto {
   @ApiProperty({ type: () => BaseProductResponseDto, isArray: true })
   products: BaseProductResponseDto[];
+
+  @ApiProperty({ type: () => ReviewResponseDto, isArray: true })
+  reviews: ReviewResponseDto[];
 }
 
 export class PaginatedStoresResponseDto {
