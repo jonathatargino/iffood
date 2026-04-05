@@ -26,8 +26,6 @@ export function EditOrderRequestPage() {
   const navigate = useNavigate();
   const [items, dispatch] = useReducer(editOrderReducer, []);
 
-  console.log({ items });
-
   const handleAddItem = useCallback(
     (item: EditItem) => {
       dispatch({

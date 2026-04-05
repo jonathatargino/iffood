@@ -10,6 +10,7 @@ export interface Store {
   createdAt: string;
   updatedAt: string;
   isAvailable: boolean;
+  rating: number;
 }
 
 export interface CreateStoreData {

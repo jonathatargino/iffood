@@ -17,9 +17,7 @@ export function ProductImage({ product }: ProductImageProps) {
       <div className="absolute bottom-12 left-6">
         <StoreInfoBadge
           // Todo: adjust types to ensure store is always present in this scenario
-          photoUrl={product.store?.photoUrl!}
-          name={product.store?.name!}
-          isStoreAvailable={product.store?.isAvailable!}
+          store={product.store!}
         />
       </div>
     </div>

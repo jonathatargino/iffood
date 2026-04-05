@@ -247,7 +247,6 @@ export class Store {
   }
 
   get rating(): number {
-    console.log(this.orderRequests);
     if (!this.orderRequests || this.orderRequests.length === 0) {
       return 0;
     }
@@ -255,8 +254,6 @@ export class Store {
       .flatMap((orderRequest) => orderRequest.reviewRequests)
       .map((reviewRequest) => reviewRequest.review)
       .filter((review) => !!review);
-
-    console.log(reviews);
 
     if (reviews.length === 0) {
       return 0;
