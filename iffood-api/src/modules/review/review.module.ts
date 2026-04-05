@@ -9,6 +9,7 @@ import { ReviewRequestRepository } from './review-request/review-request.reposit
 import { ReviewMapper } from './review.mapper';
 import { ReviewRequestMapper } from './review-request/review-request.mapper';
 import { AuthModule } from '../auth/auth.module';
+import { ReviewEventListener } from './review.event-listener';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Review, ReviewRequest]), AuthModule],
@@ -19,6 +20,7 @@ import { AuthModule } from '../auth/auth.module';
     ReviewRequestRepository,
     ReviewMapper,
     ReviewRequestMapper,
+    ReviewEventListener,
   ],
 })
 export class ReviewModule {}

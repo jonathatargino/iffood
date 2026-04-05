@@ -30,6 +30,15 @@ export class ReviewRequestResponseDto {
   @ApiProperty({ format: 'uuid' })
   orderRequestId: string;
 
+  @ApiProperty({ format: 'uuid', nullable: true })
+  storeId: string | null;
+
+  @ApiProperty({ nullable: true })
+  storeName: string | null;
+
+  @ApiProperty({ nullable: true })
+  storePhotoUrl: string | null;
+
   @ApiProperty()
   createdAt: Date;
 }

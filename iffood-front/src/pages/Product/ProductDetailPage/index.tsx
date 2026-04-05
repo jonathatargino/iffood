@@ -65,7 +65,7 @@ export function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <p className="text-gray-500">Produto não encontrado</p>
       </div>
     );
