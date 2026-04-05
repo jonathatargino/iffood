@@ -7,13 +7,13 @@ export interface ReviewGuardProps {
 }
 
 export function ReviewGuard({ children }: ReviewGuardProps) {
-  const { data: pendingReview, isLoading } = useGetPendingReview();
+  const { data: pendingReview, isLoading, isError } = useGetPendingReview();
 
   if (isLoading) {
     return <LoadingView />;
   }
 
-  if (pendingReview) {
+  if (pendingReview && !isError) {
     return <ReviewPage reviewRequest={pendingReview} />;
   }
 

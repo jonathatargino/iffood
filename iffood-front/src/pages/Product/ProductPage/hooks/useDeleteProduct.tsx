@@ -30,7 +30,7 @@ export const useDeleteProduct = ({
     mutationFn: (data: UseDeleteProductData) =>
       productService.deleteProduct(data.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["store-products", storeId] });
+      queryClient.refetchQueries({ queryKey: ["store-products", storeId] });
       onSuccess?.();
     },
     onError,

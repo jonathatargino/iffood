@@ -20,7 +20,7 @@ export function useCreateReview(params: UseCreateReviewParams = {}) {
     ...params,
     mutationFn: reviewService.createReview,
     onSuccess: (data, variables, result, context) => {
-      queryClient.invalidateQueries({ queryKey: ["pendingReview"] });
+      queryClient.refetchQueries({ queryKey: ["pendingReview"] });
       params.onSuccess?.(data, variables, result, context);
     },
   });
