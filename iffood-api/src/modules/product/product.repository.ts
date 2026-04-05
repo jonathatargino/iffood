@@ -63,8 +63,6 @@ export class ProductRepository {
       .leftJoinAndSelect('product.productOptions', 'productOption')
       .leftJoinAndSelect('product.store', 'store');
 
-    console.log({ filters });
-
     if (filters.storeId) {
       queryBuilder.andWhere('product.store_id = :storeId', {
         storeId: filters.storeId,

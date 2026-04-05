@@ -28,8 +28,6 @@ export function StoreGeneralInfoForm({
 
   const updateStoreMutation = useUpdateStore(store.id, onSuccess);
   const onSubmit = (data: UpdateStoreData) => {
-    console.log({ data });
-    console.log({ updateData: toStoreUpdateData(data) });
     updateStoreMutation.mutate(toStoreUpdateData(data));
   };
 
