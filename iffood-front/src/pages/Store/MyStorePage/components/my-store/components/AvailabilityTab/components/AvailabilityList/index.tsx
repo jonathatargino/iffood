@@ -1,4 +1,3 @@
-import { Button } from "@/components/Button";
 import type { WeekDay } from "../../../../types";
 import { AvailabilityWeekDayRow } from "./components/AvailabilityWeekDayRow";
 import { CenteredBouncingDots } from "@/components/CenteredBouncingDots";
