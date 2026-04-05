@@ -7,16 +7,19 @@ import { homeRoutes } from "./Home";
 import { MenuLayout } from "@/layouts/MenuLayout";
 import { CartCTALayout } from "@/layouts/CartCTALayout";
 import { NotFoundPage } from "./NotFoundPage";
+import { ReviewGuard } from "@/components/Guards/ReviewGuard";
 
 export const appRoutes: RouteObject[] = [
   ...authRoutes,
   {
     element: (
-      <MenuLayout>
-        <CartCTALayout>
-          <Outlet />
-        </CartCTALayout>
-      </MenuLayout>
+      <ReviewGuard>
+        <MenuLayout>
+          <CartCTALayout>
+            <Outlet />
+          </CartCTALayout>
+        </MenuLayout>
+      </ReviewGuard>
     ),
     children: [...homeRoutes, ...productRoutes, ...storeRoutes, ...cartRoutes],
   },

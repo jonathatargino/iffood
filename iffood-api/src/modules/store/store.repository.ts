@@ -16,6 +16,9 @@ export class StoreRepository {
       .leftJoin('store.products', 'product')
       .leftJoin('product.productOptions', 'productOption')
       .leftJoinAndSelect('store.storeAvailabilities', 'store_availabilities')
+      .leftJoinAndSelect('store.orderRequests', 'order_request')
+      .leftJoinAndSelect('order_request.reviewRequests', 'review_request')
+      .leftJoinAndSelect('review_request.review', 'review')
       .where('store.status = :status', { status: true });
 
     if (filters.name) {
@@ -42,7 +45,9 @@ export class StoreRepository {
     }
 
     queryBuilder
-      .groupBy('store.id, store_availabilities.id')
+      .groupBy(
+        'store.id, store_availabilities.id, "order_request".id, "review_request".id, review.id',
+      )
       .having('COALESCE(SUM(productOption.quantity), 0) > 0')
       .take(filters.pageSize)
       .skip((filters.page - 1) * filters.pageSize);
@@ -88,6 +93,11 @@ export class StoreRepository {
       relations: {
         products: true,
         storeAvailabilities: true,
+        orderRequests: {
+          reviewRequests: {
+            review: true,
+          },
+        },
       },
     });
   }
@@ -103,6 +113,11 @@ export class StoreRepository {
       },
       relations: {
         storeAvailabilities: true,
+        orderRequests: {
+          reviewRequests: {
+            review: true,
+          },
+        },
       },
     });
   }

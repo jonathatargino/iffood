@@ -1,9 +1,11 @@
 import { Module, ValidationPipe } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { StoreModule } from './modules/store/store.module';
 import { ProductsModule } from './modules/product/product.module';
 import { OrderRequestModule } from './modules/order-request/order-request.module';
+import { ReviewModule } from './modules/review/review.module';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggingInterceptor } from './common/interceptors/logging-interceptor';
 import { envSchema } from './config/schema';
@@ -46,9 +48,11 @@ import { UserProfileModule } from './modules/user-profile/user-profile.module';
         synchronize: false,
       }),
     }),
+    EventEmitterModule.forRoot(),
     StoreModule,
     ProductsModule,
     OrderRequestModule,
+    ReviewModule,
     UserProfileModule,
   ],
 })

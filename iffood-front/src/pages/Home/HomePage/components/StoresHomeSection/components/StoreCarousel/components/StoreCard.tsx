@@ -1,4 +1,5 @@
 import type { Store } from "@/services/store";
+import { Star } from "lucide-react";
 
 interface StoreCardProps {
   store: Store;
@@ -6,6 +7,8 @@ interface StoreCardProps {
 }
 
 export function StoreCard({ store, onClick }: StoreCardProps) {
+  const rating = store.rating ? store.rating.toFixed(1) : null;
+
   return (
     <button
       onClick={onClick}
@@ -24,6 +27,11 @@ export function StoreCard({ store, onClick }: StoreCardProps) {
             {store.description}
           </div>
         </div>
+        {rating !== null && (
+          <div className="absolute top-4 right-4 flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-sm font-medium text-gray-800">
+            {rating} <Star className="size-4 fill-yellow-400 stroke-0" />
+          </div>
+        )}
       </div>
     </button>
   );

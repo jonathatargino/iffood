@@ -11,7 +11,7 @@ export const useConcludeOrder = (storeId: string) => {
   return useMutation({
     mutationFn: (orderId: string) => orderRequestService.conclude(orderId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["store-orders", storeId] });
+      queryClient.refetchQueries({ queryKey: ["store-orders", storeId] });
       toast.success("Pedido concluído!");
     },
     onError: () => {
@@ -29,7 +29,7 @@ export const useRejectOrder = (
   return useMutation({
     mutationFn: (orderId: string) => orderRequestService.reject(orderId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["store-orders", storeId] });
+      queryClient.refetchQueries({ queryKey: ["store-orders", storeId] });
       toast.success("Pedido rejeitado");
       onFinish?.();
     },
@@ -52,7 +52,7 @@ export const useChangeAndConcludeOrder = (storeId: string) => {
       items: ChangeAndConcludeItem[];
     }) => orderRequestService.changeAndConclude(orderId, items),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["store-orders", storeId] });
+      queryClient.refetchQueries({ queryKey: ["store-orders", storeId] });
       toast.success("Pedido alterado e concluído!");
     },
     onError: () => {

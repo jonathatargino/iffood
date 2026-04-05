@@ -1,4 +1,6 @@
 import { api } from "@/lib/api";
+import type { Product } from "./product";
+import type { Review } from "@/models/review";
 
 export interface Store {
   id: string;
@@ -10,6 +12,9 @@ export interface Store {
   createdAt: string;
   updatedAt: string;
   isAvailable: boolean;
+  rating: number;
+  products?: Product[];
+  reviews?: Review[];
 }
 
 export interface CreateStoreData {
@@ -38,6 +43,11 @@ export interface BackendStoresResponse {
 }
 
 export const storeService = {
+  async getById(storeId: string): Promise<Store> {
+    const response = await api.get<Store>(`/store/${storeId}`);
+    return response.data;
+  },
+
   async getMyStore(): Promise<Store[]> {
     const response = await api.get<Store[]>("/store/me");
     return response.data;

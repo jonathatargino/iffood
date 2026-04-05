@@ -23,6 +23,10 @@ export class ProductRepository {
           .from('product_options', 'po')
           .where('po.product_id = :productId', { productId });
       }, 'accumulativeProductOptionsCount')
+      .leftJoinAndSelect('store.storeAvailabilities', 'store_availabilities')
+      .leftJoinAndSelect('store.orderRequests', 'order_request')
+      .leftJoinAndSelect('order_request.reviewRequests', 'review_request')
+      .leftJoinAndSelect('review_request.review', 'review')
       .where('product.id = :productId', { productId });
 
     const { entities, raw } = await qb.getRawAndEntities<{

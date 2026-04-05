@@ -69,6 +69,7 @@ export class ProductMapper {
         photoUrl: product.store.photoUrl,
         status: product.store.status,
         isAvailable: product.store.isAvailable,
+        rating: product.store.rating,
       },
       productOptions: product.productOptions.map((option) =>
         this.productOptionMapper.toDto(option),

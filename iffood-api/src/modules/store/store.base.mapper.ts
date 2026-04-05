@@ -15,6 +15,7 @@ export class StoreBaseMapper {
       photoUrl: store.photoUrl,
       status: store.status,
       isAvailable: store.isAvailable,
+      rating: store.rating,
     };
   }
 

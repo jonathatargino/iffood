@@ -14,6 +14,7 @@ export interface Store {
   photoUrl: string;
   status: boolean;
   isAvailable: boolean;
+  rating: number;
 }
 
 export interface Product {

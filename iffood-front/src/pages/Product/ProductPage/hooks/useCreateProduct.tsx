@@ -28,7 +28,7 @@ export function useCreateProduct({
     mutationFn: (data: UseCreateProductData) =>
       productService.createProduct(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["store-products", storeId] });
+      queryClient.refetchQueries({ queryKey: ["store-products", storeId] });
       onSuccess?.();
     },
     onError,

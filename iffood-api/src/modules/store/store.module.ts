@@ -11,6 +11,7 @@ import { AuthModule } from '../auth/auth.module';
 import { StoreMapper } from './store.mapper';
 import { ProductBaseMapper } from '../product/product.base.mapper';
 import { StoreBaseMapper } from './store.base.mapper';
+import { ReviewModule } from '../review/review.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { StoreBaseMapper } from './store.base.mapper';
     StoreAvailabilityModule,
     StoreUserModule,
     AuthModule,
+    ReviewModule,
   ],
   controllers: [StoreController],
   providers: [

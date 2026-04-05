@@ -42,8 +42,8 @@ export function useUpdateProduct({
     mutationFn: (data: UseUpdateProductData) =>
       productService.updateProduct(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["store-products", storeId] });
-      queryClient.invalidateQueries({ queryKey: ["product", productId] });
+      queryClient.refetchQueries({ queryKey: ["store-products", storeId] });
+      queryClient.refetchQueries({ queryKey: ["product", productId] });
       onSuccess?.();
     },
     onError,
