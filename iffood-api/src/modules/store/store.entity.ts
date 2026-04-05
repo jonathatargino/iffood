@@ -17,6 +17,7 @@ import { InvalidStoreNameError } from './domain/invalid-store-name.error';
 import { WhatsappNumber } from './domain/value-objects/whatsapp-number.vo';
 import { applyPatch } from '../../common/domain/apply-patch';
 import { DuplicatedAvailabilityWeekdayError } from './store-availability/domain/errors/duplicated-availability-weekday.error';
+import { OrderRequest } from '../order-request/order-request.entity';
 
 type UpdateStoreDetailsInput = Partial<
   Pick<Store, 'photoUrl' | 'name' | 'description' | 'whatsapp' | 'status'>
@@ -69,6 +70,11 @@ export class Store {
     },
   )
   storeAvailabilities: StoreAvailability[];
+
+  @OneToMany(() => OrderRequest, (orderRequest) => orderRequest.store, {
+    cascade: true,
+  })
+  orderRequests: OrderRequest[];
 
   get name(): string {
     return this._name;
@@ -238,5 +244,25 @@ export class Store {
     return (
       this.status && this.storeAvailabilities.some((a) => a.isAvailableNow())
     );
+  }
+
+  get rating(): number {
+    console.log(this.orderRequests);
+    if (!this.orderRequests || this.orderRequests.length === 0) {
+      return 0;
+    }
+    const reviews = this.orderRequests
+      .flatMap((orderRequest) => orderRequest.reviewRequests)
+      .map((reviewRequest) => reviewRequest.review)
+      .filter((review) => !!review);
+
+    console.log(reviews);
+
+    if (reviews.length === 0) {
+      return 0;
+    }
+
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    return totalRating / reviews.length;
   }
 }

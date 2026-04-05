@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { OrderRequest } from '../../order-request/order-request.entity';
 import { InvalidReviewRequestStatusTransitionError } from './domain/errors/invalid-review-request-status-transition.error';
+import { Review } from '../review.entity';
 
 export enum ReviewRequestStatus {
   Pending = 'PENDING',
@@ -41,6 +42,9 @@ export class ReviewRequest {
   @OneToOne(() => OrderRequest)
   @JoinColumn({ name: 'order_request_id' })
   orderRequest: OrderRequest;
+
+  @OneToOne(() => Review, (review) => review.reviewRequest)
+  review: Review;
 
   private assertPending(): void {
     if (this.status !== ReviewRequestStatus.Pending) {

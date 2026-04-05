@@ -22,6 +22,7 @@ export class StoreMapper {
         this.productBaseMapper.toDto(product),
       ),
       isAvailable: store.isAvailable,
+      rating: store.rating,
     };
   }
 
@@ -45,6 +46,7 @@ export class StoreMapper {
         photoUrl: store.photoUrl,
         status: store.status,
         isAvailable: store.isAvailable,
+        rating: store.rating,
       })),
       count,
     };

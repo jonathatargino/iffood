@@ -14,6 +14,7 @@ import { Store } from '../store/store.entity';
 import { UserProfile } from '../user-profile/user-profile.entity';
 import { OrderRequestItem } from './order-request-item/order-request-item.entity';
 import { InvalidOrderStatusTransitionError } from './domain/errors/invalid-order-status-transition.error';
+import { ReviewRequest } from '../review/review-request/review-request.entity';
 
 export enum OrderRequestStatus {
   Pending = 'PENDING',
@@ -62,6 +63,15 @@ export class OrderRequest {
     cascade: true,
   })
   items: OrderRequestItem[];
+
+  @OneToMany(
+    () => ReviewRequest,
+    (reviewRequest) => reviewRequest.orderRequest,
+    {
+      cascade: true,
+    },
+  )
+  reviewRequests: ReviewRequest[];
 
   private assertPending(): void {
     if (this.status !== OrderRequestStatus.Pending) {

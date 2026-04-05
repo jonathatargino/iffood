@@ -22,6 +22,9 @@ export class BaseStoreResponseDto {
 
   @ApiProperty()
   isAvailable: boolean;
+
+  @ApiProperty()
+  rating: number;
 }
 
 export class StoreWithProductsResponseDto extends BaseStoreResponseDto {
