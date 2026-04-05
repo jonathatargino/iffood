@@ -15,6 +15,7 @@ export class StoreRepository {
       .createQueryBuilder('store')
       .leftJoin('store.products', 'product')
       .leftJoin('product.productOptions', 'productOption')
+      .leftJoinAndSelect('store.storeAvailabilities', 'store_availabilities')
       .where('store.status = :status', { status: true });
 
     if (filters.name) {
@@ -41,7 +42,7 @@ export class StoreRepository {
     }
 
     queryBuilder
-      .groupBy('store.id')
+      .groupBy('store.id, store_availabilities.id')
       .having('COALESCE(SUM(productOption.quantity), 0) > 0')
       .take(filters.pageSize)
       .skip((filters.page - 1) * filters.pageSize);
@@ -86,6 +87,7 @@ export class StoreRepository {
       where: { id: storeId },
       relations: {
         products: true,
+        storeAvailabilities: true,
       },
     });
   }
@@ -98,6 +100,9 @@ export class StoreRepository {
             id: userId,
           },
         },
+      },
+      relations: {
+        storeAvailabilities: true,
       },
     });
   }

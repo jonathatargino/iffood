@@ -13,6 +13,7 @@ export interface Store {
   whatsapp: string;
   photoUrl: string;
   status: boolean;
+  isAvailable: boolean;
 }
 
 export interface Product {

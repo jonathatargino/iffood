@@ -1,6 +1,6 @@
 import { WhatsappIcon } from "@/assets/whatsappIcon";
 import { BouncingDots } from "@/components/BoucingDots";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { useOrder } from "@/contexts/order/context";
 import { Link, useLocation } from "react-router";
 
@@ -31,7 +31,7 @@ export function CartCTAButton() {
 
   return (
     <Link to="/carrinho">
-      <Button className="flex-1 px-6 py-5">Ver carrinho</Button>
+      <Button className="px-6 py-5">Ver carrinho</Button>
     </Link>
   );
 }

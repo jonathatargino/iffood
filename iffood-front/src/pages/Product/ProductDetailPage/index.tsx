@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { productDetailFormSchema, type ProductDetailFormData } from "./schema";
 import type { Store } from "@/services/store";
 import { LoadingView } from "@/views/LoadingView";
+import { PageHeader } from "@/components/PageHeader";
 
 export function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
@@ -72,9 +73,10 @@ export function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-white pb-48">
+      <PageHeader text={product.name} hasBackButton />
       <ProductImage product={product} />
 
-      <div className="relative -mt-6 h-full rounded-t-3xl bg-white">
+      <div className="relative -mt-6 h-full rounded-t-lg bg-white">
         <ProductInfoSection
           name={product.name}
           description={product.description}

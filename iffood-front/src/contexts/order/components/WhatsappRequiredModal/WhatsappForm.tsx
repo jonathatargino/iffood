@@ -1,9 +1,9 @@
-import { FormInput } from "@/components/ui/Form/FormInput";
+import { FormInput } from "@/components/Form";
 import { FormProvider, useForm } from "react-hook-form";
-import { formatPhone } from "./utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { userProfileService } from "@/services/userProfile";
+import { userProfileService } from "@/services/user-profile";
 import { toast } from "sonner";
+import { formatWhatsApp } from "@/pages/Store/MyStorePage/components/my-store/components/utils";
 
 interface WhatsappFormProps {
   onCancel: () => void;
@@ -12,10 +12,6 @@ interface WhatsappFormProps {
 export function WhatsappForm({ onCancel }: WhatsappFormProps) {
   const form = useForm<{ whatsapp: string }>();
   const queryClient = useQueryClient();
-
-  const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    form.setValue("whatsapp", formatPhone(e.target.value));
-  };
 
   const updateWhatsappMutation = useMutation({
     mutationFn: userProfileService.updateWhatsapp,
@@ -44,8 +40,8 @@ export function WhatsappForm({ onCancel }: WhatsappFormProps) {
           name="whatsapp"
           label="WhatsApp"
           placeholder="(85) 99999-9999"
-          type="text"
-          onChange={handleWhatsAppChange}
+          control={form.control}
+          transformValue={formatWhatsApp}
         />
         <div className="flex w-full items-center justify-between gap-4">
           <button

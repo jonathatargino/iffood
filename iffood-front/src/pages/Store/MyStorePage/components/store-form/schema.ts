@@ -6,7 +6,12 @@ export const storeFormSchema = z.object({
     .string()
     .min(10, "A descrição deve ter pelo menos 10 caracteres")
     .max(500, "A descrição deve ter no máximo 500 caracteres"),
-  whatsapp: z.string().regex(/^\d{11}$/, "WhatsApp deve ter 11 dígitos"),
+  whatsapp: z
+    .string()
+    .regex(
+      /^\(\d{2}\) 9\d{4}-\d{4}$/,
+      "WhatsApp deve ter 11 dígitos (DDD + número)",
+    ),
   photo: z
     .instanceof(File)
     .optional()

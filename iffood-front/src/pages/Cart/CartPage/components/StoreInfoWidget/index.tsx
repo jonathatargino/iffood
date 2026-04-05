@@ -9,7 +9,7 @@ export function StoreInfoWidget() {
   if (!store) return null;
 
   return (
-    <div className="flex items-center gap-2 px-6">
+    <div className="mt-4 flex items-center gap-2 px-6">
       <img
         src={store.photoUrl}
         alt={store.name}

@@ -68,6 +68,7 @@ export class ProductMapper {
         whatsapp: product.store.whatsapp,
         photoUrl: product.store.photoUrl,
         status: product.store.status,
+        isAvailable: product.store.isAvailable,
       },
       productOptions: product.productOptions.map((option) =>
         this.productOptionMapper.toDto(option),

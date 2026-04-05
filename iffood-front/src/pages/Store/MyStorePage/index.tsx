@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import { storeService } from "@/services/store";
 import { NoStore } from "./components/no-store";
 import { StoreForm } from "./components/store-form";
-import { MyStore } from "./components/my-store";
 import { LoadingView } from "@/views/LoadingView";
+import { MyStore } from "./components/my-store";
 
 export function MyStorePage() {
   const [view, setView] = useState<
@@ -47,7 +47,6 @@ export function MyStorePage() {
   if (view === "create-store") {
     return (
       <StoreForm
-        onBack={() => setView("no-store")}
         onSave={async () => {
           await refetch();
           setView("my-store");
@@ -56,7 +55,7 @@ export function MyStorePage() {
     );
   }
 
-  return <MyStore store={stores?.[0]!} />;
+  return <MyStore store={stores![0]} />;
 }
 
 export default MyStorePage;

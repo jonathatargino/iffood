@@ -1,5 +1,5 @@
 import type { UserProfile } from "@/models";
-import { userProfileService } from "@/services/userProfile";
+import { userProfileService } from "@/services/user-profile";
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 
 export function useGetMe(

@@ -21,6 +21,7 @@ export class StoreMapper {
       products: store.products.map((product) =>
         this.productBaseMapper.toDto(product),
       ),
+      isAvailable: store.isAvailable,
     };
   }
 
@@ -43,6 +44,7 @@ export class StoreMapper {
         whatsapp: store.whatsapp,
         photoUrl: store.photoUrl,
         status: store.status,
+        isAvailable: store.isAvailable,
       })),
       count,
     };

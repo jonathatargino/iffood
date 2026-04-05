@@ -1,59 +1,30 @@
-import { Store } from "lucide-react";
-import {
-  EmptyStateIcon,
-  FeaturesList,
-  CreateStoreButton,
-} from "./components/empty-state-content";
+import { FeaturesList } from "./components/FeaturesList";
+import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/Button";
 
 type NoStoreProps = {
   onBack: () => void;
   onCreateStore: () => void;
 };
 
-function BackButton({ onClick }: { onClick: () => void }) {
+export function NoStore({ onCreateStore }: NoStoreProps) {
   return (
-    <button
-      onClick={onClick}
-      className="size-11 bg-white rounded-2xl shadow-md flex items-center justify-center active:scale-95 transition-transform"
-    >
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24">
-        <path
-          d="M15 18l-6-6 6-6"
-          stroke="#2e2e2e"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-        />
-      </svg>
-    </button>
-  );
-}
+    <div className="min-h-screen bg-white">
+      <PageHeader text="Minha loja" />
 
-export function NoStore({ onBack, onCreateStore }: NoStoreProps) {
-  return (
-    <div className="bg-[#fafafa] min-h-screen">
-      <div className="bg-linear-to-br from-[#FF7622] to-[#E6661A] px-6 pt-14 pb-8 rounded-b-4xl shadow-lg">
-        <div className="flex items-center gap-4">
-          <BackButton onClick={onBack} />
-          <h1 className="text-white text-lg font-semibold">Minha Loja</h1>
-        </div>
-      </div>
-
-      <div className="px-6 py-12 flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-        <div className="text-center max-w-sm">
-          <EmptyStateIcon
-            icon={<Store className="w-16 h-16 text-[#FF7622]" />}
-          />
-
-          <h2 className="text-2xl font-bold text-[#2e2e2e] mb-4">
+      <div className="flex flex-col items-center justify-center px-6 py-12">
+        <div className="max-w-sm text-center">
+          <h2 className="mb-4 font-bold text-[#2e2e2e]">
             Você ainda não tem uma loja
           </h2>
-          <p className="text-gray-500 leading-relaxed mb-8">
+          <p className="mb-8 text-sm leading-relaxed text-gray-500">
             Crie sua loja agora e comece a vender seus produtos para os alunos
             da sua instituição e clientes em nossa plataforma.
           </p>
 
-          <CreateStoreButton onClick={onCreateStore} />
+          <Button className="w-full" onClick={onCreateStore}>
+            Criar Loja
+          </Button>
           <FeaturesList />
         </div>
       </div>

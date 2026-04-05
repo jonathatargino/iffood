@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { orderRequestService } from "@/services/order-request";
 import { productService } from "@/services/product";
-import { useChangeAndConcludeOrder } from "../hooks/use-order-mutations";
+import { useChangeAndConcludeOrder } from "../hooks/useOrderMutation";
 import { PageHeader } from "@/components/PageHeader";
 import { OrderRequestInfoSection } from "./components/OrderRequestInfoSection";
 import { OrderItemsEditSection } from "./components/OrderItemsEditSection";
@@ -25,6 +25,8 @@ export function EditOrderRequestPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const [items, dispatch] = useReducer(editOrderReducer, []);
+
+  console.log({ items });
 
   const handleAddItem = useCallback(
     (item: EditItem) => {

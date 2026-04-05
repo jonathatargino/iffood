@@ -1,24 +1,30 @@
 import { useState } from "react";
 import type { Store } from "@/services/store";
-import { PhotoUploadModal } from "@/components/photo-upload-modal";
-import { useUpdateStorePhoto } from "../../hooks/use-store-mutations";
-import { StoreHeader } from "./components/store-header";
-import { TabsContainer } from "./components/tabs";
-import { GeneralTab } from "./components/general-tab";
-import { AvailabilityTab } from "./components/availability-tab";
-import { ProductsTab } from "./components/products-tab";
-import { OrdersTab } from "./components/orders-tab";
+import { useUpdateStorePhoto } from "../../hooks/useStoreMutation";
+import { TabsContainer } from "./components/Tabs";
+import { GeneralTab } from "./components/GeneralTab";
+import { ProductsTab } from "./ProductsTab";
+import { OrdersTab } from "./components/OrderTab";
 import type { TabType } from "./types";
-import { useNavigate } from "react-router";
+import { PageHeader } from "@/components/PageHeader";
+import { AvailabilityTab } from "./components/AvailabilityTab";
+import { StoreHeader } from "./components/StoreHeader";
+import { PhotoUploadModal } from "./components/PhotoUploadModal";
 
 type MyStoreProps = {
   store: Store;
 };
 
+const tabLabels: Record<TabType, string> = {
+  general: "Geral",
+  availability: "Disponibilidade",
+  products: "Produtos",
+  orders: "Pedidos",
+};
+
 export function MyStore({ store }: MyStoreProps) {
   const [activeTab, setActiveTab] = useState<TabType>("general");
   const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const nagivate = useNavigate();
 
   const updatePhotoMutation = useUpdateStorePhoto(store.id, () =>
     setShowPhotoModal(false),
@@ -30,9 +36,12 @@ export function MyStore({ store }: MyStoreProps) {
 
   return (
     <div className="min-h-screen bg-white pb-8">
+      <PageHeader
+        text={`Minha loja - ${tabLabels[activeTab]}`}
+        hideWhenNotScrolled
+      />
       <StoreHeader
         photoUrl={store.photoUrl}
-        onBack={() => nagivate("/")}
         onPhotoUpload={() => setShowPhotoModal(true)}
       />
 

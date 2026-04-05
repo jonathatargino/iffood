@@ -9,6 +9,7 @@ export interface Store {
   status: boolean;
   createdAt: string;
   updatedAt: string;
+  isAvailable: boolean;
 }
 
 export interface CreateStoreData {

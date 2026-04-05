@@ -9,8 +9,12 @@ export const productRoutes: RouteObject[] = [
     path: "produto",
     children: [
       {
+        path: "novo",
+        element: <ProductPage isEditing={false} />,
+      },
+      {
         path: ":productId",
-        element: <ProductPage />,
+        element: <ProductPage isEditing={true} />,
       },
       {
         path: "detalhes/:productId",

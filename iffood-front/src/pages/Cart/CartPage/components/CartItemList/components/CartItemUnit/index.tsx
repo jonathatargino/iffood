@@ -23,7 +23,8 @@ export function CartItemUnit({ item }: CartItemProps) {
             {item.productOption.name}
           </div>
           <div className="text-sm font-medium text-[#FF7622]">
-            {formatCentsToReaisWithSymbol(item.product.value)}
+            {formatCentsToReaisWithSymbol(item.product.value)}{" "}
+            <span className="text-xs text-gray-300">/ unid.</span>
           </div>
         </div>
 

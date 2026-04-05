@@ -1,10 +1,14 @@
 import { useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { storeService } from "@/services/store";
-import { ProductForm } from ".";
 import { LoadingView } from "@/views/LoadingView";
+import { ProductFormPage } from ".";
 
-export function ProductPage() {
+interface ProductPageProps {
+  isEditing: boolean;
+}
+
+export function ProductPage({ isEditing }: ProductPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const storeId = location.state?.storeId;
@@ -27,7 +31,7 @@ export function ProductPage() {
     return null;
   }
 
-  return <ProductForm storeId={actualStoreId} />;
+  return <ProductFormPage storeId={actualStoreId} isEditing={isEditing} />;
 }
 
 export default ProductPage;

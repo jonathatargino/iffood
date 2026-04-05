@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { ChefHat } from "lucide-react";
 import { useNavigate } from "react-router";
 
