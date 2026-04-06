@@ -14,7 +14,10 @@ export class StoreMapper {
     private reviewMapper: ReviewMapper,
   ) {}
 
-  toDtoWithProducts(store: Store): StoreWithProductsResponseDto {
+  toDtoWithProducts(
+    store: Store,
+    reviewResume: string,
+  ): StoreWithProductsResponseDto {
     return {
       id: store.id,
       name: store.name,
@@ -28,11 +31,12 @@ export class StoreMapper {
       isAvailable: store.isAvailable,
       rating: store.rating,
       reviews: store.reviews.map((review) => this.reviewMapper.toDto(review)),
+      reviewResume,
     };
   }
 
   toListWithProductsDto(stores: Store[]): StoreWithProductsResponseDto[] {
-    return stores.map((store) => this.toDtoWithProducts(store));
+    return stores.map((store) => this.toDtoWithProducts(store, ''));
   }
 
   toPaginatedDto({

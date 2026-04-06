@@ -15,6 +15,7 @@ import { DataSource } from 'typeorm';
 import { StoreUser } from './store-user/store-user.entity';
 import { UserProfile } from '../user-profile/user-profile.entity';
 import { StoreAvailability } from './store-availability/store-availability.entity';
+import { ReviewResumeService } from '../review/review-resume/review-resume.service';
 
 @Injectable()
 export class StoreService {
@@ -22,6 +23,7 @@ export class StoreService {
     private readonly storeRepository: StoreRepository,
     private imageService: ImagesService,
     private readonly dataSource: DataSource,
+    private readonly reviewResumeService: ReviewResumeService,
   ) {}
 
   async findAll(filters: FindAllStoreFilters) {
@@ -46,12 +48,18 @@ export class StoreService {
     return { available: exists };
   }
 
-  async findById(storeId: string): Promise<Store> {
+  async findById(
+    storeId: string,
+  ): Promise<{ store: Store; reviewResume: string }> {
     const store = await this.storeRepository.findById(storeId);
     if (!store) {
       throw new NotFoundException();
     }
-    return store;
+
+    const reviewResume =
+      await this.reviewResumeService.getOrCreateForStore(store);
+
+    return { store, reviewResume };
   }
 
   async findByUserId(userId: string): Promise<Store[]> {

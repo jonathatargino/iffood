@@ -34,6 +34,9 @@ export class StoreWithProductsResponseDto extends BaseStoreResponseDto {
 
   @ApiProperty({ type: () => ReviewResponseDto, isArray: true })
   reviews: ReviewResponseDto[];
+
+  @ApiProperty()
+  reviewResume: string;
 }
 
 export class PaginatedStoresResponseDto {

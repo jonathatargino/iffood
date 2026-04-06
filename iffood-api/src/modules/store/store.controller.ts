@@ -97,9 +97,8 @@ export class StoreController {
   @ApiOkResponse({ type: StoreWithProductsResponseDto })
   @Get(':id')
   async findById(@Param('id', ParseUUIDPipe) storeId: string) {
-    return this.storeMapper.toDtoWithProducts(
-      await this.storeService.findById(storeId),
-    );
+    const { store, reviewResume } = await this.storeService.findById(storeId);
+    return this.storeMapper.toDtoWithProducts(store, reviewResume);
   }
 
   @ApiBearerAuth('access-token')
