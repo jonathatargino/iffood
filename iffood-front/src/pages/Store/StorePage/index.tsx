@@ -23,6 +23,7 @@ export function StorePage() {
 
   const products = store?.products || [];
   const reviews = store?.reviews || [];
+  const reviewResume = store?.reviewResume;
 
   if (loadingStore) {
     return <LoadingView />;
@@ -41,7 +42,7 @@ export function StorePage() {
         <StoreInfoSection store={store} />
 
         <StoreProductSection products={products} />
-        <StoreReviewsSection reviews={reviews} />
+        <StoreReviewsSection reviews={reviews} reviewResume={reviewResume} />
       </div>
     </div>
   );

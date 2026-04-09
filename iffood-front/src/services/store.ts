@@ -15,6 +15,7 @@ export interface Store {
   rating: number;
   products?: Product[];
   reviews?: Review[];
+  reviewResume?: string;
 }
 
 export interface CreateStoreData {

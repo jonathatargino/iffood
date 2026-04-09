@@ -5,7 +5,7 @@ import { GoogleGenAI } from '@google/genai';
 @Injectable()
 export class LlmService {
   private readonly client: GoogleGenAI;
-  private readonly defaultModel = 'gemini-2.0-flash';
+  private readonly defaultModel = 'gemini-2.5-flash-lite';
 
   constructor(private readonly configService: ConfigService) {
     this.client = new GoogleGenAI({
@@ -22,7 +22,10 @@ export class LlmService {
     return response.text ?? '';
   }
 
-  async generateJson<T = unknown>(const response    model: model    contents: prompt,
+  async generateJson<T = unknown>(prompt: string, model?: string): Promise<T> {
+    const response = await this.client.models.generateContent({
+      model: model ?? this.defaultModel,
+      contents: prompt,
       config: {
         responseMimeType: 'application/json',
       },

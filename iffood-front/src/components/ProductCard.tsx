@@ -19,7 +19,7 @@ export function ProductCard({
     <button
       onClick={onClick}
       className={cn(
-        "w-[170px] snap-start overflow-hidden rounded-lg border border-gray-100 bg-white text-left transition-all active:scale-[0.98]",
+        "w-[165px] min-w-[165px] snap-start overflow-hidden rounded-lg border border-gray-100 bg-white text-left transition-all active:scale-[0.98]",
         className,
       )}
     >
@@ -34,7 +34,9 @@ export function ProductCard({
         </div>
       </div>
       <div className="p-4">
-        <div className="mb-1 line-clamp-1 text-[#2e2e2e]">{product.name}</div>
+        <div className="mb-1 line-clamp-1 text-sm text-[#2e2e2e]">
+          {product.name}
+        </div>
         {!ommitedStoreName && (
           <div className="line-clamp-1 text-xs text-gray-400">
             {product.store?.name}
