@@ -13,4 +13,5 @@ export const envSchema = Joi.object({
   AWS_ACCESS_KEY_ID: Joi.string().required(),
   AWS_SECRET_ACCESS_KEY: Joi.string().required(),
   AWS_DEFAULT_REGION: Joi.string().required(),
+  REDIS_URL: Joi.string().uri().default('redis://localhost:6379'),
 });

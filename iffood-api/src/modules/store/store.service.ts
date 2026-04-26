@@ -15,6 +15,8 @@ import { DataSource } from 'typeorm';
 import { StoreUser } from './store-user/store-user.entity';
 import { UserProfile } from '../user-profile/user-profile.entity';
 import { StoreAvailability } from './store-availability/store-availability.entity';
+import { StoreCacheService } from './store-cache.service';
+import { StoreMapper } from './store.mapper';
 
 @Injectable()
 export class StoreService {
@@ -22,6 +24,8 @@ export class StoreService {
     private readonly storeRepository: StoreRepository,
     private imageService: ImagesService,
     private readonly dataSource: DataSource,
+    private readonly storeCacheService: StoreCacheService,
+    private readonly storeMapper: StoreMapper,
   ) {}
 
   async findAll(filters: FindAllStoreFilters) {
@@ -30,6 +34,34 @@ export class StoreService {
         filters,
       );
     return stores;
+  }
+
+  /**
+   * Versão com cache Redis do findAll.
+   * Retorna o DTO serializado diretamente para evitar dupla serialização.
+   *
+   * Fluxo:
+   *   1. Verifica o Redis pela chave derivada dos filtros
+   *   2. Cache HIT  → retorna resposta sem tocar o banco
+   *   3. Cache MISS → executa a query, serializa com StoreMapper, grava no Redis
+   */
+  async findAllCached(filters: FindAllStoreFilters) {
+    const key = this.storeCacheService.buildKey(filters);
+
+    const cached = await this.storeCacheService.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const result =
+      await this.storeRepository.findAllActiveWithPositiveProductOptions(
+        filters,
+      );
+
+    const dto = this.storeMapper.toPaginatedDto(result);
+    await this.storeCacheService.set(key, dto);
+
+    return dto;
   }
 
   async findThereIsAvailableStore({

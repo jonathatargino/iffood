@@ -33,6 +33,15 @@ export class ProductService {
     return product;
   }
 
+  async findByIdLean({ productId }: { productId: string }) {
+    const product = await this.productRepository.findByIdLean({ productId });
+    if (!product) {
+      throw new NotFoundException();
+    }
+
+    return product;
+  }
+
   async findAllWithTotalCountByStoreId({ storeId }: { storeId: string }) {
     return this.productRepository.findAllWithCounts({ storeId });
   }

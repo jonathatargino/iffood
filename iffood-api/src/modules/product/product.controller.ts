@@ -94,6 +94,14 @@ export class ProductController {
     );
   }
 
+  @ApiResponse({ type: ProductDetailsResponseDto })
+  @Get(':id/lean')
+  async findByIdLean(@Param('id', ParseUUIDPipe) productId: string) {
+    return this.productMapper.toDetailsDto(
+      await this.productService.findByIdLean({ productId }),
+    );
+  }
+
   @ApiBearerAuth('access-token')
   @ApiConsumes('multipart/form-data')
   @ApiOkResponse({ type: SingleProductWithBaseStoreResponseDto })

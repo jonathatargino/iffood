@@ -12,6 +12,7 @@ import { StoreMapper } from './store.mapper';
 import { ProductBaseMapper } from '../product/product.base.mapper';
 import { StoreBaseMapper } from './store.base.mapper';
 import { ReviewModule } from '../review/review.module';
+import { StoreCacheService } from './store-cache.service';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ReviewModule } from '../review/review.module';
     StoreMapper,
     StoreBaseMapper,
     ProductBaseMapper,
+    StoreCacheService,
   ],
   exports: [StoreAvailabilityModule, StoreUserModule],
 })

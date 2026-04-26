@@ -11,6 +11,7 @@ import { LoggingInterceptor } from './common/interceptors/logging-interceptor';
 import { envSchema } from './config/schema';
 import { GeneralExceptionsFilter } from './common/filters/general-exceptions.filter';
 import { UserProfileModule } from './modules/user-profile/user-profile.module';
+import { RedisModule } from './infra/redis/redis.module';
 
 @Module({
   providers: [
@@ -49,6 +50,7 @@ import { UserProfileModule } from './modules/user-profile/user-profile.module';
       }),
     }),
     EventEmitterModule.forRoot(),
+    RedisModule,
     StoreModule,
     ProductsModule,
     OrderRequestModule,

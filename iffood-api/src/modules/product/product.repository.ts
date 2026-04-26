@@ -135,6 +135,40 @@ export class ProductRepository {
     return true;
   }
 
+  /**
+   * Versão otimizada de findById para o Experimento 3B do TCC.
+   * Remove os JOINs de orderRequests, reviewRequests e reviews que são
+   * desnecessários para a resposta do endpoint de detalhe de produto.
+   */
+  async findByIdLean({ productId }: { productId: string }) {
+    const qb = this.typeormProductRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.productOptions', 'productOption')
+      .leftJoinAndSelect('product.store', 'store')
+      .addSelect((sub) => {
+        return sub
+          .select('COALESCE(SUM(po.quantity), 0)')
+          .from('product_options', 'po')
+          .where('po.product_id = :productId', { productId });
+      }, 'accumulativeProductOptionsCount')
+      .leftJoinAndSelect('store.storeAvailabilities', 'store_availabilities')
+      .where('product.id = :productId', { productId });
+
+    const { entities, raw } = await qb.getRawAndEntities<{
+      accumulativeProductOptionsCount: string;
+    }>();
+
+    const product = entities[0] ?? null;
+    if (!product) return null;
+
+    return {
+      product,
+      accumulativeProductOptionsCount: Number(
+        raw[0].accumulativeProductOptionsCount,
+      ),
+    };
+  }
+
   async findAllWithCounts(params: {
     storeId: string;
   }): Promise<{ total: number; products: ProductWithCounts[] }> {

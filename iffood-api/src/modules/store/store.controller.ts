@@ -67,6 +67,27 @@ export class StoreController {
     );
   }
 
+  /**
+   * Versão com cache Redis do GET /store.
+   * Retorna os mesmos dados que GET /store, mas serve resultados do Redis
+   * quando disponíveis (TTL: 30s), evitando a query pesada com 6 JOINs.
+   *
+   * Usado no Experimento 2B do TCC para comparação de desempenho.
+   */
+  @ApiOkResponse({ type: PaginatedStoresResponseDto })
+  @Get('cached')
+  async findAllCached(
+    @Query() { page, pageSize, hours, name, weekday }: FindAllStoresQueryDto,
+  ) {
+    return this.storeService.findAllCached({
+      name,
+      pageSize,
+      page,
+      weekday,
+      hours,
+    });
+  }
+
   @ApiBearerAuth('access-token')
   @ApiOkResponse({
     schema: {
