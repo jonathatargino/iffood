@@ -1,20 +1,26 @@
 /**
- * Experimento 1B — Lock Pessimista com ALTA CONTENÇÃO
+ * Cenário 1B — Concorrência e Lock Pessimista: ALTA CONTENÇÃO
  *
  * 100% dos VUs tentam criar pedidos para o MESMO productOptionId simultaneamente.
- * Isso força colisão no SELECT ... FOR UPDATE do PostgreSQL, serializando
+ * Isso força colisão máxima no SELECT ... FOR UPDATE do PostgreSQL, serializando
  * transações e revelando o custo real do lock pessimista em carga.
+ * Comparar com c1a para isolar o impacto da contenção.
  *
  * Variáveis de ambiente obrigatórias:
  *   K6_AUTH_TOKEN         — JWT do Supabase (ex: "Bearer eyJ...")
  *   K6_CONTENTION_TARGET  — JSON { storeId, productId, productOptionId }
  *
  * Opcional:
- *   K6_BASE_URL           — IP privado da EC2 (padrão: http://localhost:3006)
+ *   K6_BASE_URL — IP privado da EC2 (padrão: http://localhost:3006)
  *
  * Métrica customizada:
- *   db_lock_waits — contador de requisições que excedem 2 segundos de resposta,
- *   indicando espera por lock no banco de dados.
+ *   db_lock_waits — contador de requisições que excedem 2 segundos,
+ *   indicando espera por lock no PostgreSQL.
+ *
+ * Execução:
+ *   K6_AUTH_TOKEN="Bearer eyJ..." \
+ *   K6_CONTENTION_TARGET='{"storeId":"...","productId":"...","productOptionId":"..."}' \
+ *   k6 run load-tests/c1b-high-contention.js
  */
 
 import http from 'k6/http';

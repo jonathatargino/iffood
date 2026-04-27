@@ -1,22 +1,25 @@
 /**
- * Experimento 2B — Consulta de leitura COM cache Redis
+ * Cenário 2B — Leitura Intensiva COM Cache Redis
  * Endpoint: GET /store/cached
  *
- * Pré-condição: Redis deve estar disponível e acessível pela API.
- * TTL de cache: 30 segundos (configurado no StoreCacheService).
+ * Avalia o ganho da camada de cache Redis sobre a mesma query de c2a
+ * (JOINs + GROUP BY + getManyAndCount). O Redis armazena o resultado
+ * por 30 segundos (TTL configurado no StoreCacheService).
  *
- * Comparação direta com exp2 (sem cache):
- *   - Mesma estrutura de stages e thresholds para garantir comparação justa
- *   - A diferença de latência revela o ganho real da camada de cache
- *     sobre uma query com 6 JOINs + GROUP BY + getManyAndCount()
+ * Resultado esperado:
+ *   - Cache MISS (primeira requisição por chave) → latência similar ao c2a
+ *   - Cache HIT (requisições subsequentes) → latência próxima de 0ms de DB
+ *   - store_list_cached_latency P95 << store_list_latency P95 (c2a)
  *
- * Leitura esperada dos resultados:
- *   - Primeiras requisições de cada chave → MISS (latência similar ao exp2)
- *   - Requisições subsequentes dentro do TTL → HIT (latência próxima de 0ms de DB)
- *   - store_list_cached_latency P95 deve ser significativamente menor que store_list_latency P95
+ * Pré-condições:
+ *   - Redis acessível pela API
+ *   - Banco com ≥10.000 registros (mesmo requisito do c2a)
  *
  * Variável opcional:
  *   K6_BASE_URL — IP privado da EC2 (padrão: http://localhost:3006)
+ *
+ * Execução:
+ *   k6 run load-tests/c2b-with-cache.js
  */
 
 import http from 'k6/http';

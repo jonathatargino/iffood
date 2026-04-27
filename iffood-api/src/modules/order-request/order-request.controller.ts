@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -23,12 +24,14 @@ import {
   CreateOrderResponseDto,
   OrderRequestResponseDto,
 } from './dto/order-request.response.dto';
+import { SqsService } from '../../infra/sqs/sqs.service';
 
 @Controller('order-request')
 export class OrderRequestController {
   constructor(
     private readonly orderRequestService: OrderRequestService,
     private readonly orderRequestMapper: OrderRequestMapper,
+    private readonly sqsService: SqsService,
   ) {}
 
   @ApiBearerAuth('access-token')
@@ -50,6 +53,24 @@ export class OrderRequestController {
       result.order.id,
       result.whatsappUrl,
     );
+  }
+
+  @ApiBearerAuth('access-token')
+  @ApiResponse({ status: 202, description: 'Pedido enfileirado para processamento assíncrono' })
+  @Post('async')
+  @HttpCode(202)
+  @UseGuards(AuthGuard)
+  async createOrderAsync(
+    @Body() body: CreateOrderRequestDto,
+    @UserId() userId: string,
+  ) {
+    await this.sqsService.sendMessage({
+      cartId: body.cartId,
+      storeId: body.storeId,
+      items: body.items,
+      userId,
+    });
+    return { status: 'processing' };
   }
 
   @ApiBearerAuth('access-token')

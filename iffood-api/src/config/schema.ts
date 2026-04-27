@@ -14,4 +14,5 @@ export const envSchema = Joi.object({
   AWS_SECRET_ACCESS_KEY: Joi.string().required(),
   AWS_DEFAULT_REGION: Joi.string().required(),
   REDIS_URL: Joi.string().uri().default('redis://localhost:6379'),
+  SQS_QUEUE_URL: Joi.string().uri().default('http://localhost:4566/000000000000/order-requests'),
 });

@@ -1,18 +1,21 @@
 /**
- * Experimento 2 — Consulta de leitura sem cache (volume de dados)
+ * Cenário 2A — Leitura Intensiva SEM Cache
  * Endpoint: GET /store
  *
- * Objetivo: Avaliar o impacto de uma query com 6 JOINs, GROUP BY e
- * getManyAndCount() (2 queries por requisição) sem qualquer camada de cache.
+ * Avalia o impacto de consultas de leitura complexas (JOINs + GROUP BY +
+ * getManyAndCount) sem nenhuma camada de cache, com volume elevado de dados.
+ * Serve como linha de base para comparação com c2b (com cache Redis).
  *
- * Pré-condição: O banco deve ter ≥10.000 registros na tabela alvo.
- * A fase setup() verifica isso via endpoint de health/count antes de prosseguir.
+ * Pré-condição: banco com ≥10.000 registros para estressar o plano de query.
  *
  * Modelo de carga: Ramp-Up agressivo
  *   0 VUs → 25 → 75 → 150 → 200 → 0
  *
  * Variável opcional:
  *   K6_BASE_URL — IP privado da EC2 (padrão: http://localhost:3006)
+ *
+ * Execução:
+ *   k6 run load-tests/c2a-no-cache.js
  */
 
 import http from 'k6/http';

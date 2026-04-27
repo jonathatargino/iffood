@@ -1,18 +1,22 @@
 /**
- * Experimento 3B — Query otimizada: respeito de fronteiras de módulo
+ * Cenário 3B — Acoplamento de Dados: Query respeitando fronteiras de módulo (otimizada)
  * Endpoint: GET /product/:id/lean
  *
- * Esta versão usa o endpoint otimizado que remove JOINs entre módulos distintos:
+ * Versão otimizada que remove os JOINs que cruzam fronteiras de módulo:
  * orderRequests, reviewRequests e reviews foram eliminados da query.
  *
- * JOINs restantes (dentro do mesmo módulo de catálogo):
- *   product → productOptions → store → storeAvailabilities
+ * JOINs restantes (apenas dentro do módulo de catálogo):
+ *   product → productOptions → store → storeAvailabilities (4 JOINs, 1 módulo)
  *
- * Comparação direta com 3A para isolar o custo de acoplamento entre módulos.
- * Modelo de carga idêntico ao 3A para garantir comparação justa.
+ * Comparar diretamente com c3a para isolar o custo de acoplamento entre módulos.
+ * Modelo de carga idêntico ao c3a — não altere os stages sem replicar lá.
  *
- * Variável opcional:
- *   K6_BASE_URL — IP privado da EC2 (padrão: http://localhost:3006)
+ * Variáveis:
+ *   K6_BASE_URL    — IP privado da EC2 (padrão: http://localhost:3006)
+ *   K6_PRODUCT_IDS — JSON array de UUIDs de produtos válidos no banco
+ *
+ * Execução:
+ *   K6_PRODUCT_IDS='["uuid1","uuid2",...]' k6 run load-tests/c3b-decoupled-query.js
  */
 
 import http from 'k6/http';

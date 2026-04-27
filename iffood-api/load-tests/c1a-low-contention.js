@@ -1,15 +1,22 @@
 /**
- * Experimento 1A — Lock Pessimista com BAIXA CONTENÇÃO
+ * Cenário 1A — Concorrência e Lock Pessimista: BAIXA CONTENÇÃO
  *
- * Cada VU usa um cartId único e um storeId/productOptionId diferente.
- * Os locks do PostgreSQL (SELECT ... FOR UPDATE) não vão colidir entre VUs.
+ * Cada VU usa um productOptionId diferente — os locks do PostgreSQL
+ * (SELECT ... FOR UPDATE) não colidem entre si.
+ * Serve como linha de base para comparação com c1b (alta contenção).
  *
  * Variáveis de ambiente obrigatórias:
- *   K6_AUTH_TOKEN   — JWT do Supabase (ex: "Bearer eyJ...")
+ *   K6_AUTH_TOKEN    — JWT do Supabase (ex: "Bearer eyJ...")
  *   K6_ORDER_TARGETS — JSON array de { storeId, productId, productOptionId }
+ *                      (precisa de pelo menos tantos itens quanto VUs para evitar sobreposição)
  *
  * Opcional:
- *   K6_BASE_URL     — IP privado da EC2 (padrão: http://localhost:3006)
+ *   K6_BASE_URL — IP privado da EC2 (padrão: http://localhost:3006)
+ *
+ * Execução:
+ *   K6_AUTH_TOKEN="Bearer eyJ..." \
+ *   K6_ORDER_TARGETS='[{"storeId":"...","productId":"...","productOptionId":"..."},...]' \
+ *   k6 run load-tests/c1a-low-contention.js
  */
 
 import http from 'k6/http';

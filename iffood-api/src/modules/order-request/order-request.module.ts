@@ -7,9 +7,10 @@ import { OrderRequestRepository } from './order-request.repository';
 import { OrderRequestMapper } from './order-request.mapper';
 import { OrderRequestItemMapper } from './order-request-item/order-request-item.mapper';
 import { AuthModule } from '../auth/auth.module';
+import { SqsModule } from '../../infra/sqs/sqs.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OrderRequest]), AuthModule],
+  imports: [TypeOrmModule.forFeature([OrderRequest]), AuthModule, SqsModule],
   controllers: [OrderRequestController],
   providers: [
     OrderRequestService,
@@ -17,5 +18,6 @@ import { AuthModule } from '../auth/auth.module';
     OrderRequestMapper,
     OrderRequestItemMapper,
   ],
+  exports: [OrderRequestService],
 })
 export class OrderRequestModule {}

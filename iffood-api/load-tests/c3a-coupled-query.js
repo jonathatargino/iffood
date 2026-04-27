@@ -1,27 +1,29 @@
 /**
- * Experimento 3A — Query pesada atual: acoplamento entre módulos
+ * Cenário 3A — Acoplamento de Dados: Query com JOINs entre módulos (versão atual)
  * Endpoint: GET /product/:id
  *
- * Objetivo: Medir o custo de acoplamento do Monólito Modular ao executar uma
- * query que atravessa múltiplos domínios via JOINs:
+ * Mede o custo de acoplamento do Monólito Modular ao executar uma query que
+ * atravessa múltiplos domínios via JOINs:
  *
  *   product
  *     → productOptions       (módulo: catálogo)
  *     → store                (módulo: loja)
  *     → storeAvailabilities  (módulo: loja / disponibilidade)
- *     → orderRequests        (módulo: pedidos)
- *     → reviewRequests       (módulo: avaliações)
- *     → reviews              (módulo: avaliações)
+ *     → orderRequests        (módulo: pedidos)        ← cruza fronteira de módulo
+ *     → reviewRequests       (módulo: avaliações)     ← cruza fronteira de módulo
+ *     → reviews              (módulo: avaliações)     ← cruza fronteira de módulo
  *
- * São 6 JOINs cruzando pelo menos 3–4 domínios de negócio distintos.
- * Isso representa o custo real de acoplamento de dados num Monólito Modular
- * sem fronteiras de consulta respeitadas.
+ * 6 JOINs cruzando pelo menos 3 domínios de negócio distintos.
+ * Serve como linha de base para comparação com c3b (query desacoplada).
  *
- * Pré-condição: O banco deve ter ≥10.000 registros nas tabelas relacionadas.
- * A fase setup() verifica a presença dos produtos listados em PRODUCT_IDS.
+ * Pré-condição: banco com ≥10.000 registros nas tabelas relacionadas.
  *
- * Variável opcional:
- *   K6_BASE_URL — IP privado da EC2 (padrão: http://localhost:3006)
+ * Variáveis:
+ *   K6_BASE_URL    — IP privado da EC2 (padrão: http://localhost:3006)
+ *   K6_PRODUCT_IDS — JSON array de UUIDs de produtos válidos no banco
+ *
+ * Execução:
+ *   K6_PRODUCT_IDS='["uuid1","uuid2",...]' k6 run load-tests/c3a-coupled-query.js
  */
 
 import http from 'k6/http';
