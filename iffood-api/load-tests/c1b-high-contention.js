@@ -7,26 +7,25 @@
  * Comparar com c1a para isolar o impacto da contenção.
  *
  * Variáveis de ambiente obrigatórias:
- *   K6_AUTH_TOKEN         — JWT do Supabase (ex: "Bearer eyJ...")
+ *   K6_AUTH_TOKEN         — JWT do usuário de teste (ex: "Bearer eyJ...")
  *   K6_CONTENTION_TARGET  — JSON { storeId, productId, productOptionId }
  *
  * Opcional:
- *   K6_BASE_URL — IP privado da EC2 (padrão: http://localhost:3006)
+ *   K6_BASE_URL — URL da API (padrão: http://localhost:3006)
  *
- * Métrica customizada:
- *   db_lock_waits — contador de requisições que excedem 2 segundos,
- *   indicando espera por lock no PostgreSQL.
- *
- * Execução:
- *   K6_AUTH_TOKEN="Bearer eyJ..." \
- *   K6_CONTENTION_TARGET='{"storeId":"...","productId":"...","productOptionId":"..."}' \
- *   k6 run load-tests/c1b-high-contention.js
+ * Métricas customizadas:
+ *   order_high_contention_latency        — duração total (ms)
+ *   order_high_contention_processing_ms  — tempo isolado de processamento/DB
+ *                                          (= duration - connecting - tls_handshaking)
+ *   db_lock_waits                        — contador de requests com processing > 2000ms
+ *   health_check_latency                 — latência do /health (diagnóstico de CPU/instância)
  */
 
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function uuidv4() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
@@ -34,77 +33,169 @@ function uuidv4() {
   });
 }
 
-const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:3006';
-const AUTH_TOKEN = __ENV.K6_AUTH_TOKEN;
-const TARGET = __ENV.K6_CONTENTION_TARGET
-  ? JSON.parse(__ENV.K6_CONTENTION_TARGET)
-  : null;
+function parseDurationMs(d) {
+  if (d.endsWith('s')) return parseInt(d, 10) * 1000;
+  if (d.endsWith('m')) return parseInt(d, 10) * 60_000;
+  return parseInt(d, 10) * 1000;
+}
 
+/**
+ * Encontra a janela (offset + duração) do estágio com maior número de VUs.
+ * Usado para logar os timestamps esperados da fase de pico.
+ */
+function computePeakWindow(stages) {
+  let offset = 0;
+  let maxTarget = 0;
+  let peakStart = 0;
+  let peakDuration = 0;
+  for (const stage of stages) {
+    const dur = parseDurationMs(stage.duration);
+    if (stage.target > maxTarget) {
+      maxTarget    = stage.target;
+      peakStart    = offset;
+      peakDuration = dur;
+    }
+    offset += dur;
+  }
+  return { peakStart, peakDuration };
+}
+
+// ── Configuração ──────────────────────────────────────────────────────────────
+const BASE_URL   = __ENV.K6_BASE_URL          || 'http://localhost:3006';
+const AUTH_TOKEN = __ENV.K6_AUTH_TOKEN;
+const TARGET     = __ENV.K6_CONTENTION_TARGET ? JSON.parse(__ENV.K6_CONTENTION_TARGET) : null;
+
+// 2. Tag de identificação dinâmica obrigatória em todas as requests
+const SCENARIO = 'high-contention';
+
+// 1. Threshold para isolar tempo de processamento/espera de banco
+//    db_lock_waits só é incrementado quando (duration - connecting - tls) > 2000ms
 const DB_LOCK_WAIT_THRESHOLD_MS = 2000;
 
-const latencyTrend = new Trend('order_high_contention_latency', true);
-const errorRate = new Rate('order_high_contention_errors');
-const requestCount = new Counter('order_high_contention_requests');
-// Requisições que esperaram >2s — indicativo de contenção de lock no PG
-const dbLockWaits = new Counter('db_lock_waits');
-const connectLatency = new Trend('conn_connecting_ms', true);
-const tlsLatency = new Trend('conn_tls_handshaking_ms', true);
+const STAGES = [
+  { duration: '15s', target: 20  },
+  { duration: '30s', target: 80  },
+  { duration: '60s', target: 150 },
+  { duration: '30s', target: 200 }, // fase de pico
+  { duration: '30s', target: 0   },
+];
 
+// ── Métricas ──────────────────────────────────────────────────────────────────
+const latencyTrend    = new Trend('order_high_contention_latency', true);
+// 1. Tempo isolado de processamento (sem overhead TCP/TLS) — diagnóstico de lock DB
+const processingTrend = new Trend('order_high_contention_processing_ms', true);
+const errorRate       = new Rate('order_high_contention_errors');
+const requestCount    = new Counter('order_high_contention_requests');
+// Requisições cujo tempo de processamento (DB+app) excede 2s — proxy de lock wait
+const dbLockWaits     = new Counter('db_lock_waits');
+const connectLatency  = new Trend('conn_connecting_ms', true);
+const tlsLatency      = new Trend('conn_tls_handshaking_ms', true);
+// 4. Latência do health-check para diagnóstico de esgotamento de CPU
+const healthLatency   = new Trend('health_check_latency', true);
+
+// ── Opções ────────────────────────────────────────────────────────────────────
 export const options = {
-  // Ramp agressivo: todos os VUs convergem no mesmo recurso
-  stages: [
-    { duration: '15s', target: 20 },
-    { duration: '30s', target: 80 },
-    { duration: '60s', target: 150 },
-    { duration: '30s', target: 200 },
-    { duration: '30s', target: 0 },
-  ],
+  stages: STAGES,
   thresholds: {
     order_high_contention_latency: ['p(95)<10000'],
-    order_high_contention_errors: ['rate<0.5'],
+    // 5. Critério de sucesso mais rigoroso: reduzido de 0.5 → 0.2
+    order_high_contention_errors:  ['rate<0.2'],
   },
 };
 
-export default function () {
+// ── Setup (executa uma vez antes dos VUs iniciarem) ───────────────────────────
+export function setup() {
+  // 6. Timestamps de início e janela esperada do pico (correlação com CloudWatch)
+  const startMs                    = Date.now();
+  const { peakStart, peakDuration } = computePeakWindow(STAGES);
+  const peakBeginIso               = new Date(startMs + peakStart).toISOString();
+  const peakEndIso                 = new Date(startMs + peakStart + peakDuration).toISOString();
+
+  console.log(`[C1B] Teste INICIADO em:         ${new Date(startMs).toISOString()}`);
+  console.log(`[C1B] Fase de pico esperada:      ${peakBeginIso}  →  ${peakEndIso}`);
+  console.log(`[C1B] Correlacione esse intervalo com as métricas do CloudWatch.`);
+  console.log(`[C1B] threshold db_lock_waits:    processingMs > ${DB_LOCK_WAIT_THRESHOLD_MS}ms`);
+
+  return { startMs, peakStart, peakDuration };
+}
+
+// ── Teardown ──────────────────────────────────────────────────────────────────
+export function teardown() {
+  // 6. Timestamp exato de encerramento
+  console.log(`[C1B] Teste ENCERRADO em: ${new Date().toISOString()}`);
+}
+
+// ── Estado por VU (módulo executado em contexto isolado por VU) ───────────────
+let inPeak    = false;
+let peakEnded = false;
+
+// ── Default ───────────────────────────────────────────────────────────────────
+export default function (data) {
   if (!AUTH_TOKEN || !TARGET) {
-    console.error('K6_AUTH_TOKEN ou K6_CONTENTION_TARGET não definidos. Abortando.');
+    console.error('[C1B] K6_AUTH_TOKEN ou K6_CONTENTION_TARGET não definidos. Abortando.');
     return;
   }
 
-  // Todos os VUs usam o MESMO storeId/productId/productOptionId para forçar lock
+  // 6. Log de transição da fase de pico com timestamp exato (apenas VU 1 para evitar spam)
+  if (__VU === 1) {
+    const elapsed = Date.now() - data.startMs;
+    if (!inPeak && elapsed >= data.peakStart) {
+      inPeak = true;
+      console.log(`[C1B][PICO] Fase de pico INICIADA:   ${new Date().toISOString()} (elapsed: ${elapsed}ms)`);
+    }
+    if (inPeak && !peakEnded && elapsed >= data.peakStart + data.peakDuration) {
+      peakEnded = true;
+      console.log(`[C1B][PICO] Fase de pico ENCERRADA:  ${new Date().toISOString()} (elapsed: ${elapsed}ms)`);
+    }
+  }
+
+  // 4. Telemetria de infraestrutura: GET /health a cada 10 iterações por VU
+  //    Permite distinguir entre esgotamento de CPU da instância e contenção de banco
+  if (__ITER % 10 === 0) {
+    const healthRes = http.get(`${BASE_URL}/health`, {
+      tags: { endpoint: 'health-check', scenario: SCENARIO },
+    });
+    healthLatency.add(healthRes.timings.duration);
+  }
+
+  // Todos os VUs usam o MESMO storeId/productId/productOptionId — força colisão máxima
   const payload = JSON.stringify({
-    cartId: uuidv4(),
+    cartId:  uuidv4(),
     storeId: TARGET.storeId,
-    items: [
-      {
-        productId: TARGET.productId,
-        productOptionId: TARGET.productOptionId,
-        quantity: 1,
-      },
-    ],
+    items: [{ productId: TARGET.productId, productOptionId: TARGET.productOptionId, quantity: 1 }],
   });
 
   const res = http.post(`${BASE_URL}/order-request`, payload, {
     headers: {
       'Content-Type': 'application/json',
-      Authorization: AUTH_TOKEN,
+      Authorization:  `Bearer ${AUTH_TOKEN}`,
     },
-    tags: { endpoint: 'POST /order-request', scenario: 'high-contention' },
+    // 2. Tag de identificação dinâmica obrigatória para comparação cruzada
+    tags: { endpoint: 'POST /order-request', scenario: SCENARIO },
   });
 
-  const ok = check(res, {
-    'status 201 ou 200': (r) => r.status === 201 || r.status === 200,
-    'sem timeout de lock': (r) => r.timings.duration < DB_LOCK_WAIT_THRESHOLD_MS,
+  // 1. Isola o tempo de processamento/espera de banco eliminando overhead TCP e TLS.
+  //    connecting + tls_handshaking são custos de rede, não de contenção de lock.
+  //    processingMs reflete puramente o tempo de app + DB (bloqueio pessimista).
+  const processingMs = res.timings.duration
+    - res.timings.connecting
+    - res.timings.tls_handshaking;
+
+  const passed = check(res, {
+    'status 201 ou 200':    (r) => r.status === 201 || r.status === 200,
+    // 1. Threshold sobre processing isolado (não duração total)
+    'sem lock wait (>2s)':  () => processingMs < DB_LOCK_WAIT_THRESHOLD_MS,
   });
 
   latencyTrend.add(res.timings.duration);
+  processingTrend.add(processingMs);
   connectLatency.add(res.timings.connecting);
   tlsLatency.add(res.timings.tls_handshaking);
-  errorRate.add(!ok);
+  errorRate.add(!passed);
   requestCount.add(1);
 
-  // Registra a requisição como suspeita de lock wait se exceder 2 segundos
-  if (res.timings.duration > DB_LOCK_WAIT_THRESHOLD_MS) {
+  // 1. Incrementa db_lock_waits com base no tempo isolado de processamento
+  if (processingMs > DB_LOCK_WAIT_THRESHOLD_MS) {
     dbLockWaits.add(1);
   }
 

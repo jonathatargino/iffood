@@ -77,6 +77,13 @@ export class Store {
   })
   orderRequests: OrderRequest[];
 
+  /**
+   * Populated by the repository when the listing query computes the average
+   * rating via a correlated subquery, avoiding loading all orderRequests.
+   * Takes precedence over the in-memory computation when set.
+   */
+  computedRating?: number;
+
   get name(): string {
     return this._name;
   }
@@ -258,6 +265,9 @@ export class Store {
   }
 
   get rating(): number {
+    if (this.computedRating !== undefined) {
+      return this.computedRating;
+    }
     const reviews = this.reviews;
     if (reviews.length === 0) {
       return 0;

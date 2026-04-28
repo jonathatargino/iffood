@@ -12,6 +12,7 @@ import { envSchema } from './config/schema';
 import { GeneralExceptionsFilter } from './common/filters/general-exceptions.filter';
 import { UserProfileModule } from './modules/user-profile/user-profile.module';
 import { RedisModule } from './infra/redis/redis.module';
+import { HealthController } from './common/health/health.controller';
 
 @Module({
   providers: [
@@ -57,5 +58,6 @@ import { RedisModule } from './infra/redis/redis.module';
     ReviewModule,
     UserProfileModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}

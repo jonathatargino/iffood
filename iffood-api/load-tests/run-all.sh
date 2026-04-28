@@ -24,10 +24,17 @@ set -euo pipefail
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; RESET='\033[0m'
 
-log()  { echo -e "${CYAN}[run-all]${RESET} $*"; }
-ok()   { echo -e "${GREEN}[✓]${RESET} $*"; }
-warn() { echo -e "${YELLOW}[!]${RESET} $*"; }
-fail() { echo -e "${RED}[✗]${RESET} $*"; }
+log()      { echo -e "${CYAN}[run-all]${RESET} $*"; }
+ok()       { echo -e "${GREEN}[✓]${RESET} $*"; }
+warn()     { echo -e "${YELLOW}[!]${RESET} $*"; }
+fail()     { echo -e "${RED}[✗]${RESET} $*"; }
+# Cool-down entre cenários: aguarda recuperação do pool de conexões do PostgreSQL
+# após testes de alta contenção (c1b). Sem isso, o setup() do c2a pode pegar 500.
+cooldown() {
+  local secs="${1:-20}"
+  log "Cool-down de ${secs}s — aguardando recuperação do pool de conexões PG..."
+  sleep "$secs"
+}
 
 # ── Carregar .env.k6 se existir ───────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -151,6 +158,7 @@ else
 fi
 
 echo ""
+cooldown 20
 
 # ── Cenário 2 — Leitura sem/com Cache ────────────────────────────────────────
 echo -e "${BOLD}── Cenário 2: Leitura Intensiva e Cache ───────────────────────${RESET}"
@@ -162,6 +170,7 @@ run_test "c2b-with-cache" "c2b-with-cache.js" \
   "K6_BASE_URL=${BASE_URL}"
 
 echo ""
+cooldown 15
 
 # ── Cenário 3 — Acoplamento de Dados ─────────────────────────────────────────
 echo -e "${BOLD}── Cenário 3: Acoplamento de Dados ────────────────────────────${RESET}"
@@ -182,8 +191,9 @@ else
 fi
 
 echo ""
+cooldown 15
 
-# ── Cenário 4 — Comunicação Assíncrona ───────────────────────────────────────
+# ── Cenário 4 — Comunicação Síncrona vs Assíncrona ───────────────────────────
 echo -e "${BOLD}── Cenário 4: Comunicação Síncrona vs Assíncrona ──────────────${RESET}"
 
 if [[ -z "${K6_AUTH_TOKEN:-}" || -z "${K6_ORDER_TARGETS:-}" ]]; then
