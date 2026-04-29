@@ -44,14 +44,11 @@
  *   2. Exporte esses logs durante o teste:
  *        k6 run c4b-async.js 2>&1 | grep "^ENQUEUE" > enqueue_log.csv
  *
- *   3. Após o teste, execute no banco:
- *        SELECT
- *          cart_id,
- *          EXTRACT(EPOCH FROM updated_at)::bigint * 1000 AS processed_at_ms
+ *   3. Após o teste, execute no banco (cart_id é UUID v4 por requisição):
+ *        SELECT cart_id, EXTRACT(EPOCH FROM updated_at)::bigint * 1000 AS processed_at_ms
  *        FROM order_requests
- *        WHERE cart_id LIKE 'cart-%'
- *          AND status IN ('CONCLUDED', 'PENDING')
- *        ORDER BY cart_id;
+ *        WHERE status IN ('CONCLUDED', 'PENDING')
+ *        ORDER BY updated_at DESC;
  *
  *   4. Junte por cart_id e calcule:
  *        total_business_latency_ms = processed_at_ms − ts
@@ -67,6 +64,14 @@
 import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
+
+/** cartId deve ser UUID (@IsUUID no CreateOrderRequestDto). */
+function uuidv4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
 
 // ── Configuração ──────────────────────────────────────────────────────────────
 const BASE_URL      = __ENV.K6_BASE_URL     || 'http://localhost:3006';
@@ -136,8 +141,7 @@ export default function () {
       ? ORDER_TARGETS[0]
       : ORDER_TARGETS[(__VU - 1) % ORDER_TARGETS.length];
 
-  // cartId determinístico: garante unicidade + reprodutibilidade + rastreabilidade
-  const cartId = `cart-${__VU}-${__ITER}`;
+  const cartId = uuidv4();
 
   const payload = JSON.stringify({
     cartId,

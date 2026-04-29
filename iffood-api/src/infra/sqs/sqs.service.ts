@@ -2,6 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as AWS from 'aws-sdk';
 
+/** URL da fila aponta para LocalStack / dev (porta 4566, docker host, etc.) */
+function queueUrlLooksLikeLocalStack(queueUrl: string): boolean {
+  return /:(4566)\b|localhost|127\.0\.0\.1|host\.docker\.internal|localstack\b/.test(
+    queueUrl,
+  );
+}
+
 @Injectable()
 export class SqsService {
   private readonly sqs: AWS.SQS;
@@ -9,18 +16,34 @@ export class SqsService {
   private readonly logger = new Logger(SqsService.name);
 
   constructor(private readonly configService: ConfigService) {
-    const isLocal = this.configService.get('NODE_ENV') !== 'production';
+    this.queueUrl = this.configService.getOrThrow('SQS_QUEUE_URL');
+
+    const isDev = this.configService.get('NODE_ENV') !== 'production';
+    const explicitEndpoint = this.configService.get<string>('SQS_ENDPOINT');
+    const queueLocal = queueUrlLooksLikeLocalStack(this.queueUrl);
+    const queueIsAwsHosted = this.queueUrl.includes('amazonaws.com');
+
+    const useLocalStack =
+      Boolean(explicitEndpoint) ||
+      queueLocal ||
+      (isDev && !queueIsAwsHosted);
+
+    let endpoint =
+      explicitEndpoint ??
+      (queueLocal ? new URL(this.queueUrl).origin : undefined);
+    if (useLocalStack && !endpoint && isDev && !queueIsAwsHosted) {
+      endpoint = 'http://localhost:4566';
+    }
 
     this.sqs = new AWS.SQS({
-      region: isLocal ? 'us-east-1' : this.configService.getOrThrow('AWS_REGION'),
-      ...(isLocal && {
-        endpoint: 'http://localhost:4566',
-        accessKeyId: 'test',
-        secretAccessKey: 'test',
-      }),
+      region: useLocalStack ? 'us-east-1' : this.configService.getOrThrow('AWS_REGION'),
+      ...(useLocalStack &&
+        endpoint && {
+          endpoint,
+          accessKeyId: 'test',
+          secretAccessKey: 'test',
+        }),
     });
-
-    this.queueUrl = this.configService.getOrThrow('SQS_QUEUE_URL');
   }
 
   async sendMessage(body: Record<string, unknown>): Promise<void> {

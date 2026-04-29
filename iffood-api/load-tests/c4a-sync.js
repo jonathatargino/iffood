@@ -33,6 +33,14 @@ import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
 
+/** cartId deve ser UUID (@IsUUID no CreateOrderRequestDto). */
+function uuidv4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 // ── Configuração ──────────────────────────────────────────────────────────────
 const BASE_URL      = __ENV.K6_BASE_URL     || 'http://localhost:3006';
 const AUTH_TOKEN    = __ENV.K6_AUTH_TOKEN;
@@ -99,8 +107,7 @@ export default function () {
       ? ORDER_TARGETS[0]
       : ORDER_TARGETS[(__VU - 1) % ORDER_TARGETS.length];
 
-  // cartId determinístico: garante unicidade + reprodutibilidade + rastreabilidade
-  const cartId = `cart-${__VU}-${__ITER}`;
+  const cartId = uuidv4();
 
   const payload = JSON.stringify({
     cartId,
