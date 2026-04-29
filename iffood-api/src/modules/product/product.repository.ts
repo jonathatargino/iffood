@@ -40,6 +40,12 @@ export class ProductRepository {
     return Number.isFinite(n) ? n : 0;
   }
 
+  /**
+   * Detalhe “acoplado”: carrega store → orderRequests → reviewRequests → reviews.
+   * Usado pelo GET /product/:id (baseline experimental vs /product/:id/lean).
+   * Com muitos pedidos na loja é intrinsecamente pesado — não duplicar AVG em SQL;
+   * Store.rating usa as reviews já hidratadas.
+   */
   async findById({ productId }: { productId: string }) {
     const qb = this.typeormProductRepository
       .createQueryBuilder('product')
@@ -52,6 +58,9 @@ export class ProductRepository {
           .where('po.product_id = :productId', { productId });
       }, 'accumulativeProductOptionsCount')
       .leftJoinAndSelect('store.storeAvailabilities', 'store_availabilities')
+      .leftJoinAndSelect('store.orderRequests', 'order_request')
+      .leftJoinAndSelect('order_request.reviewRequests', 'review_request')
+      .leftJoinAndSelect('review_request.review', 'review')
       .where('product.id = :productId', { productId });
 
     const { entities, raw } = await qb.getRawAndEntities<{
@@ -60,10 +69,6 @@ export class ProductRepository {
 
     const product = entities[0] ?? null;
     if (!product) return null;
-
-    product.store.computedRating = await this.averageStoreRatingById(
-      product.store.id,
-    );
 
     return {
       product: product,
@@ -165,8 +170,7 @@ export class ProductRepository {
   }
 
   /**
-   * Versão “lean”: mesmos JOINs leves que findById; rating via segunda query única
-   * (evita subquery correlata no primeiro SELECT).
+   * GET /product/:id/lean — sem JOIN em pedidos/avaliações; rating da loja via SQL (AVG).
    */
   async findByIdLean({ productId }: { productId: string }) {
     const qb = this.typeormProductRepository
