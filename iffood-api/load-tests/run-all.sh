@@ -13,6 +13,7 @@
 #   K6_ORDER_TARGETS     — JSON array          (obrigatório para c1a, c4a, c4b)
 #   K6_CONTENTION_TARGET — JSON objeto         (obrigatório para c1b)
 #   K6_PRODUCT_IDS       — JSON array          (opcional para c3a, c3b)
+#   K6_C3_VUS_1…4        — alvos de VUs nos 4 estágios do c3a/c3b (padrão 25→75→100→100)
 #   K6_CONTENTION        — low | high          (opcional, padrão: low)
 #   K6_ONLY              — nome(s) separados por vírgula para rodar apenas alguns
 #                          Ex: K6_ONLY=c4a,c4b ./load-tests/run-all.sh

@@ -12,6 +12,34 @@ export class ProductRepository {
     private readonly typeormProductRepository: Repository<Product>,
   ) {}
 
+  /**
+   * AVG(rating) da loja em **uma** consulta. Subquery no SELECT do QueryBuilder
+   * principal era correlata a cada linha do JOIN (productOptions × availabilities),
+   * repetindo o trabalho ~56× e mantendo latência de dezenas de segundos com 50k pedidos.
+   *
+   * Retorna 0 quando não existem reviews — o seed de load test só insere order_requests.
+   */
+  private async averageStoreRatingById(storeId: string): Promise<number> {
+    const rows = (await this.typeormProductRepository.manager.query(
+      `SELECT COALESCE(
+         (
+           SELECT AVG(rv.rating)::double precision
+           FROM order_requests o
+           INNER JOIN review_requests rr ON rr.order_request_id = o.id
+           INNER JOIN reviews rv ON rv.review_request_id = rr.id
+           WHERE o.store_id = $1
+         ),
+         0
+       ) AS avg`,
+      [storeId],
+    )) as { avg: string | number }[];
+
+    const v = rows[0]?.avg;
+    if (v === null || v === undefined) return 0;
+    const n = typeof v === 'string' ? parseFloat(v) : Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
   async findById({ productId }: { productId: string }) {
     const qb = this.typeormProductRepository
       .createQueryBuilder('product')
@@ -24,9 +52,6 @@ export class ProductRepository {
           .where('po.product_id = :productId', { productId });
       }, 'accumulativeProductOptionsCount')
       .leftJoinAndSelect('store.storeAvailabilities', 'store_availabilities')
-      .leftJoinAndSelect('store.orderRequests', 'order_request')
-      .leftJoinAndSelect('order_request.reviewRequests', 'review_request')
-      .leftJoinAndSelect('review_request.review', 'review')
       .where('product.id = :productId', { productId });
 
     const { entities, raw } = await qb.getRawAndEntities<{
@@ -35,6 +60,10 @@ export class ProductRepository {
 
     const product = entities[0] ?? null;
     if (!product) return null;
+
+    product.store.computedRating = await this.averageStoreRatingById(
+      product.store.id,
+    );
 
     return {
       product: product,
@@ -136,9 +165,8 @@ export class ProductRepository {
   }
 
   /**
-   * Versão otimizada de findById para o Experimento 3B do TCC.
-   * Remove os JOINs de orderRequests, reviewRequests e reviews que são
-   * desnecessários para a resposta do endpoint de detalhe de produto.
+   * Versão “lean”: mesmos JOINs leves que findById; rating via segunda query única
+   * (evita subquery correlata no primeiro SELECT).
    */
   async findByIdLean({ productId }: { productId: string }) {
     const qb = this.typeormProductRepository
@@ -160,6 +188,10 @@ export class ProductRepository {
 
     const product = entities[0] ?? null;
     if (!product) return null;
+
+    product.store.computedRating = await this.averageStoreRatingById(
+      product.store.id,
+    );
 
     return {
       product,

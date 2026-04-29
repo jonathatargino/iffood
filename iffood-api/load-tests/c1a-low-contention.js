@@ -61,6 +61,8 @@ function computePeakWindow(stages) {
 // ── Configuração ──────────────────────────────────────────────────────────────
 const BASE_URL     = __ENV.K6_BASE_URL     || 'http://localhost:3006';
 const AUTH_TOKEN   = __ENV.K6_AUTH_TOKEN;
+
+console.log(__ENV.K6_AUTH_TOKEN);
 const ORDER_TARGETS = __ENV.K6_ORDER_TARGETS ? JSON.parse(__ENV.K6_ORDER_TARGETS) : [];
 
 // 2. Tag de identificação dinâmica obrigatória em todas as requests

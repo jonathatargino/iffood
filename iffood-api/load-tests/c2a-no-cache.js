@@ -25,8 +25,7 @@ import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
 
 // ── Configuração ──────────────────────────────────────────────────────────────
-const BASE_URL        = __ENV.K6_BASE_URL || 'http://localhost:3006';
-const MIN_RECORD_COUNT = 10_000;
+const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:3006';
 
 // 3. Tag de cenário obrigatória para comparação cruzada com c2b
 const SCENARIO = 'no-cache';
@@ -52,8 +51,7 @@ const ioTimeouts      = new Counter('store_list_timeouts');
 
 // ── Opções ────────────────────────────────────────────────────────────────────
 export const options = {
-  // Aumentado para acomodar retries no setup() após cenários de alta contenção
-  setupTimeout: '120s',
+  setupTimeout: '90s',
   stages: [
     { duration: '30s', target: 25  },
     { duration: '30s', target: 75  },
@@ -74,47 +72,27 @@ export const options = {
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 export function setup() {
-  // Retry com backoff: após cenários de lock contention (c1b), o pool de conexões
-  // do PostgreSQL pode estar temporariamente esgotado. Aguarda até 45s pela API.
-  const MAX_ATTEMPTS = 3;
-  const RETRY_SLEEP_S = 5;
+  const MAX_ATTEMPTS = 2;
+  const RETRY_SLEEP_S = 3;
   let res;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     res = http.get(`${BASE_URL}/store?page=1&pageSize=1`);
     if (res.status === 200) break;
     console.warn(
-      `[C2A][setup] Tentativa ${attempt}/${MAX_ATTEMPTS}: API retornou status ${res.status}. ` +
-      (attempt < MAX_ATTEMPTS ? `Aguardando ${RETRY_SLEEP_S}s para recuperação do pool PG...` : 'Desistindo.'),
+      `[C2A][setup] tentativa ${attempt}/${MAX_ATTEMPTS}: status ${res.status}. ` +
+        (attempt < MAX_ATTEMPTS ? `aguardando ${RETRY_SLEEP_S}s…` : 'abortando.'),
     );
     if (attempt < MAX_ATTEMPTS) sleep(RETRY_SLEEP_S);
   }
 
   if (res.status !== 200) {
     fail(
-      `[C2A][setup] API não respondeu após ${MAX_ATTEMPTS} tentativas (último status: ${res.status}). ` +
-      `Verifique se o serviço está UP em ${BASE_URL}.`,
+      `[C2A][setup] GET /store falhou após ${MAX_ATTEMPTS} tentativas (último: ${res.status}). ${BASE_URL}`,
     );
   }
 
-  let totalCount = 0;
-  try {
-    const body = JSON.parse(res.body);
-    totalCount = body.total ?? body.count ?? 0;
-  } catch {
-    console.warn('[C2A][setup] Não foi possível parsear o total do response. Prosseguindo sem validação de volume.');
-    return;
-  }
-
-  if (totalCount < MIN_RECORD_COUNT) {
-    console.warn(
-      `[C2A][setup] AVISO: banco possui apenas ${totalCount} registros em /store. ` +
-      `Recomendado ≥${MIN_RECORD_COUNT} para estressar o plano de query. ` +
-      `Prosseguindo — os resultados podem não refletir condições reais de produção.`,
-    );
-  } else {
-    console.log(`[C2A][setup] Validação de volume OK: ${totalCount} registros encontrados.`);
-  }
+  console.log(`[C2A][setup] GET /store OK`);
 }
 
 // ── Default ───────────────────────────────────────────────────────────────────

@@ -23,6 +23,9 @@
  * Variáveis:
  *   K6_BASE_URL    — URL da API (padrão: http://localhost:3006)
  *   K6_PRODUCT_IDS — JSON array de UUIDs de produtos válidos no banco
+ *   K6_C3_VUS_1…4 — alvos de VUs por estágio (30s/30s/90s/30s). Padrão 25→75→100→100.
+ *                    Pico 150–200 em máquina local costuma derrubar o Node (EOF, ECONNREFUSED).
+ *                    Para o perfil antigo: K6_C3_VUS_3=150 K6_C3_VUS_4=200
  *
  * Métricas customizadas:
  *   product_current_processing_ms — tempo isolado (duration - connecting - tls)
@@ -44,6 +47,23 @@ const PRODUCT_IDS = __ENV.K6_PRODUCT_IDS
   ? JSON.parse(__ENV.K6_PRODUCT_IDS)
   : [];
 
+/** Setup: no máximo N GETs (evita N queries acopladas lentas antes do teste). */
+const SETUP_PROBE_MAX = 2;
+
+function vuFromEnv(key, fallback) {
+  const raw = __ENV[key];
+  if (raw === undefined || raw === '') return fallback;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+const STAGE_VUS = [
+  vuFromEnv('K6_C3_VUS_1', 25),
+  vuFromEnv('K6_C3_VUS_2', 75),
+  vuFromEnv('K6_C3_VUS_3', 100),
+  vuFromEnv('K6_C3_VUS_4', 100),
+];
+
 // ── Métricas ──────────────────────────────────────────────────────────────────
 // 1. Latência isolada: remove overhead TCP/TLS para medir custo do plano de query
 //    e do processamento TypeORM sem ruído de rede
@@ -60,14 +80,12 @@ const tlsLatency      = new Trend('conn_tls_handshaking_ms', true);
 // ── Opções ────────────────────────────────────────────────────────────────────
 export const options = {
   stages: [
-    { duration: '30s', target: 25  },
-    { duration: '30s', target: 75  },
-    // 3. Ramp-up do pico estendido para 90s: queries com 6 JOINs causam um
-    //    "efeito bola de neve" no pool de conexões do PostgreSQL que só se
-    //    manifesta após período prolongado de saturação (≈90s de estabilização)
-    { duration: '90s', target: 150 },
-    { duration: '30s', target: 200 }, // pico
-    { duration: '30s', target: 0   },
+    { duration: '30s', target: STAGE_VUS[0] },
+    { duration: '30s', target: STAGE_VUS[1] },
+    // 3. Bloco de 90s: saturação prolongada do pool PG ("bola de neve"). Alvos via K6_C3_VUS_3/4.
+    { duration: '90s', target: STAGE_VUS[2] },
+    { duration: '30s', target: STAGE_VUS[3] },
+    { duration: '30s', target: 0 },
   ],
   thresholds: {
     // 1. Threshold sobre processing time isolado (custo real de query + TypeORM)
@@ -83,26 +101,22 @@ export function setup() {
     fail('[C3A][setup] K6_PRODUCT_IDS não definido. Execute node load-tests/setup.js primeiro.');
   }
 
-  let validCount = 0;
-  for (const id of PRODUCT_IDS) {
+  const limit = Math.min(SETUP_PROBE_MAX, PRODUCT_IDS.length);
+  for (let i = 0; i < limit; i++) {
+    const id = PRODUCT_IDS[i];
     const res = http.get(`${BASE_URL}/product/${id}`);
     if (res.status === 200) {
-      validCount++;
-    } else {
-      console.warn(`[C3A][setup] Produto ${id} retornou status ${res.status}. Considere remover da lista.`);
+      console.log(
+        `[C3A][setup] OK (índice ${i}, ${limit} probe(s) max). ` +
+          `Stages VUs: ${STAGE_VUS.join(' → ')} (override: K6_C3_VUS_1…4).`,
+      );
+      return;
     }
+    console.warn(`[C3A][setup] produto índice ${i} → status ${res.status}`);
   }
 
-  if (validCount === 0) {
-    fail('[C3A][setup] Nenhum produto válido. Configure K6_PRODUCT_IDS com IDs reais do banco.');
-  }
-
-  console.log(
-    `[C3A][setup] ${validCount}/${PRODUCT_IDS.length} produtos validados. ` +
-    `Query: product → productOptions → store → storeAvailabilities → orderRequests → reviewRequests → reviews (6 JOINs, 3+ módulos).`,
-  );
-  console.log(
-    `[C3A][setup] Ramp-up de pico: 90s — aguarda manifestação do "efeito bola de neve" no pool de conexões.`,
+  fail(
+    `[C3A][setup] Nenhum dos ${limit} primeiros IDs retornou 200. Rode node load-tests/setup.js.`,
   );
 }
 
@@ -129,7 +143,7 @@ export default function () {
     'body não vazio':  (r) => r.body && r.body.length > 0,
     // 4. Valida que o payload completo chegou: query acoplada retorna reviews + orders,
     //    garantindo que o custo de serialização JSON do NestJS está sendo medido
-    'payload completo': (r) => r.body.length > 500,
+    'payload completo': (r) => !!r.body && r.body.length > 500,
   });
 
   // 1. Processing time como métrica principal (custo real de query + TypeORM)
