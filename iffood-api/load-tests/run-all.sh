@@ -5,6 +5,7 @@
 #
 # Uso:
 #   cd iffood-api
+#   node load-tests/verify-k6-auth.js   # opcional: GET /store/me valida JWT contra a API
 #   ./load-tests/run-all.sh
 #
 # Variáveis de ambiente (definidas antes de chamar ou no .env.k6 na raiz):
@@ -174,6 +175,7 @@ echo ""
 cooldown 15
 
 # ── Cenário 3 — Acoplamento de Dados ─────────────────────────────────────────
+# c3a é pesado no PostgreSQL; pausa antes do c3b ajuda o pool a recuperar.
 echo -e "${BOLD}── Cenário 3: Acoplamento de Dados ────────────────────────────${RESET}"
 
 PRODUCT_IDS_ENV="${K6_PRODUCT_IDS:-}"
@@ -181,12 +183,16 @@ if [[ -n "$PRODUCT_IDS_ENV" ]]; then
   run_test "c3a-coupled-query" "c3a-coupled-query.js" \
     "K6_BASE_URL=${BASE_URL}" \
     "K6_PRODUCT_IDS=${PRODUCT_IDS_ENV}"
+  echo ""
+  cooldown 25
   run_test "c3b-decoupled-query" "c3b-decoupled-query.js" \
     "K6_BASE_URL=${BASE_URL}" \
     "K6_PRODUCT_IDS=${PRODUCT_IDS_ENV}"
 else
   run_test "c3a-coupled-query" "c3a-coupled-query.js" \
     "K6_BASE_URL=${BASE_URL}"
+  echo ""
+  cooldown 25
   run_test "c3b-decoupled-query" "c3b-decoupled-query.js" \
     "K6_BASE_URL=${BASE_URL}"
 fi
