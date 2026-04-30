@@ -55,6 +55,22 @@ const SCENARIO_LABELS = {
   4: 'Comunicação Assíncrona',
 };
 
+/**
+ * Métrica Trend principal por script k6 (latência só do endpoint em estudo).
+ * Importante em c1a/c1b: não usar http_req_duration como “latência do pedido” no
+ * relatório — o k6 agrega também GET /health; os Trends order_* cobrem só POST /order-request.
+ */
+const PRIMARY_LATENCY_METRIC = {
+  'c1a-low-contention': 'order_low_contention_latency',
+  'c1b-high-contention': 'order_high_contention_latency',
+  'c2a-no-cache': 'store_list_latency',
+  'c2b-with-cache': 'store_list_cached_latency',
+  'c3a-coupled-query': 'product_current_latency',
+  'c3b-decoupled-query': 'product_lean_latency',
+  'c4a-sync': 'sync_order_latency',
+  'c4b-async': 'async_order_latency',
+};
+
 // ── Métricas de interesse por teste ──────────────────────────────────────────
 // Quais métricas extrair de cada summary-export.
 // O k6 inclui todas no arquivo; aqui selecionamos as relevantes para o TCC.
@@ -124,6 +140,9 @@ function round(v) {
 
 // Detecta a métrica de latência principal de um teste
 function primaryLatencyKey(name, metrics) {
+  const preferred = PRIMARY_LATENCY_METRIC[name];
+  if (preferred && metrics && metrics[preferred]) return preferred;
+
   const candidates = [
     `${name.replace(/-/g, '_')}_latency`,
     'http_req_duration',
@@ -169,6 +188,7 @@ for (const [name, meta] of Object.entries(TEST_META)) {
     label:   meta.label,
     file:    meta.file,
     status:  raw.state === 'aborted' ? 'aborted' : (raw.thresholds_failed ? 'threshold_failed' : 'ok'),
+    latency_metric: latKey || null,
     latency: latKey ? formatTrend(raw.metrics[latKey]) : null,
     throughput: {
       total_requests: raw.metrics?.http_reqs?.values?.count ?? null,
