@@ -23,6 +23,13 @@ export class SqsService {
     const queueLocal = queueUrlLooksLikeLocalStack(this.queueUrl);
     const queueIsAwsHosted = this.queueUrl.includes('amazonaws.com');
 
+    if (explicitEndpoint && queueIsAwsHosted) {
+      this.logger.warn(
+        'SQS_ENDPOINT está definido mas SQS_QUEUE_URL aponta para fila AWS real. ' +
+          'Remova SQS_ENDPOINT do .env ao usar fila na AWS — caso contrário o SDK envia para o endpoint errado e nada chega à fila.',
+      );
+    }
+
     const useLocalStack =
       Boolean(explicitEndpoint) ||
       queueLocal ||

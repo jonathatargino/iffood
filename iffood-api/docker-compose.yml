@@ -12,9 +12,8 @@ services:
     environment:
       NODE_ENV: production
       REDIS_URL: redis://redis:6379
-      # Dentro do container, localhost ≠ máquina host. LocalStack na porta 4566 do host:
-      SQS_ENDPOINT: http://host.docker.internal:4566
-      SQS_QUEUE_URL: http://host.docker.internal:4566/000000000000/order-requests
+      # SQS: defina SQS_QUEUE_URL (e, se for LocalStack, SQS_ENDPOINT) no ficheiro .env.
+      # Não fixar aqui — em produção use a URL https://sqs.REGION.amazonaws.com/...; com LocalStack use host.docker.internal no .env.
     extra_hosts:
       # Linux (Docker 20.10+): permite resolver host.docker.internal → bridge do host
       - "host.docker.internal:host-gateway"
