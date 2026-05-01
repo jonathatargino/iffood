@@ -33,6 +33,11 @@
  *     REDIS_URL                     — para flush do cache
  *     SQS_QUEUE_URL                 — para purge da fila
  *     AWS_DEFAULT_REGION / AWS_REGION / AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+ *
+ *   Produção / fila AWS já criada na consola:
+ *     — Não usa sqs:CreateQueue (só LocalStack chama createQueue).
+ *     — Purge usa sqs:PurgeQueue na URL; falhas por IAM ou throttle são ignoradas com aviso.
+ *     LOAD_TEST_SKIP_SQS_PURGE=1 — não executa purge (fila partilhada ou sem permissão).
  */
 
 const path = require('path');
@@ -162,30 +167,50 @@ async function purgeQueues() {
   // SQS
   const sqsUrl = process.env.SQS_QUEUE_URL || '';
   if (sqsUrl) {
-    try {
-      const AWS = require('aws-sdk');
-      const isLocal = sqsUrl.includes('localhost') || sqsUrl.includes('localstack');
-      const sqsCfg = isLocal
-        ? { endpoint: 'http://localhost:4566', region: 'us-east-1', accessKeyId: 'test', secretAccessKey: 'test' }
-        : {
-            region:          process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
-            accessKeyId:     process.env.AWS_ACCESS_KEY_ID,
+    const skipPurge = /^(1|true|yes)$/i.test(process.env.LOAD_TEST_SKIP_SQS_PURGE || '');
+    if (skipPurge) {
+      warn('LOAD_TEST_SKIP_SQS_PURGE — pulando purge da fila SQS (produção / fila partilhada).');
+    } else {
+      try {
+        const AWS = require('aws-sdk');
+        const isAwsHosted = sqsUrl.includes('amazonaws.com');
+        const region =
+          process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1';
+
+        let sqs;
+        if (isAwsHosted) {
+          sqs = new AWS.SQS({
+            region,
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
             secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-          };
-      const sqs = new AWS.SQS(sqsCfg);
-
-      // Garante que a fila existe antes de purgar — createQueue é idempotente no SQS:
-      // se já existir retorna a URL sem erro. Necessário porque o LocalStack perde
-      // todas as filas ao reiniciar (persistence=disabled).
-      const queueName = sqsUrl.split('/').pop();
-      log(`Garantindo existência da fila SQS${isLocal ? ' (LocalStack)' : ''}: ${queueName}...`);
-      await sqs.createQueue({ QueueName: queueName }).promise();
-
-      log(`Purgando fila SQS: ${sqsUrl}...`);
-      await sqs.purgeQueue({ QueueUrl: sqsUrl }).promise();
-      ok('Fila SQS criada/verificada e purgada.');
-    } catch (err) {
-      warn(`SQS setup falhou (${err.message}) — continuando.`);
+          });
+          log(`Purgando fila SQS na AWS (sem createQueue — fila já existe na conta): ${sqsUrl}`);
+          await sqs.purgeQueue({ QueueUrl: sqsUrl }).promise();
+          ok('Fila SQS purgada (AWS).');
+        } else {
+          // LocalStack / dev: endpoint = origem da URL (localhost:4566, host.docker.internal:4566, …)
+          let endpoint = 'http://localhost:4566';
+          try {
+            if (sqsUrl.startsWith('http')) endpoint = new URL(sqsUrl).origin;
+          } catch {
+            /* mantém default */
+          }
+          sqs = new AWS.SQS({
+            endpoint,
+            region: 'us-east-1',
+            accessKeyId: 'test',
+            secretAccessKey: 'test',
+          });
+          const queueName = sqsUrl.split('/').pop();
+          log(`Garantindo existência da fila SQS (LocalStack): ${queueName}...`);
+          await sqs.createQueue({ QueueName: queueName }).promise();
+          log(`Purgando fila SQS: ${sqsUrl}...`);
+          await sqs.purgeQueue({ QueueUrl: sqsUrl }).promise();
+          ok('Fila SQS criada/verificada e purgada.');
+        }
+      } catch (err) {
+        warn(`SQS setup falhou (${err.message}) — continuando.`);
+      }
     }
   } else {
     warn('SQS_QUEUE_URL não definido — pulando setup da fila.');
