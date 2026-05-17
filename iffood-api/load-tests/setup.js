@@ -30,7 +30,9 @@
  *     LOAD_TEST_ORDER_TARGETS_COUNT — produtos c1/c4   (padrão: 150)
  *     LOAD_TEST_STORE_COUNT         — lojas bulk c2    (padrão: 10000)
  *     LOAD_TEST_HISTORICAL_ORDERS   — orders históricos c3 (padrão: 50000)
- *     REDIS_URL                     — para flush do cache
+ *     REDIS_URL / REDIS_HOST        — flush do cache (standalone ou cluster)
+ *     REDIS_CLUSTER=true            — ElastiCache Valkey (clustercfg.*)
+ *     REDIS_PORT                    — default 6379
  *     SQS_QUEUE_URL                 — para purge da fila
  *     AWS_DEFAULT_REGION / AWS_REGION / AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
  *
@@ -216,25 +218,63 @@ async function purgeQueues() {
     warn('SQS_QUEUE_URL não definido — pulando setup da fila.');
   }
 
-  // Redis
-  const redisUrl = process.env.REDIS_URL || '';
-  if (redisUrl) {
+  // Redis (standalone ou ElastiCache Cluster)
+  const redisCfg = resolveRedisEnv(process.env);
+  if (redisCfg) {
     let redis;
     try {
       const IORedis = require('ioredis');
-      redis = new IORedis(redisUrl, { lazyConnect: true, enableReadyCheck: false });
-      log('Flushing cache Redis...');
+      redis = createRedisForSetup(IORedis, redisCfg);
+      log(
+        `Flushing cache Redis (${redisCfg.cluster ? 'cluster' : 'standalone'})...`,
+      );
       await redis.connect();
-      await redis.flushdb();
-      ok('Redis FLUSHDB concluído.');
+      if (redisCfg.cluster) {
+        await redis.flushall();
+        ok('Redis FLUSHALL (cluster) concluído.');
+      } else {
+        await redis.flushdb();
+        ok('Redis FLUSHDB concluído.');
+      }
     } catch (err) {
       warn(`Redis flush falhou (${err.message}) — continuando.`);
     } finally {
       if (redis) await redis.quit().catch(() => {});
     }
   } else {
-    warn('REDIS_URL não definido — pulando flush do cache.');
+    warn('REDIS_HOST / REDIS_URL não definido — pulando flush do cache.');
   }
+}
+
+/** Espelha resolveRedisConfig (src/infra/redis/redis.client.ts) para o script de setup. */
+function resolveRedisEnv(env) {
+  const cluster = env.REDIS_CLUSTER === 'true' || env.REDIS_CLUSTER === '1';
+  let host = env.REDIS_HOST?.trim();
+  let port = parseInt(env.REDIS_PORT || '6379', 10);
+
+  if (!host && env.REDIS_URL) {
+    try {
+      const parsed = new URL(env.REDIS_URL);
+      host = parsed.hostname;
+      port = parseInt(parsed.port || '6379', 10);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!host) return null;
+  return { cluster, host, port };
+}
+
+function createRedisForSetup(IORedis, cfg) {
+  const opts = { lazyConnect: true, enableReadyCheck: false };
+  if (cfg.cluster) {
+    return new IORedis.Cluster([{ host: cfg.host, port: cfg.port }], {
+      ...opts,
+      redisOptions: opts,
+    });
+  }
+  return new IORedis({ host: cfg.host, port: cfg.port, ...opts });
 }
 
 // ── 3. user_profile ───────────────────────────────────────────────────────────

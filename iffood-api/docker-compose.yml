@@ -12,6 +12,7 @@ services:
     environment:
       NODE_ENV: production
       REDIS_URL: redis://redis:6379
+      REDIS_CLUSTER: "false"
       # SQS: defina SQS_QUEUE_URL (e, se for LocalStack, SQS_ENDPOINT) no ficheiro .env.
       # Não fixar aqui — em produção use a URL https://sqs.REGION.amazonaws.com/...; com LocalStack use host.docker.internal no .env.
     extra_hosts:

@@ -1,6 +1,11 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import {
+  attachRedisErrorLogger,
+  createRedisClient,
+  RedisClient,
+  resolveRedisConfig,
+} from './redis.client';
 
 export const REDIS_CLIENT = Symbol('REDIS_CLIENT');
 
@@ -10,18 +15,23 @@ export const REDIS_CLIENT = Symbol('REDIS_CLIENT');
     {
       provide: REDIS_CLIENT,
       inject: [ConfigService],
-      useFactory: (configService: ConfigService): Redis => {
-        const url = configService.getOrThrow<string>('REDIS_URL');
-        const client = new Redis(url, {
-          maxRetriesPerRequest: 3,
-          enableReadyCheck: true,
-          lazyConnect: false,
+      useFactory: (configService: ConfigService): RedisClient => {
+        const config = resolveRedisConfig({
+          REDIS_CLUSTER: configService.get('REDIS_CLUSTER'),
+          REDIS_HOST: configService.get('REDIS_HOST'),
+          REDIS_PORT: configService.get('REDIS_PORT'),
+          REDIS_URL: configService.get('REDIS_URL'),
+          REDIS_PASSWORD: configService.get('REDIS_PASSWORD'),
+          REDIS_TLS: configService.get('REDIS_TLS'),
         });
 
-        client.on('error', (err: Error) => {
-          console.error('[Redis] connection error:', err.message);
-        });
+        const mode = config.cluster ? 'cluster' : 'standalone';
+        console.log(
+          `[Redis] modo=${mode} host=${config.host}:${config.port} tls=${config.tls}`,
+        );
 
+        const client = createRedisClient(config);
+        attachRedisErrorLogger(client);
         return client;
       },
     },

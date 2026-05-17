@@ -24,7 +24,8 @@
     "worker:dev": "ts-node-dev -r tsconfig-paths/register src/workers/main.ts",
     "load": "sh -c 'k6 run load-tests/$EXP.js'",
     "load:all": "bash load-tests/run-all.sh",
-    "load:merge": "node load-tests/merge-results.js"
+    "load:merge": "node load-tests/merge-results.js",
+    "verify:k6-auth": "node load-tests/verify-k6-auth.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.965.0",

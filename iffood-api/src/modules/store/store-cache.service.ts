@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import Redis from 'ioredis';
+import Redis, { Cluster } from 'ioredis';
 import { REDIS_CLIENT } from '../../infra/redis/redis.module';
 import { FindAllStoreFilters } from './dto/store.core.dto';
 import { PaginatedStoresResponseDto } from './dto/store.response.dto';
@@ -11,7 +11,7 @@ const STORE_LIST_TTL = 30;
 export class StoreCacheService {
   private readonly logger = new Logger(StoreCacheService.name);
 
-  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
+  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis | Cluster) {}
 
   /**
    * Gera uma chave de cache determinística a partir dos filtros da query.
@@ -19,8 +19,9 @@ export class StoreCacheService {
    * páginas ou combinações de filtros diferentes.
    */
   buildKey(filters: FindAllStoreFilters): string {
+    // Hash tag {store} — todas as chaves no mesmo slot (Redis Cluster / Valkey)
     const parts = [
-      `store:list`,
+      `{store}:list`,
       `p=${filters.page}`,
       `ps=${filters.pageSize}`,
       `n=${filters.name ?? ''}`,
@@ -59,7 +60,7 @@ export class StoreCacheService {
    */
   async invalidateAll(): Promise<void> {
     try {
-      const keys = await this.redis.keys('store:list*');
+      const keys = await this.redis.keys('{store}:list*');
       if (keys.length > 0) {
         await this.redis.del(...keys);
         this.logger.log(
