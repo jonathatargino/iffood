@@ -38,6 +38,7 @@
  *     LOAD_TEST_SKIP_REDIS_FLUSH=1  — pula flush (ElastiCache só na VPC / sem acesso)
  *     LOAD_TEST_REDIS_FLUSH_MODE    — scan (padrão cluster) | flushdb | flushall
  *     LOAD_TEST_REDIS_CONNECT_MS    — timeout de conexão (padrão: 10000)
+ *     LOAD_TEST_SETUP_STATEMENT_TIMEOUT_MS — timeout SQL na limpeza (padrão: 600000 = 10min)
  *     SQS_QUEUE_URL                 — para purge da fila
  *     AWS_DEFAULT_REGION / AWS_REGION / AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
  *
@@ -121,50 +122,147 @@ function decodeJwt(token) {
 }
 
 // ── 1. Limpeza total (ordem respeita FKs) ─────────────────────────────────────
-async function cleanStoreData(client, storeId) {
-  // Limpa na ordem correta das FKs: reviews → review_requests → items → orders
-  // → store_users → availabilities → product_options → products → store
-  await client.query(`
+
+/** Supabase/RDS costumam ter statement_timeout baixo; a limpeza pós–load test é pesada. */
+async function configureSetupSession(client) {
+  const timeoutMs = parseInt(
+    process.env.LOAD_TEST_SETUP_STATEMENT_TIMEOUT_MS || '600000',
+    10,
+  );
+  await client.query(`SET statement_timeout = ${timeoutMs}`);
+  await client.query(`SET lock_timeout = '60s'`);
+  log(
+    `PostgreSQL: statement_timeout=${timeoutMs}ms (${(timeoutMs / 60000).toFixed(1)} min), lock_timeout=60s`,
+  );
+}
+
+async function runCleanupQuery(client, label, text, params = []) {
+  const t0 = Date.now();
+  log(`  ${label}...`);
+  const res = await client.query(text, params);
+  const sec = ((Date.now() - t0) / 1000).toFixed(1);
+  ok(`  ${label} — ${res.rowCount ?? 0} linha(s) em ${sec}s`);
+  return res;
+}
+
+async function cleanStoreData(client, storeId, storeLabel) {
+  log(`Loja ${storeLabel} (${storeId})...`);
+
+  await runCleanupQuery(
+    client,
+    'reviews',
+    `
     DELETE FROM reviews
     WHERE review_request_id IN (
       SELECT rr.id FROM review_requests rr
       JOIN order_requests orq ON orq.id = rr.order_request_id
       WHERE orq.store_id = $1
     )
-  `, [storeId]);
+  `,
+    [storeId],
+  );
 
-  await client.query(`
+  await runCleanupQuery(
+    client,
+    'review_requests',
+    `
     DELETE FROM review_requests
     WHERE order_request_id IN (SELECT id FROM order_requests WHERE store_id = $1)
-  `, [storeId]);
+  `,
+    [storeId],
+  );
 
-  await client.query(`
+  await runCleanupQuery(
+    client,
+    'order_request_items',
+    `
     DELETE FROM order_request_items
     WHERE order_request_id IN (SELECT id FROM order_requests WHERE store_id = $1)
-  `, [storeId]);
+  `,
+    [storeId],
+  );
 
-  await client.query('DELETE FROM order_requests        WHERE store_id = $1', [storeId]);
-  await client.query('DELETE FROM store_users            WHERE store_id = $1', [storeId]);
-  await client.query('DELETE FROM store_availabilities  WHERE store_id = $1', [storeId]);
+  await runCleanupQuery(
+    client,
+    'order_requests',
+    'DELETE FROM order_requests WHERE store_id = $1',
+    [storeId],
+  );
 
-  await client.query(`
+  await runCleanupQuery(
+    client,
+    'store_users',
+    'DELETE FROM store_users WHERE store_id = $1',
+    [storeId],
+  );
+
+  await runCleanupQuery(
+    client,
+    'store_availabilities',
+    'DELETE FROM store_availabilities WHERE store_id = $1',
+    [storeId],
+  );
+
+  await runCleanupQuery(
+    client,
+    'product_options',
+    `
     DELETE FROM product_options
     WHERE product_id IN (SELECT id FROM products WHERE store_id = $1)
-  `, [storeId]);
+  `,
+    [storeId],
+  );
 
-  await client.query('DELETE FROM products WHERE store_id = $1', [storeId]);
-  await client.query('DELETE FROM stores    WHERE id = $1', [storeId]);
+  await runCleanupQuery(
+    client,
+    'products',
+    'DELETE FROM products WHERE store_id = $1',
+    [storeId],
+  );
+
+  await runCleanupQuery(
+    client,
+    'stores',
+    'DELETE FROM stores WHERE id = $1',
+    [storeId],
+  );
+}
+
+/** 10k lojas bulk — DELETE em lotes para não estourar statement_timeout. */
+async function deleteBulkStores(client) {
+  const pattern = `${BULK_STORE_LABEL}%`;
+  let total = 0;
+  let batch = 0;
+
+  while (true) {
+    batch += 1;
+    const t0 = Date.now();
+    const res = await client.query(
+      `
+      DELETE FROM stores
+      WHERE id IN (
+        SELECT id FROM stores WHERE name LIKE $1 LIMIT 500
+      )
+    `,
+      [pattern],
+    );
+    if (res.rowCount === 0) break;
+    total += res.rowCount;
+    const sec = ((Date.now() - t0) / 1000).toFixed(1);
+    log(`  bulk stores lote ${batch}: +${res.rowCount} (total ${total}) em ${sec}s`);
+  }
+
+  ok(`bulk stores — ${total} loja(s) removidas em ${batch - 1} lote(s)`);
 }
 
 async function cleanAll(client) {
   log('Limpando dados de teste anteriores...');
+  await configureSetupSession(client);
 
-  // Loja principal (c1/c4) e loja histórica (c3) — ambas com FKs
-  await cleanStoreData(client, TEST_STORE_ID);
-  await cleanStoreData(client, HISTORICAL_STORE_ID);
+  await cleanStoreData(client, TEST_STORE_ID, 'principal (c1/c2/c4)');
+  await cleanStoreData(client, HISTORICAL_STORE_ID, 'histórica (c3)');
 
-  // Lojas bulk (c2) — sem pedidos/produtos, deleção direta
-  await client.query('DELETE FROM stores WHERE name LIKE $1', [`${BULK_STORE_LABEL}%`]);
+  await deleteBulkStores(client);
 
   ok('Limpeza concluída.');
 }
