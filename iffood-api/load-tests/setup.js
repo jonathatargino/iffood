@@ -33,6 +33,11 @@
  *     REDIS_URL / REDIS_HOST        — flush do cache (standalone ou cluster)
  *     REDIS_CLUSTER=true            — ElastiCache Valkey (clustercfg.*)
  *     REDIS_PORT                    — default 6379
+ *     REDIS_TLS=true                — obrigatório na AWS se in-transit encryption
+ *     REDIS_PASSWORD                — se AUTH habilitado no ElastiCache
+ *     LOAD_TEST_SKIP_REDIS_FLUSH=1  — pula flush (ElastiCache só na VPC / sem acesso)
+ *     LOAD_TEST_REDIS_FLUSH_MODE    — scan (padrão cluster) | flushdb | flushall
+ *     LOAD_TEST_REDIS_CONNECT_MS    — timeout de conexão (padrão: 10000)
  *     SQS_QUEUE_URL                 — para purge da fila
  *     AWS_DEFAULT_REGION / AWS_REGION / AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
  *
@@ -219,62 +224,155 @@ async function purgeQueues() {
   }
 
   // Redis (standalone ou ElastiCache Cluster)
-  const redisCfg = resolveRedisEnv(process.env);
-  if (redisCfg) {
-    let redis;
-    try {
-      const IORedis = require('ioredis');
-      redis = createRedisForSetup(IORedis, redisCfg);
-      log(
-        `Flushing cache Redis (${redisCfg.cluster ? 'cluster' : 'standalone'})...`,
-      );
-      await redis.connect();
-      if (redisCfg.cluster) {
-        await redis.flushall();
-        ok('Redis FLUSHALL (cluster) concluído.');
-      } else {
-        await redis.flushdb();
-        ok('Redis FLUSHDB concluído.');
-      }
-    } catch (err) {
-      warn(`Redis flush falhou (${err.message}) — continuando.`);
-    } finally {
-      if (redis) await redis.quit().catch(() => {});
-    }
-  } else {
-    warn('REDIS_HOST / REDIS_URL não definido — pulando flush do cache.');
-  }
+  await purgeRedisCache(process.env);
 }
+
+const STORE_CACHE_KEY_PATTERN = '{store}:list*';
+const DEFAULT_REDIS_CONNECT_MS = 10_000;
+const DEFAULT_REDIS_COMMAND_MS = 20_000;
 
 /** Espelha resolveRedisConfig (src/infra/redis/redis.client.ts) para o script de setup. */
 function resolveRedisEnv(env) {
   const cluster = env.REDIS_CLUSTER === 'true' || env.REDIS_CLUSTER === '1';
   let host = env.REDIS_HOST?.trim();
   let port = parseInt(env.REDIS_PORT || '6379', 10);
+  let password = env.REDIS_PASSWORD?.trim() || undefined;
+  let tls = env.REDIS_TLS === 'true' || env.REDIS_TLS === '1';
 
   if (!host && env.REDIS_URL) {
     try {
       const parsed = new URL(env.REDIS_URL);
       host = parsed.hostname;
       port = parseInt(parsed.port || '6379', 10);
+      if (!password && parsed.password) password = parsed.password;
+      if (!tls && parsed.protocol === 'rediss:') tls = true;
     } catch {
       return null;
     }
   }
 
   if (!host) return null;
-  return { cluster, host, port };
+  return { cluster, host, port, password, tls };
 }
 
 function createRedisForSetup(IORedis, cfg) {
-  const opts = { lazyConnect: true, enableReadyCheck: false };
+  const connectMs = parseInt(envConnectMs(), 10);
+  const redisOptions = {
+    host: cfg.host,
+    port: cfg.port,
+    lazyConnect: true,
+    enableReadyCheck: false,
+    connectTimeout: connectMs,
+    commandTimeout: DEFAULT_REDIS_COMMAND_MS,
+    maxRetriesPerRequest: 1,
+    retryStrategy: () => null,
+    ...(cfg.password ? { password: cfg.password } : {}),
+    ...(cfg.tls ? { tls: {} } : {}),
+  };
+
   if (cfg.cluster) {
     return new IORedis.Cluster([{ host: cfg.host, port: cfg.port }], {
-      ...opts,
-      redisOptions: opts,
+      lazyConnect: true,
+      enableReadyCheck: false,
+      slotsRefreshTimeout: connectMs,
+      clusterRetryStrategy: () => null,
+      redisOptions,
     });
   }
-  return new IORedis({ host: cfg.host, port: cfg.port, ...opts });
+
+  return new IORedis(redisOptions);
+}
+
+function envConnectMs() {
+  return process.env.LOAD_TEST_REDIS_CONNECT_MS || String(DEFAULT_REDIS_CONNECT_MS);
+}
+
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              `${label}: timeout após ${ms}ms (ElastiCache costuma ser só na VPC; use LOAD_TEST_SKIP_REDIS_FLUSH=1 se estiver fora da rede)`,
+            ),
+          ),
+        ms,
+      );
+    }),
+  ]);
+}
+
+/** Remove só chaves do cache de lojas (hash tag {store}) — compatível com Cluster e sem FLUSHALL global. */
+async function scanDeleteStoreCacheKeys(redis) {
+  let cursor = '0';
+  let deleted = 0;
+  do {
+    const [next, keys] = await redis.scan(
+      cursor,
+      'MATCH',
+      STORE_CACHE_KEY_PATTERN,
+      'COUNT',
+      200,
+    );
+    cursor = next;
+    if (keys.length > 0) {
+      await redis.del(...keys);
+      deleted += keys.length;
+    }
+  } while (cursor !== '0');
+  return deleted;
+}
+
+async function purgeRedisCache(env) {
+  if (/^(1|true|yes)$/i.test(env.LOAD_TEST_SKIP_REDIS_FLUSH || '')) {
+    warn('LOAD_TEST_SKIP_REDIS_FLUSH — pulando flush do Redis.');
+    return;
+  }
+
+  const redisCfg = resolveRedisEnv(env);
+  if (!redisCfg) {
+    warn('REDIS_HOST / REDIS_URL não definido — pulando flush do cache.');
+    return;
+  }
+
+  const connectMs = parseInt(envConnectMs(), 10);
+  const flushMode =
+    env.LOAD_TEST_REDIS_FLUSH_MODE ||
+    (redisCfg.cluster ? 'scan' : 'flushdb');
+
+  let redis;
+  try {
+    const IORedis = require('ioredis');
+    redis = createRedisForSetup(IORedis, redisCfg);
+    log(
+      `Redis ${redisCfg.cluster ? 'cluster' : 'standalone'} ` +
+        `${redisCfg.host}:${redisCfg.port} tls=${redisCfg.tls} modo=${flushMode}...`,
+    );
+
+    await withTimeout(redis.connect(), connectMs, 'Redis connect');
+    await withTimeout(redis.ping(), 5_000, 'Redis PING');
+
+    if (flushMode === 'flushall') {
+      await withTimeout(redis.flushall(), DEFAULT_REDIS_COMMAND_MS, 'FLUSHALL');
+      ok('Redis FLUSHALL concluído.');
+    } else if (flushMode === 'flushdb') {
+      await withTimeout(redis.flushdb(), DEFAULT_REDIS_COMMAND_MS, 'FLUSHDB');
+      ok('Redis FLUSHDB concluído.');
+    } else {
+      const deleted = await withTimeout(
+        scanDeleteStoreCacheKeys(redis),
+        60_000,
+        'SCAN cache store',
+      );
+      ok(`Redis: ${deleted} chave(s) "${STORE_CACHE_KEY_PATTERN}" removidas.`);
+    }
+  } catch (err) {
+    warn(`Redis flush falhou (${err.message}) — continuando.`);
+  } finally {
+    if (redis) await redis.quit().catch(() => {});
+  }
 }
 
 // ── 3. user_profile ───────────────────────────────────────────────────────────
