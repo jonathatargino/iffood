@@ -235,10 +235,6 @@ function isElastiCacheClusterEndpoint(host) {
   return host.startsWith('clustercfg.');
 }
 
-function isAwsCacheHost(host) {
-  return host.endsWith('.cache.amazonaws.com');
-}
-
 /** Espelha resolveRedisConfig (src/infra/redis/redis.client.ts) para o script de setup. */
 function resolveRedisEnv(env) {
   let cluster = env.REDIS_CLUSTER === 'true' || env.REDIS_CLUSTER === '1';
@@ -270,12 +266,9 @@ function resolveRedisEnv(env) {
     cluster = true;
   }
 
-  if (isAwsCacheHost(host) && env.REDIS_TLS !== 'false' && !tls) {
-    hints.push('tls=true inferido de *.cache.amazonaws.com');
-    tls = true;
-  }
+  const username = env.REDIS_USERNAME?.trim() || undefined;
 
-  return { cluster, host, port, password, tls, hints };
+  return { cluster, host, port, username, password, tls, hints };
 }
 
 function buildTlsOptions(host) {
@@ -296,6 +289,8 @@ function createRedisForSetup(IORedis, cfg) {
     commandTimeout: DEFAULT_REDIS_COMMAND_MS,
     maxRetriesPerRequest: 1,
     retryStrategy: () => null,
+    family: 4,
+    ...(cfg.username ? { username: cfg.username } : {}),
     ...(cfg.password ? { password: cfg.password } : {}),
     ...(tlsOpts ? { tls: tlsOpts } : {}),
   };

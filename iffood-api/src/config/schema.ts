@@ -20,6 +20,8 @@ export const envSchema = Joi.object({
   REDIS_PORT: Joi.number().port().default(6379),
   /** true = ioredis Cluster (clustercfg.*.cache.amazonaws.com). false = standalone. */
   REDIS_CLUSTER: Joi.boolean().default(false),
+  /** ElastiCache RBAC / ACL (Valkey 7+). */
+  REDIS_USERNAME: Joi.string().optional().allow(''),
   REDIS_PASSWORD: Joi.string().optional().allow(''),
   REDIS_TLS: Joi.boolean().default(false),
   /** LocalStack apenas; em produção omitir para o SDK usar o endpoint regional da AWS. */

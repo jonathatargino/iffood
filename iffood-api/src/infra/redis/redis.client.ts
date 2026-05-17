@@ -7,6 +7,7 @@ export interface RedisConnectionConfig {
   cluster: boolean;
   host: string;
   port: number;
+  username?: string;
   password?: string;
   tls: boolean;
 }
@@ -16,6 +17,7 @@ export interface RedisEnvInput {
   REDIS_HOST?: string;
   REDIS_PORT?: number | string;
   REDIS_URL?: string;
+  REDIS_USERNAME?: string;
   REDIS_PASSWORD?: string;
   REDIS_TLS?: boolean | string;
 }
@@ -24,14 +26,9 @@ function isElastiCacheClusterEndpoint(host: string): boolean {
   return host.startsWith('clustercfg.');
 }
 
-function isAwsCacheHost(host: string): boolean {
-  return host.endsWith('.cache.amazonaws.com');
-}
-
 /**
- * TLS para ElastiCache/Valkey: certificado é emitido para o hostname do endpoint,
- * mas o ioredis abre conexões aos IPs dos nós após CLUSTER SLOTS — sem isso falha
- * "Failed to refresh slots cache".
+ * TLS para ElastiCache/Valkey: certificado cobre o hostname do clustercfg, não os IPs
+ * dos nós retornados por CLUSTER SLOTS — sem isso ocorre "Failed to refresh slots cache".
  */
 function buildTlsOptions(configEndpointHost: string): ConnectionOptions {
   return {
@@ -56,14 +53,6 @@ export function applyRedisHostHeuristics(
     cluster = true;
   }
 
-  if (
-    isAwsCacheHost(host) &&
-    env.REDIS_TLS !== 'false' &&
-    env.REDIS_TLS !== false
-  ) {
-    tls = true;
-  }
-
   return { ...config, cluster, tls, host };
 }
 
@@ -76,6 +65,7 @@ export function resolveRedisConfig(env: RedisEnvInput): RedisConnectionConfig {
 
   let host = env.REDIS_HOST?.trim();
   let port = Number(env.REDIS_PORT ?? 6379);
+  const username = env.REDIS_USERNAME?.trim() || undefined;
   let password = env.REDIS_PASSWORD?.trim() || undefined;
   let tls = env.REDIS_TLS === true || env.REDIS_TLS === 'true';
 
@@ -90,9 +80,19 @@ export function resolveRedisConfig(env: RedisEnvInput): RedisConnectionConfig {
   if (!host) host = 'localhost';
 
   return applyRedisHostHeuristics(
-    { cluster, host, port, password, tls },
+    { cluster, host, port, username, password, tls },
     env,
   );
+}
+
+function authRedisOptions(config: RedisConnectionConfig): Pick<
+  RedisOptions,
+  'username' | 'password'
+> {
+  return {
+    ...(config.username ? { username: config.username } : {}),
+    ...(config.password ? { password: config.password } : {}),
+  };
 }
 
 /** Opções por conexão a um nó do cluster (sem host/port — vêm do CLUSTER SLOTS). */
@@ -102,7 +102,8 @@ function clusterNodeRedisOptions(config: RedisConnectionConfig): RedisOptions {
     enableReadyCheck: false,
     connectTimeout: 10_000,
     commandTimeout: 5_000,
-    ...(config.password ? { password: config.password } : {}),
+    family: 4,
+    ...authRedisOptions(config),
     ...(config.tls ? { tls: buildTlsOptions(config.host) } : {}),
   };
 }
@@ -115,7 +116,7 @@ function standaloneRedisOptions(config: RedisConnectionConfig): RedisOptions {
     enableReadyCheck: true,
     lazyConnect: false,
     connectTimeout: 10_000,
-    ...(config.password ? { password: config.password } : {}),
+    ...authRedisOptions(config),
     ...(config.tls ? { tls: buildTlsOptions(config.host) } : {}),
   };
 }
@@ -156,6 +157,19 @@ export function createRedisClient(config: RedisConnectionConfig): RedisClient {
 
 const ERROR_LOG_THROTTLE_MS = 30_000;
 
+type ClusterFailedError = Error & { lastNodeError?: Error };
+
+export function formatRedisError(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+
+  const clusterErr = err as ClusterFailedError;
+  const parts = [err.message];
+  if (clusterErr.lastNodeError) {
+    parts.push(`lastNode: ${clusterErr.lastNodeError.message}`);
+  }
+  return parts.join(' | ');
+}
+
 export function attachRedisErrorLogger(
   client: RedisClient,
   label = 'Redis',
@@ -166,6 +180,27 @@ export function attachRedisErrorLogger(
     const now = Date.now();
     if (now - lastLoggedAt < ERROR_LOG_THROTTLE_MS) return;
     lastLoggedAt = now;
-    console.error(`[${label}] connection error:`, err.message);
+    console.error(`[${label}] connection error:`, formatRedisError(err));
   });
+}
+
+/** Valida conectividade no bootstrap (loga causa raiz do CLUSTER SLOTS). */
+export async function verifyRedisConnection(
+  client: RedisClient,
+  config: RedisConnectionConfig,
+): Promise<void> {
+  try {
+    const pong = await client.ping();
+    console.log(`[Redis] PING OK (${pong})`);
+  } catch (err) {
+    console.error(`[Redis] PING falhou: ${formatRedisError(err)}`);
+    console.error(
+      `[Redis] config: cluster=${config.cluster} host=${config.host}:${config.port} tls=${config.tls} user=${config.username ? 'sim' : 'não'}`,
+    );
+    if (config.cluster) {
+      console.error(
+        '[Redis] ElastiCache cluster: REDIS_TLS deve ser true se "Encryption in-transit" estiver ON; false se OFF. Confira SG (6379) e AUTH (REDIS_PASSWORD / REDIS_USERNAME).',
+      );
+    }
+  }
 }
