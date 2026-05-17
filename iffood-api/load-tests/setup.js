@@ -278,11 +278,18 @@ function resolveRedisEnv(env) {
   return { cluster, host, port, password, tls, hints };
 }
 
+function buildTlsOptions(host) {
+  return {
+    servername: host,
+    checkServerIdentity: () => undefined,
+  };
+}
+
 function createRedisForSetup(IORedis, cfg) {
   const connectMs = parseInt(envConnectMs(), 10);
-  const redisOptions = {
-    host: cfg.host,
-    port: cfg.port,
+  const tlsOpts = cfg.tls ? buildTlsOptions(cfg.host) : undefined;
+
+  const nodeOptions = {
     lazyConnect: true,
     enableReadyCheck: false,
     connectTimeout: connectMs,
@@ -290,7 +297,7 @@ function createRedisForSetup(IORedis, cfg) {
     maxRetriesPerRequest: 1,
     retryStrategy: () => null,
     ...(cfg.password ? { password: cfg.password } : {}),
-    ...(cfg.tls ? { tls: {} } : {}),
+    ...(tlsOpts ? { tls: tlsOpts } : {}),
   };
 
   if (cfg.cluster) {
@@ -299,11 +306,16 @@ function createRedisForSetup(IORedis, cfg) {
       enableReadyCheck: false,
       slotsRefreshTimeout: connectMs,
       clusterRetryStrategy: () => null,
-      redisOptions,
+      dnsLookup: (address, callback) => callback(null, address),
+      redisOptions: nodeOptions,
     });
   }
 
-  return new IORedis(redisOptions);
+  return new IORedis({
+    host: cfg.host,
+    port: cfg.port,
+    ...nodeOptions,
+  });
 }
 
 function envConnectMs() {

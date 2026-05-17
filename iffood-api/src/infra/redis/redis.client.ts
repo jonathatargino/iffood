@@ -1,4 +1,5 @@
 import Redis, { Cluster, ClusterOptions, RedisOptions } from 'ioredis';
+import type { ConnectionOptions } from 'tls';
 
 export type RedisClient = Redis | Cluster;
 
@@ -25,6 +26,18 @@ function isElastiCacheClusterEndpoint(host: string): boolean {
 
 function isAwsCacheHost(host: string): boolean {
   return host.endsWith('.cache.amazonaws.com');
+}
+
+/**
+ * TLS para ElastiCache/Valkey: certificado é emitido para o hostname do endpoint,
+ * mas o ioredis abre conexões aos IPs dos nós após CLUSTER SLOTS — sem isso falha
+ * "Failed to refresh slots cache".
+ */
+function buildTlsOptions(configEndpointHost: string): ConnectionOptions {
+  return {
+    servername: configEndpointHost,
+    checkServerIdentity: () => undefined,
+  };
 }
 
 /** Ajusta cluster/TLS para endpoints ElastiCache (clustercfg.* exige modo cluster + TLS). */
@@ -82,30 +95,54 @@ export function resolveRedisConfig(env: RedisEnvInput): RedisConnectionConfig {
   );
 }
 
-function baseRedisOptions(config: RedisConnectionConfig): RedisOptions {
+/** Opções por conexão a um nó do cluster (sem host/port — vêm do CLUSTER SLOTS). */
+function clusterNodeRedisOptions(config: RedisConnectionConfig): RedisOptions {
+  return {
+    maxRetriesPerRequest: 3,
+    enableReadyCheck: false,
+    connectTimeout: 10_000,
+    commandTimeout: 5_000,
+    ...(config.password ? { password: config.password } : {}),
+    ...(config.tls ? { tls: buildTlsOptions(config.host) } : {}),
+  };
+}
+
+function standaloneRedisOptions(config: RedisConnectionConfig): RedisOptions {
   return {
     host: config.host,
     port: config.port,
     maxRetriesPerRequest: 3,
     enableReadyCheck: true,
     lazyConnect: false,
+    connectTimeout: 10_000,
     ...(config.password ? { password: config.password } : {}),
-    ...(config.tls ? { tls: {} } : {}),
+    ...(config.tls ? { tls: buildTlsOptions(config.host) } : {}),
   };
 }
 
 /**
+ * Evita que o ioredis substitua hostnames por IP após CLUSTER SLOTS (quebra TLS no ElastiCache).
+ */
+function elasticacheDnsLookup(
+  address: string,
+  callback: (err: Error | null, address: string) => void,
+): void {
+  callback(null, address);
+}
+
+/**
  * Instancia ioredis em modo Cluster (ElastiCache clustercfg / Valkey) ou Standalone (dev).
- * Em cluster, use o hostname de configuração AWS sem prefixo redis://.
  */
 export function createRedisClient(config: RedisConnectionConfig): RedisClient {
   if (config.cluster) {
     const clusterOptions: ClusterOptions = {
-      redisOptions: baseRedisOptions(config),
-      enableReadyCheck: true,
+      redisOptions: clusterNodeRedisOptions(config),
+      dnsLookup: elasticacheDnsLookup,
+      enableReadyCheck: false,
       scaleReads: 'master',
-      slotsRefreshTimeout: 5000,
-      slotsRefreshInterval: 10_000,
+      slotsRefreshTimeout: 10_000,
+      slotsRefreshInterval: 30_000,
+      clusterRetryStrategy: (times) => Math.min(times * 200, 5_000),
     };
 
     return new Redis.Cluster(
@@ -114,14 +151,21 @@ export function createRedisClient(config: RedisConnectionConfig): RedisClient {
     );
   }
 
-  return new Redis(baseRedisOptions(config));
+  return new Redis(standaloneRedisOptions(config));
 }
+
+const ERROR_LOG_THROTTLE_MS = 30_000;
 
 export function attachRedisErrorLogger(
   client: RedisClient,
   label = 'Redis',
 ): void {
+  let lastLoggedAt = 0;
+
   client.on('error', (err: Error) => {
+    const now = Date.now();
+    if (now - lastLoggedAt < ERROR_LOG_THROTTLE_MS) return;
+    lastLoggedAt = now;
     console.error(`[${label}] connection error:`, err.message);
   });
 }
