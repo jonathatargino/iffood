@@ -91,7 +91,11 @@ const METRICS_OF_INTEREST = [
   'http_req_waiting',
   // métricas específicas
   'db_lock_waits',
+  'async_order_processing_ms',
+  'async_order_requests',
   'async_accepted_rate',
+  'async_order_errors',
+  'total_business_latency',
 ];
 
 // ── Leitura dos arquivos ──────────────────────────────────────────────────────
@@ -113,42 +117,130 @@ function extractMetrics(summary) {
 
   const out = {};
   for (const key of METRICS_OF_INTEREST) {
-    if (summary.metrics[key] !== undefined) {
-      out[key] = summary.metrics[key];
-    }
+    const metric = summary.metrics[key];
+    if (metric === undefined) continue;
+    out[key] = isTrendLike(metric) ? formatTrend(metric) : metric;
   }
   return out;
 }
 
-// Formata uma métrica de latência (Trend) em objeto legível
+// Chaves estatísticas de métricas Trend (latência) — inclui stdev para análise de jitter/cauda longa
+const TREND_VALUE_KEYS = ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)', 'stdev'];
+
+const TREND_STAT_KEYS = [...TREND_VALUE_KEYS];
+
+// k6 summary-export: valores flat no objeto; handleSummary / JSON oficial: metric.values
+function hasTrendStats(obj) {
+  if (!obj || typeof obj !== 'object') return false;
+  return TREND_STAT_KEYS.some((k) => obj[k] !== undefined);
+}
+
+function trendSource(metric) {
+  if (!metric) return null;
+  if (metric.values && hasTrendStats(metric.values)) return metric.values;
+  if (hasTrendStats(metric)) return metric;
+  return null;
+}
+
+function isTrendLike(metric) {
+  return trendSource(metric) !== null;
+}
+
+// Formata Trend em objeto legível (med, p(90), stdev, …) preservando thresholds
 function formatTrend(metric) {
-  if (!metric || metric.type !== 'Trend') return metric;
-  return {
-    avg_ms:  round(metric.values?.avg),
-    min_ms:  round(metric.values?.min),
-    med_ms:  round(metric.values?.med),
-    max_ms:  round(metric.values?.max),
-    p90_ms:  round(metric.values?.['p(90)']),
-    p95_ms:  round(metric.values?.['p(95)']),
-    p99_ms:  round(metric.values?.['p(99)']),
-  };
+  const src = trendSource(metric);
+  if (!src) return null;
+
+  const out = {};
+  for (const key of TREND_VALUE_KEYS) {
+    if (src[key] !== undefined) out[key] = round(src[key]);
+  }
+  if (metric.thresholds) out.thresholds = metric.thresholds;
+  return out;
 }
 
 function round(v) {
   return v !== undefined ? Math.round(v * 100) / 100 : null;
 }
 
-// Detecta a métrica de latência principal de um teste
-function primaryLatencyKey(name, metrics) {
+// Counter / Rate: summary-export flat ou aninhado em .values
+function counterStats(metric) {
+  if (!metric) return null;
+  const src = metric.values ?? metric;
+  if (src.count === undefined) return null;
+  return { count: src.count, rate: src.rate };
+}
+
+function rateStats(metric) {
+  if (!metric) return null;
+  const src = metric.values ?? metric;
+  const value = src.value ?? src.rate;
+  if (value === undefined && src.passes === undefined) return null;
+  return {
+    value,
+    passes: src.passes,
+    fails: src.fails,
+  };
+}
+
+function buildThroughput(name, rawMetrics) {
+  const http = counterStats(rawMetrics?.http_reqs);
+  const throughput = {
+    total_requests: http?.count ?? null,
+    rps_avg: round(http?.rate),
+    http: {
+      total_requests: http?.count ?? null,
+      rps_avg: round(http?.rate),
+    },
+  };
+
+  if (name !== 'c4b-async') return throughput;
+
+  const enqueued = counterStats(rawMetrics?.async_order_requests);
+  const accepted = rateStats(rawMetrics?.async_accepted_rate);
+  const errors = rateStats(rawMetrics?.async_order_errors);
+  const businessRaw = rawMetrics?.total_business_latency;
+  const businessSrc = trendSource(businessRaw);
+  const businessCount = businessRaw?.values?.count ?? businessRaw?.count ?? null;
+
+  throughput.accepted_202 = {
+    total: enqueued?.count ?? null,
+    rps_avg: round(enqueued?.rate),
+    acceptance_rate: round(accepted?.value),
+  };
+  throughput.enqueue_errors = {
+    rate: round(errors?.value),
+    passes: errors?.passes ?? null,
+    fails: errors?.fails ?? null,
+  };
+  throughput.finalized = businessSrc && businessCount
+    ? {
+        total: businessCount,
+        rps_avg: round(businessRaw?.values?.rate ?? businessRaw?.rate),
+        latency: formatTrend(businessRaw),
+      }
+    : {
+        total: null,
+        rps_avg: null,
+        note: 'Pós-processamento: correlacionar logs ENQUEUE com updated_at do worker (total_business_latency)',
+      };
+
+  return throughput;
+}
+
+// Detecta a métrica de latência principal a partir do summary bruto do k6
+function primaryLatencyKey(name, rawMetrics) {
+  if (!rawMetrics) return null;
+
   const preferred = PRIMARY_LATENCY_METRIC[name];
-  if (preferred && metrics && metrics[preferred]) return preferred;
+  if (preferred && trendSource(rawMetrics[preferred])) return preferred;
 
   const candidates = [
     `${name.replace(/-/g, '_')}_latency`,
     'http_req_duration',
   ];
   for (const c of candidates) {
-    if (metrics[c]) return c;
+    if (trendSource(rawMetrics[c])) return c;
   }
   return null;
 }
@@ -181,29 +273,32 @@ for (const [name, meta] of Object.entries(TEST_META)) {
   }
 
   totalRan++;
+  const rawMetrics = raw.metrics ?? {};
   const metrics = extractMetrics(raw);
-  const latKey  = primaryLatencyKey(name, metrics);
+  const latKey = primaryLatencyKey(name, rawMetrics);
+  const latMetric = latKey ? rawMetrics[latKey] : null;
 
   const entry = {
     label:   meta.label,
     file:    meta.file,
     status:  raw.state === 'aborted' ? 'aborted' : (raw.thresholds_failed ? 'threshold_failed' : 'ok'),
     latency_metric: latKey || null,
-    latency: latKey ? formatTrend(raw.metrics[latKey]) : null,
-    throughput: {
-      total_requests: raw.metrics?.http_reqs?.values?.count ?? null,
-      rps_avg:        round(raw.metrics?.http_reqs?.values?.rate),
-    },
-    error_rate: round(raw.metrics?.http_req_failed?.values?.rate),
+    latency: formatTrend(latMetric),
+    throughput: buildThroughput(name, rawMetrics),
+    error_rate: round(rateStats(rawMetrics.http_req_failed)?.value),
     raw_metrics: metrics,
   };
 
   // Métricas específicas de cada cenário
-  if (name === 'c1b-high-contention' && metrics.db_lock_waits) {
-    entry.db_lock_waits = metrics.db_lock_waits?.values?.count ?? null;
+  if (name === 'c1b-high-contention' && rawMetrics.db_lock_waits) {
+    const lock = counterStats(rawMetrics.db_lock_waits);
+    entry.db_lock_waits = lock?.count ?? null;
   }
-  if (name === 'c4b-async' && metrics.async_accepted_rate) {
-    entry.async_accepted_rate = round(metrics.async_accepted_rate?.values?.rate);
+  if (name === 'c4b-async') {
+    const accepted = rateStats(rawMetrics.async_accepted_rate);
+    entry.async_accepted_rate = round(accepted?.value);
+    const processing = formatTrend(rawMetrics.async_order_processing_ms);
+    if (processing) entry.enqueue_processing_ms = processing;
   }
 
   scenarios[scenarioKey].tests[name] = entry;
@@ -224,18 +319,24 @@ fs.writeFileSync(OUT_FILE, JSON.stringify(output, null, 2), 'utf8');
 console.log(`[merge-results] Consolidado: ${totalRan} testes → ${OUT_FILE}`);
 
 // ── Preview no terminal ───────────────────────────────────────────────────────
-console.log('\n── Preview de latências (p95) ──────────────────────────────────');
-for (const [sKey, scenario] of Object.entries(output.scenarios)) {
+console.log('\n── Preview de latências (p95 · stdev · throughput) ─────────────');
+for (const [, scenario] of Object.entries(output.scenarios)) {
   const tests = Object.entries(scenario.tests).filter(([, t]) => t.status !== 'skipped');
   if (tests.length === 0) continue;
 
   console.log(`\n  [Cenário ${scenario.id}] ${scenario.label}`);
   for (const [name, test] of tests) {
-    const p95 = test.latency?.p95_ms ?? '—';
+    const p95 = test.latency?.['p(95)'] ?? '—';
+    const stdev = test.latency?.stdev ?? '—';
     const rps = test.throughput?.rps_avg ?? '—';
     const err = test.error_rate !== null ? `${(test.error_rate * 100).toFixed(1)}%` : '—';
     const flag = test.status === 'ok' ? '✓' : test.status === 'threshold_failed' ? '⚠' : '✗';
-    console.log(`    ${flag} ${name.padEnd(25)} p95=${String(p95).padStart(7)}ms  rps=${String(rps).padStart(6)}  err=${err}`);
+    let line = `    ${flag} ${name.padEnd(25)} p95=${String(p95).padStart(7)}ms  stdev=${String(stdev).padStart(7)}ms  rps=${String(rps).padStart(6)}  err=${err}`;
+    if (name === 'c4b-async' && test.throughput?.accepted_202) {
+      const acc = test.throughput.accepted_202;
+      line += `  202=${acc.total ?? '—'}@${acc.rps_avg ?? '—'}/s`;
+    }
+    console.log(line);
   }
 }
 console.log('');
