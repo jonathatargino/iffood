@@ -19,6 +19,41 @@ export interface RedisEnvInput {
   REDIS_TLS?: boolean | string;
 }
 
+function isElastiCacheClusterEndpoint(host: string): boolean {
+  return host.startsWith('clustercfg.');
+}
+
+function isAwsCacheHost(host: string): boolean {
+  return host.endsWith('.cache.amazonaws.com');
+}
+
+/** Ajusta cluster/TLS para endpoints ElastiCache (clustercfg.* exige modo cluster + TLS). */
+export function applyRedisHostHeuristics(
+  config: RedisConnectionConfig,
+  env: RedisEnvInput,
+): RedisConnectionConfig {
+  let { cluster, tls, host } = config;
+
+  if (isElastiCacheClusterEndpoint(host)) {
+    if (env.REDIS_CLUSTER === 'false' || env.REDIS_CLUSTER === false) {
+      console.warn(
+        '[Redis] host clustercfg.* ignorou REDIS_CLUSTER=false — use cluster mode',
+      );
+    }
+    cluster = true;
+  }
+
+  if (
+    isAwsCacheHost(host) &&
+    env.REDIS_TLS !== 'false' &&
+    env.REDIS_TLS !== false
+  ) {
+    tls = true;
+  }
+
+  return { ...config, cluster, tls, host };
+}
+
 /** Resolve host/port a partir de REDIS_HOST ou REDIS_URL (dev local). */
 export function resolveRedisConfig(env: RedisEnvInput): RedisConnectionConfig {
   const cluster =
@@ -41,7 +76,10 @@ export function resolveRedisConfig(env: RedisEnvInput): RedisConnectionConfig {
 
   if (!host) host = 'localhost';
 
-  return { cluster, host, port, password, tls };
+  return applyRedisHostHeuristics(
+    { cluster, host, port, password, tls },
+    env,
+  );
 }
 
 function baseRedisOptions(config: RedisConnectionConfig): RedisOptions {

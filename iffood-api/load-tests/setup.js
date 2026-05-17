@@ -231,13 +231,22 @@ const STORE_CACHE_KEY_PATTERN = '{store}:list*';
 const DEFAULT_REDIS_CONNECT_MS = 10_000;
 const DEFAULT_REDIS_COMMAND_MS = 20_000;
 
+function isElastiCacheClusterEndpoint(host) {
+  return host.startsWith('clustercfg.');
+}
+
+function isAwsCacheHost(host) {
+  return host.endsWith('.cache.amazonaws.com');
+}
+
 /** Espelha resolveRedisConfig (src/infra/redis/redis.client.ts) para o script de setup. */
 function resolveRedisEnv(env) {
-  const cluster = env.REDIS_CLUSTER === 'true' || env.REDIS_CLUSTER === '1';
+  let cluster = env.REDIS_CLUSTER === 'true' || env.REDIS_CLUSTER === '1';
   let host = env.REDIS_HOST?.trim();
   let port = parseInt(env.REDIS_PORT || '6379', 10);
   let password = env.REDIS_PASSWORD?.trim() || undefined;
   let tls = env.REDIS_TLS === 'true' || env.REDIS_TLS === '1';
+  const hints = [];
 
   if (!host && env.REDIS_URL) {
     try {
@@ -252,7 +261,21 @@ function resolveRedisEnv(env) {
   }
 
   if (!host) return null;
-  return { cluster, host, port, password, tls };
+
+  if (isElastiCacheClusterEndpoint(host)) {
+    if (env.REDIS_CLUSTER === 'false') {
+      hints.push('REDIS_CLUSTER=false ignorado (host clustercfg.* exige cluster)');
+    }
+    if (!cluster) hints.push('cluster=true inferido de clustercfg.*');
+    cluster = true;
+  }
+
+  if (isAwsCacheHost(host) && env.REDIS_TLS !== 'false' && !tls) {
+    hints.push('tls=true inferido de *.cache.amazonaws.com');
+    tls = true;
+  }
+
+  return { cluster, host, port, password, tls, hints };
 }
 
 function createRedisForSetup(IORedis, cfg) {
@@ -337,6 +360,10 @@ async function purgeRedisCache(env) {
     return;
   }
 
+  for (const hint of redisCfg.hints || []) {
+    warn(hint);
+  }
+
   const connectMs = parseInt(envConnectMs(), 10);
   const flushMode =
     env.LOAD_TEST_REDIS_FLUSH_MODE ||
@@ -350,6 +377,11 @@ async function purgeRedisCache(env) {
       `Redis ${redisCfg.cluster ? 'cluster' : 'standalone'} ` +
         `${redisCfg.host}:${redisCfg.port} tls=${redisCfg.tls} modo=${flushMode}...`,
     );
+    if (isElastiCacheClusterEndpoint(redisCfg.host) && !redisCfg.tls) {
+      warn(
+        'Host clustercfg.* sem TLS — se o ElastiCache tiver encryption in-transit, defina REDIS_TLS=true',
+      );
+    }
 
     await withTimeout(redis.connect(), connectMs, 'Redis connect');
     await withTimeout(redis.ping(), 5_000, 'Redis PING');
@@ -370,6 +402,14 @@ async function purgeRedisCache(env) {
     }
   } catch (err) {
     warn(`Redis flush falhou (${err.message}) — continuando.`);
+    if (String(err.message).includes('timeout')) {
+      warn(
+        'Checklist: (1) REDIS_CLUSTER=true e REDIS_TLS=true no .env ' +
+          '(2) VM e ElastiCache na mesma VPC ' +
+          '(3) SG do cache libera porta 6379 do SG da VM ' +
+          '(4) ou LOAD_TEST_SKIP_REDIS_FLUSH=1',
+      );
+    }
   } finally {
     if (redis) await redis.quit().catch(() => {});
   }
