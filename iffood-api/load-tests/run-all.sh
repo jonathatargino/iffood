@@ -18,6 +18,10 @@
 #   K6_CONTENTION        — low | high          (opcional, padrão: low)
 #   K6_ONLY              — nome(s) separados por vírgula para rodar apenas alguns
 #                          Ex: K6_ONLY=c4a,c4b ./load-tests/run-all.sh
+#
+# Correlação CloudWatch:
+#   Gera test-windows.json com started_at/ended_at (UTC + epoch ms) por teste.
+#   Use no console Metrics → time range → Absolute → colar os timestamps do arquivo.
 # =============================================================================
 
 set -euo pipefail
@@ -54,8 +58,19 @@ RESULTS_BASE="${SCRIPT_DIR}/results"
 TIMESTAMP=$(date +%Y%m%dT%H%M%S)
 RESULTS_DIR="${RESULTS_BASE}/${TIMESTAMP}"
 FINAL_JSON="${RESULTS_DIR}/all-results.json"
+WINDOWS_JSON="${RESULTS_DIR}/test-windows.json"
+NDJSON_WINDOWS="${RESULTS_DIR}/.test-windows.ndjson"
+AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-west-2}}"
 
 mkdir -p "$RESULTS_DIR"
+: > "$NDJSON_WINDOWS"
+
+# Timestamps UTC (ms) para correlação com gráficos CloudWatch
+utc_iso_ms() { date -u +"%Y-%m-%dT%H:%M:%S.%3NZ"; }
+utc_epoch_ms() { date -u +%s%3N; }
+
+BATCH_STARTED_AT=$(utc_iso_ms)
+BATCH_STARTED_EPOCH_MS=$(utc_epoch_ms)
 
 # Filtro opcional: rodar apenas os testes listados em K6_ONLY
 ONLY_FILTER="${K6_ONLY:-}"
@@ -67,6 +82,70 @@ declare -A TEST_REASON   # motivo do skip, se houver
 # =============================================================================
 # Funções auxiliares
 # =============================================================================
+
+scenario_for_test() {
+  case "$1" in
+    c1a*|c1b*) echo 1 ;;
+    c2a*|c2b*) echo 2 ;;
+    c3a*|c3b*) echo 3 ;;
+    c4a*|c4b*) echo 4 ;;
+    *) echo "" ;;
+  esac
+}
+
+# Registra janela de execução (NDJSON → test-windows.json no fim)
+append_test_window() {
+  local name="$1" status="$2" exit_code="$3"
+  local started_at="$4" ended_at="$5" start_ms="$6" end_ms="$7"
+  local scenario
+  scenario=$(scenario_for_test "$name")
+  node -e "
+    const fs = require('fs');
+    const s = process.argv[6] === '' ? null : Number(process.argv[6]);
+    const e = process.argv[7] === '' ? null : Number(process.argv[7]);
+    const row = {
+      name: process.argv[1],
+      scenario: process.argv[2] === '' ? null : Number(process.argv[2]),
+      status: process.argv[3],
+      exit_code: process.argv[4] === '' ? null : Number(process.argv[4]),
+      started_at: process.argv[5] || null,
+      ended_at: process.argv[8] || null,
+      started_at_epoch_ms: s,
+      ended_at_epoch_ms: e,
+      duration_ms: s != null && e != null ? e - s : null,
+    };
+    fs.appendFileSync(process.argv[9], JSON.stringify(row) + '\n');
+  " "$name" "$scenario" "$status" "$exit_code" "$started_at" "$start_ms" "$end_ms" "$ended_at" "$NDJSON_WINDOWS"
+}
+
+print_cloudwatch_table() {
+  if [[ ! -f "$WINDOWS_JSON" ]]; then
+    return
+  fi
+  node -e "
+    const w = require(process.argv[1]);
+    console.log('');
+    console.log('── Janelas CloudWatch (UTC) — copie para o console ─────────────');
+    if (w.batch?.started_at) {
+      console.log('  Bateria completa:');
+      console.log('    de ' + w.batch.started_at);
+      console.log('    até ' + w.batch.ended_at);
+      console.log('    (' + (w.batch.duration_ms / 1000).toFixed(1) + 's)');
+    }
+    console.log('');
+    for (const [name, t] of Object.entries(w.tests || {})) {
+      if (!t.started_at) {
+        console.log('  – ' + name.padEnd(24) + ' (pulado / sem janela)');
+        continue;
+      }
+      const sec = t.duration_ms != null ? (t.duration_ms / 1000).toFixed(1) + 's' : '?';
+      console.log('  • ' + name.padEnd(24) + t.started_at + '  →  ' + t.ended_at + '  (' + sec + ')');
+    }
+    console.log('');
+    console.log('  Região sugerida no console: ' + process.argv[2]);
+    console.log('');
+  " "$WINDOWS_JSON" "$AWS_REGION"
+}
 
 # Verifica se um teste deve ser incluído (filtro K6_ONLY)
 should_run() {
@@ -92,15 +171,22 @@ run_test() {
     warn "Pulando ${name} (não está em K6_ONLY='${ONLY_FILTER}')"
     TEST_STATUS["$name"]="skip"
     TEST_REASON["$name"]="filtrado por K6_ONLY"
+    append_test_window "$name" "skip" "" "" "" "" ""
     return
   fi
 
+  local started_at ended_at start_ms end_ms
+  started_at=$(utc_iso_ms)
+  start_ms=$(utc_epoch_ms)
+
   log "Iniciando: ${BOLD}${name}${RESET}"
+  log "  CloudWatch início (UTC): ${started_at}"
 
   local env_prefix=()
   for e in "${extra_env[@]}"; do
     env_prefix+=("$e")
   done
+  env_prefix+=("K6_RUN_ID=${TIMESTAMP}" "K6_TEST_NAME=${name}")
 
   local exit_code=0
   env "${env_prefix[@]}" k6 run \
@@ -108,17 +194,26 @@ run_test() {
     "$file" \
     || exit_code=$?
 
+  ended_at=$(utc_iso_ms)
+  end_ms=$(utc_epoch_ms)
+  local duration_s
+  duration_s=$(awk "BEGIN { printf \"%.1f\", (${end_ms} - ${start_ms}) / 1000 }")
+
   if [[ $exit_code -eq 0 ]]; then
-    ok "${name} concluído"
+    ok "${name} concluído (${duration_s}s)"
     TEST_STATUS["$name"]="ok"
   elif [[ $exit_code -eq 99 ]]; then
     # k6 retorna 99 quando thresholds falham mas o teste rodou
-    warn "${name} concluído com thresholds violados (exit ${exit_code})"
+    warn "${name} concluído com thresholds violados (exit ${exit_code}, ${duration_s}s)"
     TEST_STATUS["$name"]="threshold_failed"
   else
-    fail "${name} falhou (exit ${exit_code})"
+    fail "${name} falhou (exit ${exit_code}, ${duration_s}s)"
     TEST_STATUS["$name"]="error"
   fi
+
+  log "  CloudWatch fim (UTC):    ${ended_at}"
+  append_test_window "$name" "${TEST_STATUS[$name]}" "$exit_code" \
+    "$started_at" "$ended_at" "$start_ms" "$end_ms"
 }
 
 # Pula um teste com motivo explícito
@@ -128,6 +223,7 @@ skip_test() {
   warn "Pulando ${name}: ${reason}"
   TEST_STATUS["$name"]="skip"
   TEST_REASON["$name"]="$reason"
+  append_test_window "$name" "skip" "" "" "" "" ""
 }
 
 # =============================================================================
@@ -224,6 +320,25 @@ fi
 echo ""
 
 # =============================================================================
+# Janelas temporais (CloudWatch)
+# =============================================================================
+
+BATCH_ENDED_AT=$(utc_iso_ms)
+BATCH_ENDED_EPOCH_MS=$(utc_epoch_ms)
+
+log "Gerando ${WINDOWS_JSON} (correlação CloudWatch)..."
+node "${SCRIPT_DIR}/emit-test-windows.js" \
+  --out="${WINDOWS_JSON}" \
+  --run-id="${TIMESTAMP}" \
+  --batch-started-at="${BATCH_STARTED_AT}" \
+  --batch-started-epoch-ms="${BATCH_STARTED_EPOCH_MS}" \
+  --batch-ended-at="${BATCH_ENDED_AT}" \
+  --batch-ended-epoch-ms="${BATCH_ENDED_EPOCH_MS}" \
+  --ndjson="${NDJSON_WINDOWS}"
+
+print_cloudwatch_table
+
+# =============================================================================
 # Consolidar resultados em all-results.json
 # =============================================================================
 
@@ -268,4 +383,5 @@ done
 
 echo ""
 echo -e "  Resultados consolidados → ${BOLD}${FINAL_JSON}${RESET}"
+echo -e "  Janelas CloudWatch (UTC) → ${BOLD}${WINDOWS_JSON}${RESET}"
 echo ""

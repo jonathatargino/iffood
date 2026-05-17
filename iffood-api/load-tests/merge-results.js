@@ -36,6 +36,34 @@ if (!RESULTS_DIR) {
   process.exit(1);
 }
 
+const WINDOWS_FILE = path.join(RESULTS_DIR, 'test-windows.json');
+
+function loadTestWindows() {
+  if (!fs.existsSync(WINDOWS_FILE)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(WINDOWS_FILE, 'utf8'));
+  } catch (e) {
+    console.warn(`[merge-results] Falha ao ler ${WINDOWS_FILE}: ${e.message}`);
+    return null;
+  }
+}
+
+function attachExecutionWindow(entry, testName, windows) {
+  const w = windows?.tests?.[testName];
+  if (!w) return entry;
+  entry.execution = {
+    started_at: w.started_at,
+    ended_at: w.ended_at,
+    started_at_epoch_ms: w.started_at_epoch_ms,
+    ended_at_epoch_ms: w.ended_at_epoch_ms,
+    duration_ms: w.duration_ms,
+    exit_code: w.exit_code,
+    run_status: w.status,
+    cloudwatch: w.cloudwatch,
+  };
+  return entry;
+}
+
 // ── Metadados dos testes ──────────────────────────────────────────────────────
 const TEST_META = {
   'c1a-low-contention':  { scenario: 1, label: 'Lock Pessimista — Baixa Contenção',      file: 'c1a-low-contention.js'  },
@@ -257,6 +285,7 @@ for (const num of [1, 2, 3, 4]) {
 
 let totalRan = 0;
 let totalSkipped = 0;
+const testWindows = loadTestWindows();
 
 for (const [name, meta] of Object.entries(TEST_META)) {
   const raw = readSummary(name);
@@ -264,11 +293,13 @@ for (const [name, meta] of Object.entries(TEST_META)) {
 
   if (!raw) {
     totalSkipped++;
-    scenarios[scenarioKey].tests[name] = {
+    const skippedEntry = {
       label:  meta.label,
       file:   meta.file,
-      status: 'skipped',
+      status: testWindows?.tests?.[name]?.status === 'skip' ? 'skipped' : 'skipped',
     };
+    attachExecutionWindow(skippedEntry, name, testWindows);
+    scenarios[scenarioKey].tests[name] = skippedEntry;
     continue;
   }
 
@@ -301,8 +332,23 @@ for (const [name, meta] of Object.entries(TEST_META)) {
     if (processing) entry.enqueue_processing_ms = processing;
   }
 
+  attachExecutionWindow(entry, name, testWindows);
   scenarios[scenarioKey].tests[name] = entry;
 }
+
+const cloudwatchTimeline = testWindows
+  ? Object.entries(testWindows.tests || {})
+      .filter(([, w]) => w.started_at && w.ended_at)
+      .map(([testId, w]) => ({
+        test_id: testId,
+        scenario: w.scenario,
+        started_at: w.started_at,
+        ended_at: w.ended_at,
+        started_at_epoch_ms: w.started_at_epoch_ms,
+        ended_at_epoch_ms: w.ended_at_epoch_ms,
+        duration_ms: w.duration_ms,
+      }))
+  : [];
 
 const output = {
   meta: {
@@ -311,8 +357,15 @@ const output = {
     base_url:     BASE_URL,
     tests_ran:    totalRan,
     tests_skipped: totalSkipped,
+    timezone: 'UTC',
+    batch: testWindows?.batch ?? null,
+    cloudwatch: testWindows?.cloudwatch ?? {
+      note: 'Execute ./load-tests/run-all.sh para gerar test-windows.json com janelas UTC.',
+    },
+    cloudwatch_timeline: cloudwatchTimeline,
   },
   scenarios,
+  test_windows: testWindows,
 };
 
 fs.writeFileSync(OUT_FILE, JSON.stringify(output, null, 2), 'utf8');
@@ -336,7 +389,21 @@ for (const [, scenario] of Object.entries(output.scenarios)) {
       const acc = test.throughput.accepted_202;
       line += `  202=${acc.total ?? '—'}@${acc.rps_avg ?? '—'}/s`;
     }
+    const win = test.execution?.cloudwatch;
+    if (win?.from) {
+      line += `  CW=${win.from}→${win.to}`;
+    }
     console.log(line);
+  }
+}
+
+if (cloudwatchTimeline.length > 0) {
+  console.log('\n── CloudWatch (UTC) — use intervalo absoluto no console ────────');
+  for (const row of cloudwatchTimeline) {
+    const sec = row.duration_ms != null ? `${(row.duration_ms / 1000).toFixed(1)}s` : '?';
+    console.log(
+      `  ${row.test_id.padEnd(24)} ${row.started_at}  →  ${row.ended_at}  (${sec})`,
+    );
   }
 }
 console.log('');

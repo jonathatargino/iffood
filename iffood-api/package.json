@@ -26,6 +26,7 @@
     "load:setup": "node load-tests/setup.js",
     "load:all": "bash load-tests/run-all.sh",
     "load:merge": "node load-tests/merge-results.js",
+    "load:windows": "node load-tests/emit-test-windows.js",
     "verify:k6-auth": "node load-tests/verify-k6-auth.js"
   },
   "dependencies": {
