@@ -278,17 +278,17 @@ function buildTlsOptions(host) {
   };
 }
 
+/**
+ * Mesmas opções do teste manual que retorna PONG no ElastiCache (TLS + clustercfg).
+ * Evita lazyConnect/clusterRetryStrategy:null no cluster — causavam "startup nodes unavailable".
+ */
 function createRedisForSetup(IORedis, cfg) {
   const connectMs = parseInt(envConnectMs(), 10);
   const tlsOpts = cfg.tls ? buildTlsOptions(cfg.host) : undefined;
 
-  const nodeOptions = {
-    lazyConnect: true,
-    enableReadyCheck: false,
+  const sharedNodeOptions = {
     connectTimeout: connectMs,
     commandTimeout: DEFAULT_REDIS_COMMAND_MS,
-    maxRetriesPerRequest: 1,
-    retryStrategy: () => null,
     family: 4,
     ...(cfg.username ? { username: cfg.username } : {}),
     ...(cfg.password ? { password: cfg.password } : {}),
@@ -297,20 +297,27 @@ function createRedisForSetup(IORedis, cfg) {
 
   if (cfg.cluster) {
     return new IORedis.Cluster([{ host: cfg.host, port: cfg.port }], {
-      lazyConnect: true,
+      dnsLookup: (address, callback) => callback(null, address),
       enableReadyCheck: false,
       slotsRefreshTimeout: connectMs,
-      clusterRetryStrategy: () => null,
-      dnsLookup: (address, callback) => callback(null, address),
-      redisOptions: nodeOptions,
+      slotsRefreshInterval: 30_000,
+      redisOptions: sharedNodeOptions,
     });
   }
 
   return new IORedis({
     host: cfg.host,
     port: cfg.port,
-    ...nodeOptions,
+    lazyConnect: true,
+    enableReadyCheck: false,
+    ...sharedNodeOptions,
   });
+}
+
+function formatRedisSetupError(err) {
+  if (!err || !err.message) return String(err);
+  const last = err.lastNodeError?.message;
+  return last ? `${err.message} | lastNode: ${last}` : err.message;
 }
 
 function envConnectMs() {
@@ -380,6 +387,9 @@ async function purgeRedisCache(env) {
   try {
     const IORedis = require('ioredis');
     redis = createRedisForSetup(IORedis, redisCfg);
+    redis.on('error', () => {
+      /* ioredis emite error assíncrono no slot refresh — evita Unhandled error event */
+    });
     log(
       `Redis ${redisCfg.cluster ? 'cluster' : 'standalone'} ` +
         `${redisCfg.host}:${redisCfg.port} tls=${redisCfg.tls} modo=${flushMode}...`,
@@ -390,8 +400,10 @@ async function purgeRedisCache(env) {
       );
     }
 
-    await withTimeout(redis.connect(), connectMs, 'Redis connect');
-    await withTimeout(redis.ping(), 5_000, 'Redis PING');
+    if (!redisCfg.cluster) {
+      await withTimeout(redis.connect(), connectMs, 'Redis connect');
+    }
+    await withTimeout(redis.ping(), connectMs, 'Redis PING');
 
     if (flushMode === 'flushall') {
       await withTimeout(redis.flushall(), DEFAULT_REDIS_COMMAND_MS, 'FLUSHALL');
@@ -408,7 +420,7 @@ async function purgeRedisCache(env) {
       ok(`Redis: ${deleted} chave(s) "${STORE_CACHE_KEY_PATTERN}" removidas.`);
     }
   } catch (err) {
-    warn(`Redis flush falhou (${err.message}) — continuando.`);
+    warn(`Redis flush falhou (${formatRedisSetupError(err)}) — continuando.`);
     if (String(err.message).includes('timeout')) {
       warn(
         'Checklist: (1) REDIS_CLUSTER=true e REDIS_TLS=true no .env ' +
