@@ -29,6 +29,7 @@
 import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
+import { CANONICAL_STAGES } from './stages.js';
 
 // ── Configuração ──────────────────────────────────────────────────────────────
 const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:3006';
@@ -61,13 +62,7 @@ const tlsLatency      = new Trend('conn_tls_handshaking_ms', true);
 // ── Opções ────────────────────────────────────────────────────────────────────
 export const options = {
   setupTimeout: '90s',
-  stages: [
-    { duration: '30s', target: 25  },
-    { duration: '30s', target: 75  },
-    { duration: '60s', target: 150 },
-    { duration: '30s', target: 200 },
-    { duration: '30s', target: 0   },
-  ],
+  stages: CANONICAL_STAGES,
   thresholds: {
     // 1. Threshold sobre processing time isolado
     store_list_cached_processing_ms: ['p(95)<500'],

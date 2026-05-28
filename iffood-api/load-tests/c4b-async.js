@@ -11,7 +11,7 @@
  *   - Latência de enfileiramento isolada (avg, p95, p99) — sem ruído de rede AWS
  *   - Throughput (RPS)
  *   - Taxa de erro sob carga crescente
- *   - Resiliência no pico de 200 VUs (manutenção de 202 vs. 5xx do modo síncrono)
+ *   - Resiliência no pico de 100 VUs (manutenção de 202 vs. 5xx do modo síncrono)
  *
  * IMPORTANTE: payload, headers, perfil de carga e think time são intencionalmente
  * idênticos ao c4a-sync.js. A única diferença é o endpoint e o modo de
@@ -64,6 +64,7 @@
 import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
+import { CANONICAL_STAGES, formatStagesSummary } from './stages.js';
 
 /** cartId deve ser UUID (@IsUUID no CreateOrderRequestDto). */
 function uuidv4() {
@@ -97,27 +98,15 @@ const businessLatency = new Trend('total_business_latency', true);
 
 // ── Perfil de carga ───────────────────────────────────────────────────────────
 /**
- * Idêntico ao c4a-sync.js — NÃO altere sem replicar lá.
- *
- * 3. O stage final foi elevado de 100 → 200 VUs para demonstrar a resiliência
- *    do modelo assíncrono: enquanto c4a começa a dar 5xx, c4b mantém 202
- *    porque a API apenas enfileira e não aguarda o lock do PostgreSQL.
+ * Perfil canônico idêntico ao c4a-sync.js — ver stages.js.
  */
 export const options = {
-  stages: [
-    { duration: '30s', target: 10  },
-    { duration: '60s', target: 50  },
-    { duration: '60s', target: 100 },
-    // 3. Pico de stress: ponto de divergência entre síncrono (5xx) e assíncrono (202)
-    { duration: '60s', target: 200 },
-    { duration: '30s', target: 0   },
-  ],
+  stages: CANONICAL_STAGES,
   thresholds: {
     // 1. Threshold sobre processing time isolado (custo puro de enfileiramento SQS)
     async_order_processing_ms: ['p(95)<1000', 'p(99)<2000'],
     async_order_latency:       ['p(95)<1200', 'p(99)<2500'],
     async_order_errors:        ['rate<0.05'],
-    // Deve permanecer >0.95 mesmo em 200 VUs — prova a resiliência do modelo async
     async_accepted_rate:       ['rate>0.95'],
   },
 };
@@ -130,7 +119,7 @@ export function setup() {
   console.log(`[C4B][setup] run_id:        ${RUN_ID}`);
   console.log(`[C4B][setup] contention:    ${CONTENTION}`);
   console.log(`[C4B][setup] order targets: ${ORDER_TARGETS.length}`);
-  console.log(`[C4B][setup] pico máximo:   200 VUs — esperado: async mantém 202 enquanto sync dá 5xx.`);
+  console.log(`[C4B][setup] pico máximo:   100 VUs — perfil ${formatStagesSummary()}.`);
   console.log(`[C4B][setup] total_business_latency: colete logs "ENQUEUE" e junte com updated_at do banco.`);
 }
 

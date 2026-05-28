@@ -65,6 +65,16 @@ function parseArgs(argv) {
   return out;
 }
 
+/** fetch() exige esquema (http/https). Aceita "host:porta" e prefixa http:// */
+function normalizeBaseUrl(raw) {
+  const trimmed = String(raw || '').trim();
+  if (!trimmed) return 'http://localhost:3006';
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed.replace(/\/+$/, '');
+  }
+  return `http://${trimmed.replace(/\/+$/, '')}`;
+}
+
 async function fetchWithTimeout(url, options, ms) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
@@ -88,12 +98,19 @@ async function main() {
   const app = readParsed(ENV_APP);
   const k6file = readParsed(ENV_K6_CANON);
 
-  const baseUrl =
+  const baseUrlRaw =
     cli.url ||
     process.env.K6_BASE_URL ||
     (k6file && k6file.K6_BASE_URL) ||
     (app && app.K6_BASE_URL) ||
     'http://localhost:3006';
+
+  const baseUrl = normalizeBaseUrl(baseUrlRaw);
+  if (baseUrl !== String(baseUrlRaw).trim().replace(/\/+$/, '')) {
+    console.warn(
+      `[verify-k6-auth] K6_BASE_URL sem http(s):// — usando ${baseUrl}`,
+    );
+  }
 
   const tokenRaw =
     cli.token ||

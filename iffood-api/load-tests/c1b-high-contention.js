@@ -24,6 +24,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
+import { CANONICAL_STAGES, computePeakWindow } from './stages.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function uuidv4() {
@@ -31,33 +32,6 @@ function uuidv4() {
     const r = (Math.random() * 16) | 0;
     return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
-}
-
-function parseDurationMs(d) {
-  if (d.endsWith('s')) return parseInt(d, 10) * 1000;
-  if (d.endsWith('m')) return parseInt(d, 10) * 60_000;
-  return parseInt(d, 10) * 1000;
-}
-
-/**
- * Encontra a janela (offset + duração) do estágio com maior número de VUs.
- * Usado para logar os timestamps esperados da fase de pico.
- */
-function computePeakWindow(stages) {
-  let offset = 0;
-  let maxTarget = 0;
-  let peakStart = 0;
-  let peakDuration = 0;
-  for (const stage of stages) {
-    const dur = parseDurationMs(stage.duration);
-    if (stage.target > maxTarget) {
-      maxTarget    = stage.target;
-      peakStart    = offset;
-      peakDuration = dur;
-    }
-    offset += dur;
-  }
-  return { peakStart, peakDuration };
 }
 
 // ── Configuração ──────────────────────────────────────────────────────────────
@@ -71,14 +45,6 @@ const SCENARIO = 'high-contention';
 // 1. Threshold para isolar tempo de processamento/espera de banco
 //    db_lock_waits só é incrementado quando (duration - connecting - tls) > 2000ms
 const DB_LOCK_WAIT_THRESHOLD_MS = 2000;
-
-const STAGES = [
-  { duration: '15s', target: 20  },
-  { duration: '30s', target: 80  },
-  { duration: '60s', target: 150 },
-  { duration: '30s', target: 200 }, // fase de pico
-  { duration: '30s', target: 0   },
-];
 
 // ── Métricas ──────────────────────────────────────────────────────────────────
 const latencyTrend    = new Trend('order_high_contention_latency', true);
@@ -95,7 +61,7 @@ const healthLatency   = new Trend('health_check_latency', true);
 
 // ── Opções ────────────────────────────────────────────────────────────────────
 export const options = {
-  stages: STAGES,
+  stages: CANONICAL_STAGES,
   thresholds: {
     order_high_contention_latency: ['p(95)<10000'],
     // 5. Critério de sucesso mais rigoroso: reduzido de 0.5 → 0.2
@@ -107,7 +73,7 @@ export const options = {
 export function setup() {
   // 6. Timestamps de início e janela esperada do pico (correlação com CloudWatch)
   const startMs                    = Date.now();
-  const { peakStart, peakDuration } = computePeakWindow(STAGES);
+  const { peakStart, peakDuration } = computePeakWindow(CANONICAL_STAGES);
   const peakBeginIso               = new Date(startMs + peakStart).toISOString();
   const peakEndIso                 = new Date(startMs + peakStart + peakDuration).toISOString();
 

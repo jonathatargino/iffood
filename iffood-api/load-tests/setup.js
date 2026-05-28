@@ -17,7 +17,8 @@
  *   - Purge de SQS e Redis → isolamento total do Cenário 4
  *
  * Uso:
- *   node load-tests/setup.js
+ *   node load-tests/setup.js              # setup completo (banco + .env.k6)
+ *   node load-tests/setup.js --reset-quick  # só loja c1/c4: limpa pedidos, repõe estoque, SQS/Redis
  *
  * Variáveis de ambiente (lidas do .env da raiz ou do shell):
  *
@@ -58,7 +59,16 @@ try {
 } catch { /* usa env do shell */ }
 
 // ── Configuração ──────────────────────────────────────────────────────────────
-const BASE_URL = process.env.K6_BASE_URL   || 'http://localhost:3006';
+function normalizeBaseUrl(raw) {
+  const trimmed = String(raw || '').trim();
+  if (!trimmed) return 'http://localhost:3006';
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed.replace(/\/+$/, '');
+  }
+  return `http://${trimmed.replace(/\/+$/, '')}`;
+}
+
+const BASE_URL = normalizeBaseUrl(process.env.K6_BASE_URL);
 const DB_URL   = process.env.DB_URL        || '';
 const TOKEN    = process.env.K6_AUTH_TOKEN || '';
 
@@ -823,80 +833,107 @@ function buildEnvK6() {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-async function main() {
+
+function printSetupBanner(mode) {
   console.log('');
   console.log(`${B}══════════════════════════════════════════════════════${X}`);
-  console.log(`${B} Setup de Load Tests — iffood-api${X}`);
+  console.log(`${B} Setup de Load Tests — iffood-api (${mode})${X}`);
   console.log(`${B}══════════════════════════════════════════════════════${X}`);
   console.log(`  API: ${BASE_URL}`);
   console.log('');
+}
 
-  if (!TOKEN)  fail('K6_AUTH_TOKEN não definido no .env ou no shell.');
+function assertCredentials() {
+  if (!TOKEN) fail('K6_AUTH_TOKEN não definido no .env ou no shell.');
   if (!DB_URL) fail('DB_URL não definido no .env ou no shell.');
+  return decodeJwt(TOKEN);
+}
 
-  const payload    = decodeJwt(TOKEN);
+/**
+ * Reset leve antes de c1/c4 isolados (run-one.sh):
+ * purge SQS + Redis, limpa só a loja de pedidos, repõe ORDER_TARGETS com estoque 500.
+ * Não recria 50k pedidos históricos nem 10k lojas bulk.
+ */
+async function runQuickReset() {
+  printSetupBanner('reset rápido — c1 / c4');
+  const payload = assertCredentials();
   const userAuthId = payload.sub;
-  const email      = payload.email || 'loadtest@example.com';
+  const email = payload.email || 'loadtest@example.com';
 
-  // 1. Purge de mensageria ANTES de limpar o banco (operações independentes)
   await purgeQueues();
 
   const client = new Client({ connectionString: DB_URL });
   await client.connect();
 
   try {
-    // 2. Limpar todos os dados de teste anteriores
-    await cleanAll(client);
-
-    // 3. Garantir user_profile
-    const userProfileId = await upsertUserProfile(client, userAuthId, email);
-
-    // 4. Loja de teste (c1/c2/c4) — sem pedidos históricos
+    await configureSetupSession(client);
+    await cleanStoreData(client, TEST_STORE_ID, 'principal (c1/c2/c4)');
+    await upsertUserProfile(client, userAuthId, email);
     await createTestStore(client);
-
-    // 5. Disponibilidades da loja de teste
     await createStoreAvailabilities(client);
-
-    // 5b. Loja histórica isolada (c3) — receberá produtos PRODUCT_IDS e 50k pedidos
-    await createHistoricalStore(client);
-
-    // 6. Produtos ORDER_TARGETS → TEST_STORE_ID (c1a, c4a, c4b)
     await createOrderTargetProducts(client);
+  } finally {
+    await client.end();
+  }
 
-    // 7. Produtos PRODUCT_IDS → HISTORICAL_STORE_ID (c3a, c3b)
+  const { orderTargets } = buildEnvK6();
+  console.log('');
+  ok(`Reset rápido concluído — ${orderTargets.length} ORDER_TARGETS com estoque ${PRODUCT_OPTION_QUANTITY}.`);
+  console.log(`  ${C}Próximo passo:${X} ./load-tests/run-one.sh c4a`);
+  console.log('');
+}
+
+async function runFullSetup() {
+  printSetupBanner('completo');
+  const payload = assertCredentials();
+  const userAuthId = payload.sub;
+  const email = payload.email || 'loadtest@example.com';
+
+  await purgeQueues();
+
+  const client = new Client({ connectionString: DB_URL });
+  await client.connect();
+
+  try {
+    await cleanAll(client);
+    const userProfileId = await upsertUserProfile(client, userAuthId, email);
+    await createTestStore(client);
+    await createStoreAvailabilities(client);
+    await createHistoricalStore(client);
+    await createOrderTargetProducts(client);
     await createProductIdProducts(client);
-
-    // 8. Bulk stores com status variado (c2a, c2b)
     await bulkInsertStores(client);
-
-    // 9. Pedidos históricos (c3a, c3b — volume real para JOINs)
     await createHistoricalOrders(client, userProfileId);
-
-    // 10. ANALYZE — garante planos de execução corretos
     await analyzeDatabase(client);
   } finally {
     await client.end();
   }
 
-  // 11. Gravar .env.k6
   const { orderTargets, productIds } = buildEnvK6();
 
   console.log('');
   console.log(`${B}══════════════════════════════════════════════════════${X}`);
   console.log(`${G}${B} Setup concluído — banco em estado reproduzível!${X}`);
   console.log(`${B}══════════════════════════════════════════════════════${X}`);
-  console.log(`  Loja de teste (c1/c2/c4) : ${TEST_STORE_ID}  ← SEM pedidos históricos`);
-  console.log(`  Loja histórica (c3)      : ${HISTORICAL_STORE_ID}  ← 50k pedidos`);
-  console.log(`  ORDER_TARGETS        : ${orderTargets.length} produtos (UUIDs fixos)`);
-  console.log(`  CONTENTION_TARGET    : ${orderTargets[0].productOptionId.slice(0, 8)}...`);
-  console.log(`  PRODUCT_IDS          : ${productIds.length} IDs fixos para c3a/c3b`);
-  console.log(`  Pedidos históricos   : ${HISTORICAL_ORDER_COUNT.toLocaleString()} (loja histórica, último ano)`);
-  console.log(`  Lojas bulk           : ${BULK_STORE_COUNT.toLocaleString()} (~87% abertas)`);
-  console.log(`  Estoque por opção    : ${PRODUCT_OPTION_QUANTITY} unidades (resetado)`);
+  console.log(`  Loja de teste (c1/c2/c4) : ${TEST_STORE_ID}`);
+  console.log(`  Loja histórica (c3)      : ${HISTORICAL_STORE_ID}  ← ${HISTORICAL_ORDER_COUNT.toLocaleString()} pedidos`);
+  console.log(`  ORDER_TARGETS        : ${orderTargets.length} produtos`);
+  console.log(`  PRODUCT_IDS          : ${productIds.length} IDs (c3)`);
+  console.log(`  Lojas bulk           : ${BULK_STORE_COUNT.toLocaleString()}`);
   console.log(`  .env.k6              : ${OUT_FILE}`);
   console.log('');
-  console.log(`  ${C}Próximo passo:${X} bash load-tests/run-all.sh`);
+  console.log(`  ${C}Próximo passo:${X} ./load-tests/run-one.sh c4a`);
+  console.log(`  ${C}Bateria completa:${X} ./load-tests/run-all.sh`);
   console.log('');
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  if (args.includes('--reset-quick')) {
+    await runQuickReset();
+    return;
+  }
+  await runFullSetup();
 }
 
 main().catch((err) => {

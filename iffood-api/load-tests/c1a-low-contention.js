@@ -22,6 +22,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
+import { CANONICAL_STAGES, computePeakWindow, maxStageVUs } from './stages.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function uuidv4() {
@@ -29,33 +30,6 @@ function uuidv4() {
     const r = (Math.random() * 16) | 0;
     return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
-}
-
-function parseDurationMs(d) {
-  if (d.endsWith('s')) return parseInt(d, 10) * 1000;
-  if (d.endsWith('m')) return parseInt(d, 10) * 60_000;
-  return parseInt(d, 10) * 1000;
-}
-
-/**
- * Encontra a janela (offset + duração) do estágio com maior número de VUs.
- * Usado para logar os timestamps esperados da fase de pico.
- */
-function computePeakWindow(stages) {
-  let offset = 0;
-  let maxTarget = 0;
-  let peakStart = 0;
-  let peakDuration = 0;
-  for (const stage of stages) {
-    const dur = parseDurationMs(stage.duration);
-    if (stage.target > maxTarget) {
-      maxTarget    = stage.target;
-      peakStart    = offset;
-      peakDuration = dur;
-    }
-    offset += dur;
-  }
-  return { peakStart, peakDuration };
 }
 
 // ── Configuração ──────────────────────────────────────────────────────────────
@@ -66,14 +40,6 @@ const ORDER_TARGETS = __ENV.K6_ORDER_TARGETS ? JSON.parse(__ENV.K6_ORDER_TARGETS
 
 // 2. Tag de identificação dinâmica obrigatória em todas as requests
 const SCENARIO = 'low-contention';
-
-const STAGES = [
-  { duration: '30s', target: 10  },
-  { duration: '30s', target: 50  },
-  { duration: '60s', target: 100 },
-  { duration: '30s', target: 150 }, // fase de pico
-  { duration: '30s', target: 0   },
-];
 
 // ── Métricas ──────────────────────────────────────────────────────────────────
 const latencyTrend   = new Trend('order_low_contention_latency', true);
@@ -86,7 +52,7 @@ const healthLatency  = new Trend('health_check_latency', true);
 
 // ── Opções ────────────────────────────────────────────────────────────────────
 export const options = {
-  stages: STAGES,
+  stages: CANONICAL_STAGES,
   thresholds: {
     order_low_contention_latency: ['p(95)<5000'],
     order_low_contention_errors:  ['rate<0.1'],
@@ -96,7 +62,7 @@ export const options = {
 // ── Setup (executa uma vez antes dos VUs iniciarem) ───────────────────────────
 export function setup() {
   // 3. Validação de limites: alerta se max VUs > ORDER_TARGETS disponíveis
-  const maxVUs = Math.max(...STAGES.map((s) => s.target));
+  const maxVUs = maxStageVUs();
   if (maxVUs > ORDER_TARGETS.length) {
     console.warn(
       `[C1A][AVISO CRÍTICO] Máximo de VUs configurado (${maxVUs}) EXCEDE o tamanho ` +
@@ -111,7 +77,7 @@ export function setup() {
 
   // 6. Timestamps de início e janela esperada do pico (correlação com CloudWatch)
   const startMs                    = Date.now();
-  const { peakStart, peakDuration } = computePeakWindow(STAGES);
+  const { peakStart, peakDuration } = computePeakWindow(CANONICAL_STAGES);
   const peakBeginIso               = new Date(startMs + peakStart).toISOString();
   const peakEndIso                 = new Date(startMs + peakStart + peakDuration).toISOString();
 

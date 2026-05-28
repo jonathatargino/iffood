@@ -23,8 +23,8 @@
  * Variáveis:
  *   K6_BASE_URL    — URL da API (padrão: http://localhost:3006)
  *   K6_PRODUCT_IDS — JSON array de UUIDs de produtos válidos no banco
- *   K6_C3_VUS_1…4 — alvos de VUs por estágio. Padrão baixo (5→12→20→20): cada GET /product/:id
- *                    pode levar ~30s com a query acoplada; não é necessário centenas de VUs.
+ *
+ * Modelo de carga: perfil canônico (10 → 50 → 100 VUs em 2m30s) — ver stages.js
  *
  * Setup: **não** chama GET /product (evita um único request de ~30s antes da bateria). Só valida
  * K6_PRODUCT_IDS e GET /health. Confiança nos IDs vem de `node load-tests/setup.js`.
@@ -38,6 +38,7 @@
 import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
+import { CANONICAL_STAGES, formatStagesSummary } from './stages.js';
 
 // ── Configuração ──────────────────────────────────────────────────────────────
 const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:3006';
@@ -48,20 +49,6 @@ const COMPLEXITY = 'high-coupling';
 const PRODUCT_IDS = __ENV.K6_PRODUCT_IDS
   ? JSON.parse(__ENV.K6_PRODUCT_IDS)
   : [];
-
-function vuFromEnv(key, fallback) {
-  const raw = __ENV[key];
-  if (raw === undefined || raw === '') return fallback;
-  const n = parseInt(raw, 10);
-  return Number.isFinite(n) && n >= 0 ? n : fallback;
-}
-
-const STAGE_VUS = [
-  vuFromEnv('K6_C3_VUS_1', 5),
-  vuFromEnv('K6_C3_VUS_2', 12),
-  vuFromEnv('K6_C3_VUS_3', 20),
-  vuFromEnv('K6_C3_VUS_4', 20),
-];
 
 // ── Métricas ──────────────────────────────────────────────────────────────────
 // 1. Latência isolada: remove overhead TCP/TLS para medir custo do plano de query
@@ -78,14 +65,7 @@ const tlsLatency      = new Trend('conn_tls_handshaking_ms', true);
 
 // ── Opções ────────────────────────────────────────────────────────────────────
 export const options = {
-  stages: [
-    { duration: '30s', target: STAGE_VUS[0] },
-    { duration: '30s', target: STAGE_VUS[1] },
-    // 3. Bloco de 90s: saturação prolongada do pool PG ("bola de neve"). Alvos via K6_C3_VUS_3/4.
-    { duration: '90s', target: STAGE_VUS[2] },
-    { duration: '30s', target: STAGE_VUS[3] },
-    { duration: '30s', target: 0 },
-  ],
+  stages: CANONICAL_STAGES,
   thresholds: {
     // Query acoplada é intrinsecamente lenta (ordem de dezenas de segundos com seed pesado).
     product_current_processing_ms: ['p(95)<120000'],
@@ -109,7 +89,7 @@ export function setup() {
 
   console.log(
     `[C3A][setup] API OK (/health). ${PRODUCT_IDS.length} product IDs — sem probe GET /product (evita ~30s). ` +
-      `VUs: ${STAGE_VUS.join(' → ')} (K6_C3_VUS_1…4).`,
+      `Perfil: ${formatStagesSummary()}.`,
   );
 }
 

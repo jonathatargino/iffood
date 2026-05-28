@@ -32,6 +32,7 @@
 import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
+import { CANONICAL_STAGES, formatStagesSummary } from './stages.js';
 
 /** cartId deve ser UUID (@IsUUID no CreateOrderRequestDto). */
 function uuidv4() {
@@ -60,29 +61,14 @@ const requestCount    = new Counter('sync_order_requests');
 
 // ── Perfil de carga ───────────────────────────────────────────────────────────
 /**
- * Estágios sincronizados com c4b-async.js para garantir comparabilidade.
- *
- * 3. O stage final foi elevado de 100 → 200 VUs para revelar o ponto de "estouro":
- *    - Modo síncrono: pool de conexões saturado → 5xx
- *    - Modo assíncrono: API continua devolvendo 202 enquanto o worker drena a fila
- *
- * O threshold sync_order_errors=rate<0.1 DEVERÁ ser violado em 200 VUs.
- * Essa violação é a EVIDÊNCIA EXPERIMENTAL do estouro do modelo síncrono.
+ * Perfil canônico idêntico ao c4b-async.js — ver stages.js.
  */
 export const options = {
-  stages: [
-    { duration: '30s', target: 10  },
-    { duration: '60s', target: 50  },
-    { duration: '60s', target: 100 },
-    // 3. Pico de stress: ponto onde o lock pessimista satura o pool de conexões PG
-    { duration: '60s', target: 200 },
-    { duration: '30s', target: 0   },
-  ],
+  stages: CANONICAL_STAGES,
   thresholds: {
     // 1. Threshold sobre processing time isolado (custo real de lock + DB)
     sync_order_processing_ms: ['p(95)<5000', 'p(99)<8000'],
     sync_order_latency:       ['p(95)<5500', 'p(99)<9000'],
-    // Threshold rigoroso: violação em 200 VUs documenta o ponto de "estouro"
     sync_order_errors:        ['rate<0.1'],
   },
 };
@@ -95,7 +81,7 @@ export function setup() {
   console.log(`[C4A][setup] run_id:        ${RUN_ID}`);
   console.log(`[C4A][setup] contention:    ${CONTENTION}`);
   console.log(`[C4A][setup] order targets: ${ORDER_TARGETS.length}`);
-  console.log(`[C4A][setup] pico máximo:   200 VUs — esperado estouro do pool de conexões PG.`);
+  console.log(`[C4A][setup] pico máximo:   100 VUs — perfil ${formatStagesSummary()}.`);
 }
 
 // ── Default ───────────────────────────────────────────────────────────────────

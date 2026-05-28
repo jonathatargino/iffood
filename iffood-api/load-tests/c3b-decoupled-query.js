@@ -16,7 +16,8 @@
  * Variáveis:
  *   K6_BASE_URL    — URL da API (padrão: http://localhost:3006)
  *   K6_PRODUCT_IDS — JSON array de UUIDs de produtos válidos no banco
- *   K6_C3_VUS_1…4 — iguais ao c3a (comparação justa). Ver cabeçalho de c3a-coupled-query.js
+ *
+ * Modelo de carga: perfil canônico (10 → 50 → 100 VUs em 2m30s) — ver stages.js
  *
  * Métricas customizadas:
  *   product_lean_processing_ms — tempo isolado (duration - connecting - tls)
@@ -26,6 +27,7 @@
 import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
+import { CANONICAL_STAGES, formatStagesSummary } from './stages.js';
 
 // ── Configuração ──────────────────────────────────────────────────────────────
 const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:3006';
@@ -36,20 +38,6 @@ const COMPLEXITY = 'low-coupling';
 const PRODUCT_IDS = __ENV.K6_PRODUCT_IDS
   ? JSON.parse(__ENV.K6_PRODUCT_IDS)
   : [];
-
-function vuFromEnv(key, fallback) {
-  const raw = __ENV[key];
-  if (raw === undefined || raw === '') return fallback;
-  const n = parseInt(raw, 10);
-  return Number.isFinite(n) && n >= 0 ? n : fallback;
-}
-
-const STAGE_VUS = [
-  vuFromEnv('K6_C3_VUS_1', 5),
-  vuFromEnv('K6_C3_VUS_2', 12),
-  vuFromEnv('K6_C3_VUS_3', 20),
-  vuFromEnv('K6_C3_VUS_4', 20),
-];
 
 // ── Métricas ──────────────────────────────────────────────────────────────────
 // 1. Latência isolada: remove overhead TCP/TLS para medir custo do plano de query
@@ -64,13 +52,7 @@ const tlsLatency      = new Trend('conn_tls_handshaking_ms', true);
 
 // ── Opções ────────────────────────────────────────────────────────────────────
 export const options = {
-  stages: [
-    { duration: '30s', target: STAGE_VUS[0] },
-    { duration: '30s', target: STAGE_VUS[1] },
-    { duration: '90s', target: STAGE_VUS[2] },
-    { duration: '30s', target: STAGE_VUS[3] },
-    { duration: '30s', target: 0 },
-  ],
+  stages: CANONICAL_STAGES,
   thresholds: {
     // Deve permanecer bem abaixo do c3a acoplado (~dezenas de segundos); margem para PG sob carga leve
     product_lean_processing_ms: ['p(95)<8000'],
@@ -93,7 +75,7 @@ export function setup() {
   }
 
   console.log(
-    `[C3B][setup] API OK (/health). Mesmos stages que c3a: ${STAGE_VUS.join(' → ')}.`,
+    `[C3B][setup] API OK (/health). Perfil: ${formatStagesSummary()}.`,
   );
 }
 

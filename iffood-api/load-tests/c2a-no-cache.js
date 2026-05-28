@@ -8,8 +8,7 @@
  *
  * Pré-condição: banco com ≥10.000 registros para estressar o plano de query.
  *
- * Modelo de carga: Ramp-Up agressivo
- *   0 VUs → 25 → 75 → 150 → 200 → 0
+ * Modelo de carga: perfil canônico (10 → 50 → 100 VUs em 2m30s) — ver stages.js
  *
  * Variável opcional:
  *   K6_BASE_URL — URL da API (padrão: http://localhost:3006)
@@ -23,6 +22,7 @@
 import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
+import { CANONICAL_STAGES } from './stages.js';
 
 // ── Configuração ──────────────────────────────────────────────────────────────
 const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:3006';
@@ -52,13 +52,7 @@ const ioTimeouts      = new Counter('store_list_timeouts');
 // ── Opções ────────────────────────────────────────────────────────────────────
 export const options = {
   setupTimeout: '90s',
-  stages: [
-    { duration: '30s', target: 25  },
-    { duration: '30s', target: 75  },
-    { duration: '60s', target: 150 },
-    { duration: '30s', target: 200 }, // pico: 200 VUs × 10k registros = risco de IOPS
-    { duration: '30s', target: 0   },
-  ],
+  stages: CANONICAL_STAGES,
   thresholds: {
     // 1. Threshold sobre processing time (sem overhead de rede)
     store_list_processing_ms: ['p(95)<3000'],

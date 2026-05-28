@@ -1,32 +1,23 @@
 #!/usr/bin/env bash
 # =============================================================================
-# run-all.sh — Executa todos os testes de carga k6 sequencialmente e salva
-#              os resultados consolidados em JSON, organizados por cenário/teste.
+# run-all.sh — Executa testes de carga k6 e salva resultados consolidados em JSON.
 #
 # Uso:
-#   cd iffood-api
-#   node load-tests/verify-k6-auth.js   # opcional: GET /store/me valida JWT contra a API
-#   ./load-tests/run-all.sh
+#   ./load-tests/run-all.sh                    # bateria completa
+#   ./load-tests/run-one.sh c4a                # um teste (recomendado)
+#   K6_ONLY=c4a-sync ./load-tests/run-all.sh   # filtro manual
 #
-# Variáveis de ambiente (definidas antes de chamar ou no .env.k6 na raiz):
-#   K6_BASE_URL          — URL da API          (padrão: http://localhost:3006)
-#   K6_AUTH_TOKEN        — "Bearer eyJ..."     (obrigatório para cenários 1 e 4)
-#   K6_ORDER_TARGETS     — JSON array          (obrigatório para c1a, c4a, c4b)
-#   K6_CONTENTION_TARGET — JSON objeto         (obrigatório para c1b)
-#   K6_PRODUCT_IDS       — JSON array          (opcional para c3a, c3b)
-#   K6_C3_VUS_1…4        — alvos de VUs nos 4 estágios do c3a/c3b (padrão 5→12→20→20; query acoplada é lenta)
-#   K6_CONTENTION        — low | high          (opcional, padrão: low)
-#   K6_ONLY              — nome(s) separados por vírgula para rodar apenas alguns
-#                          Ex: K6_ONLY=c4a,c4b ./load-tests/run-all.sh
+# Variáveis de ambiente (.env.k6 na raiz ou export):
+#   K6_BASE_URL, K6_AUTH_TOKEN, K6_ORDER_TARGETS, K6_CONTENTION_TARGET,
+#   K6_PRODUCT_IDS, K6_CONTENTION
+#   K6_ONLY     — nomes completos ou atalhos (c4a,c4b,4) separados por vírgula
+#   K6_COOLDOWN — 1 força pausas entre cenários; 0 pula (run-one usa 0 para 1 teste)
 #
-# Correlação CloudWatch:
-#   Gera test-windows.json com started_at/ended_at (UTC + epoch ms) por teste.
-#   Use no console Metrics → time range → Absolute → colar os timestamps do arquivo.
+# Correlação CloudWatch: test-windows.json com started_at/ended_at por teste.
 # =============================================================================
 
 set -euo pipefail
 
-# ── Cores ─────────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; RESET='\033[0m'
 
@@ -34,15 +25,14 @@ log()      { echo -e "${CYAN}[run-all]${RESET} $*"; }
 ok()       { echo -e "${GREEN}[✓]${RESET} $*"; }
 warn()     { echo -e "${YELLOW}[!]${RESET} $*"; }
 fail()     { echo -e "${RED}[✗]${RESET} $*"; }
-# Cool-down entre cenários: aguarda recuperação do pool de conexões do PostgreSQL
-# após testes de alta contenção (c1b). Sem isso, o setup() do c2a pode pegar 500.
+
 cooldown() {
+  [[ "${K6_COOLDOWN:-1}" == "0" ]] && return 0
   local secs="${1:-20}"
-  log "Cool-down de ${secs}s — aguardando recuperação do pool de conexões PG..."
+  log "Cool-down de ${secs}s — recuperação do pool PG..."
   sleep "$secs"
 }
 
-# ── Carregar .env.k6 se existir ───────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 ENV_FILE="${ROOT_DIR}/.env.k6"
@@ -52,8 +42,12 @@ if [[ -f "$ENV_FILE" ]]; then
   set -a; source "$ENV_FILE"; set +a
 fi
 
-# ── Configuração ──────────────────────────────────────────────────────────────
 BASE_URL="${K6_BASE_URL:-http://localhost:3006}"
+if [[ "$BASE_URL" != http://* && "$BASE_URL" != https://* ]]; then
+  warn "K6_BASE_URL sem http(s):// — usando http://${BASE_URL}"
+  BASE_URL="http://${BASE_URL}"
+fi
+BASE_URL="${BASE_URL%/}"
 RESULTS_BASE="${SCRIPT_DIR}/results"
 TIMESTAMP=$(date +%Y%m%dT%H%M%S)
 RESULTS_DIR="${RESULTS_BASE}/${TIMESTAMP}"
@@ -65,23 +59,78 @@ AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-west-2}}"
 mkdir -p "$RESULTS_DIR"
 : > "$NDJSON_WINDOWS"
 
-# Timestamps UTC (ms) para correlação com gráficos CloudWatch
 utc_iso_ms() { date -u +"%Y-%m-%dT%H:%M:%S.%3NZ"; }
 utc_epoch_ms() { date -u +%s%3N; }
 
 BATCH_STARTED_AT=$(utc_iso_ms)
 BATCH_STARTED_EPOCH_MS=$(utc_epoch_ms)
 
-# Filtro opcional: rodar apenas os testes listados em K6_ONLY
-ONLY_FILTER="${K6_ONLY:-}"
+declare -A TEST_STATUS
+declare -A TEST_REASON
 
-# ── Rastrear execuções ────────────────────────────────────────────────────────
-declare -A TEST_STATUS   # ok | skip | fail
-declare -A TEST_REASON   # motivo do skip, se houver
+CANONICAL_ORDER=(
+  c1a-low-contention
+  c1b-high-contention
+  c2a-no-cache
+  c2b-with-cache
+  c3a-coupled-query
+  c3b-decoupled-query
+  c4a-sync
+  c4b-async
+)
 
-# =============================================================================
-# Funções auxiliares
-# =============================================================================
+# ── Resolver atalhos K6_ONLY (c4a → c4a-sync, 4 → c4a,c4b) ─────────────────────
+resolve_only_token() {
+  local t="${1,,}"
+  case "$t" in
+    c1a|1a) echo "c1a-low-contention" ;;
+    c1b|1b) echo "c1b-high-contention" ;;
+    c2a|2a) echo "c2a-no-cache" ;;
+    c2b|2b) echo "c2b-with-cache" ;;
+    c3a|3a) echo "c3a-coupled-query" ;;
+    c3b|3b) echo "c3b-decoupled-query" ;;
+    c4a|4a) echo "c4a-sync" ;;
+    c4b|4b) echo "c4b-async" ;;
+    1|scenario1|s1) echo "c1a-low-contention,c1b-high-contention" ;;
+    2|scenario2|s2) echo "c2a-no-cache,c2b-with-cache" ;;
+    3|scenario3|s3) echo "c3a-coupled-query,c3b-decoupled-query" ;;
+    4|scenario4|s4) echo "c4a-sync,c4b-async" ;;
+    c1a-low-contention|c1b-high-contention|c2a-no-cache|c2b-with-cache|c3a-coupled-query|c3b-decoupled-query|c4a-sync|c4b-async)
+      echo "$1" ;;
+    *) echo "" ;;
+  esac
+}
+
+build_run_list() {
+  RUN_LIST=()
+  local only="${K6_ONLY:-}"
+  [[ -z "$only" ]] && RUN_LIST=("${CANONICAL_ORDER[@]}") && return 0
+
+  declare -A wanted=()
+  IFS=',' read -ra tokens <<< "$only"
+  for raw in "${tokens[@]}"; do
+    raw="${raw// /}"
+    [[ -z "$raw" ]] && continue
+    mapped=$(resolve_only_token "$raw")
+    if [[ -z "$mapped" ]]; then
+      warn "K6_ONLY: token desconhecido '${raw}' (ignorado)"
+      continue
+    fi
+    IFS=',' read -ra parts <<< "$mapped"
+    for p in "${parts[@]}"; do
+      wanted["$p"]=1
+    done
+  done
+
+  for name in "${CANONICAL_ORDER[@]}"; do
+    [[ -n "${wanted[$name]:-}" ]] && RUN_LIST+=("$name")
+  done
+
+  if [[ ${#RUN_LIST[@]} -eq 0 ]]; then
+    fail "K6_ONLY não resolveu para nenhum teste válido: '${only}'"
+    exit 1
+  fi
+}
 
 scenario_for_test() {
   case "$1" in
@@ -93,7 +142,23 @@ scenario_for_test() {
   esac
 }
 
-# Registra janela de execução (NDJSON → test-windows.json no fim)
+cooldown_between_tests() {
+  local prev="$1" curr="$2"
+  [[ -z "$prev" ]] && return 0
+  if [[ "$prev" == "c3a-coupled-query" && "$curr" == "c3b-decoupled-query" ]]; then
+    cooldown 60
+    return 0
+  fi
+  local ps cs
+  ps=$(scenario_for_test "$prev")
+  cs=$(scenario_for_test "$curr")
+  case "${ps}:${cs}" in
+    1:2) cooldown 20 ;;
+    2:3) cooldown 15 ;;
+    3:4) cooldown 15 ;;
+  esac
+}
+
 append_test_window() {
   local name="$1" status="$2" exit_code="$3"
   local started_at="$4" ended_at="$5" start_ms="$6" end_ms="$7"
@@ -119,61 +184,35 @@ append_test_window() {
 }
 
 print_cloudwatch_table() {
-  if [[ ! -f "$WINDOWS_JSON" ]]; then
-    return
-  fi
+  [[ ! -f "$WINDOWS_JSON" ]] && return
   node -e "
     const w = require(process.argv[1]);
     console.log('');
-    console.log('── Janelas CloudWatch (UTC) — copie para o console ─────────────');
+    console.log('── Janelas CloudWatch (UTC) ───────────────────────────────────');
     if (w.batch?.started_at) {
-      console.log('  Bateria completa:');
-      console.log('    de ' + w.batch.started_at);
-      console.log('    até ' + w.batch.ended_at);
-      console.log('    (' + (w.batch.duration_ms / 1000).toFixed(1) + 's)');
+      console.log('  Bateria: ' + w.batch.started_at + ' → ' + w.batch.ended_at);
     }
     console.log('');
     for (const [name, t] of Object.entries(w.tests || {})) {
       if (!t.started_at) {
-        console.log('  – ' + name.padEnd(24) + ' (pulado / sem janela)');
+        console.log('  – ' + name.padEnd(24) + ' (pulado)');
         continue;
       }
       const sec = t.duration_ms != null ? (t.duration_ms / 1000).toFixed(1) + 's' : '?';
-      console.log('  • ' + name.padEnd(24) + t.started_at + '  →  ' + t.ended_at + '  (' + sec + ')');
+      console.log('  • ' + name.padEnd(24) + t.started_at + ' → ' + t.ended_at + ' (' + sec + ')');
     }
     console.log('');
-    console.log('  Região sugerida no console: ' + process.argv[2]);
+    console.log('  Região sugerida: ' + process.argv[2]);
     console.log('');
   " "$WINDOWS_JSON" "$AWS_REGION"
 }
 
-# Verifica se um teste deve ser incluído (filtro K6_ONLY)
-should_run() {
-  local name="$1"
-  [[ -z "$ONLY_FILTER" ]] && return 0
-  IFS=',' read -ra only_list <<< "$ONLY_FILTER"
-  for item in "${only_list[@]}"; do
-    [[ "$item" == "$name" ]] && return 0
-  done
-  return 1
-}
-
-# Executa um teste k6 e salva o summary-export
-# Uso: run_test <nome> <arquivo.js> [VAR=valor ...]
 run_test() {
   local name="$1"
   local file="${SCRIPT_DIR}/${2}"
   shift 2
   local extra_env=("$@")
   local summary_file="${RESULTS_DIR}/${name}.json"
-
-  if ! should_run "$name"; then
-    warn "Pulando ${name} (não está em K6_ONLY='${ONLY_FILTER}')"
-    TEST_STATUS["$name"]="skip"
-    TEST_REASON["$name"]="filtrado por K6_ONLY"
-    append_test_window "$name" "skip" "" "" "" "" ""
-    return
-  fi
 
   local started_at ended_at start_ms end_ms
   started_at=$(utc_iso_ms)
@@ -203,8 +242,7 @@ run_test() {
     ok "${name} concluído (${duration_s}s)"
     TEST_STATUS["$name"]="ok"
   elif [[ $exit_code -eq 99 ]]; then
-    # k6 retorna 99 quando thresholds falham mas o teste rodou
-    warn "${name} concluído com thresholds violados (exit ${exit_code}, ${duration_s}s)"
+    warn "${name} thresholds violados (exit ${exit_code}, ${duration_s}s)"
     TEST_STATUS["$name"]="threshold_failed"
   else
     fail "${name} falhou (exit ${exit_code}, ${duration_s}s)"
@@ -216,7 +254,6 @@ run_test() {
     "$started_at" "$ended_at" "$start_ms" "$end_ms"
 }
 
-# Pula um teste com motivo explícito
 skip_test() {
   local name="$1"
   local reason="$2"
@@ -226,107 +263,116 @@ skip_test() {
   append_test_window "$name" "skip" "" "" "" "" ""
 }
 
+execute_test() {
+  local name="$1"
+  case "$name" in
+    c1a-low-contention)
+      if [[ -z "${K6_AUTH_TOKEN:-}" || -z "${K6_ORDER_TARGETS:-}" ]]; then
+        skip_test "$name" "K6_AUTH_TOKEN ou K6_ORDER_TARGETS não definidos"
+      else
+        run_test "$name" "c1a-low-contention.js" \
+          "K6_BASE_URL=${BASE_URL}" \
+          "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
+          "K6_ORDER_TARGETS=${K6_ORDER_TARGETS}"
+      fi
+      ;;
+    c1b-high-contention)
+      if [[ -z "${K6_AUTH_TOKEN:-}" || -z "${K6_CONTENTION_TARGET:-}" ]]; then
+        skip_test "$name" "K6_AUTH_TOKEN ou K6_CONTENTION_TARGET não definidos"
+      else
+        run_test "$name" "c1b-high-contention.js" \
+          "K6_BASE_URL=${BASE_URL}" \
+          "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
+          "K6_CONTENTION_TARGET=${K6_CONTENTION_TARGET}"
+      fi
+      ;;
+    c2a-no-cache)
+      run_test "$name" "c2a-no-cache.js" "K6_BASE_URL=${BASE_URL}"
+      ;;
+    c2b-with-cache)
+      run_test "$name" "c2b-with-cache.js" "K6_BASE_URL=${BASE_URL}"
+      ;;
+    c3a-coupled-query)
+      local extra=("K6_BASE_URL=${BASE_URL}")
+      [[ -n "${K6_PRODUCT_IDS:-}" ]] && extra+=("K6_PRODUCT_IDS=${K6_PRODUCT_IDS}")
+      run_test "$name" "c3a-coupled-query.js" "${extra[@]}"
+      ;;
+    c3b-decoupled-query)
+      local extra=("K6_BASE_URL=${BASE_URL}")
+      [[ -n "${K6_PRODUCT_IDS:-}" ]] && extra+=("K6_PRODUCT_IDS=${K6_PRODUCT_IDS}")
+      run_test "$name" "c3b-decoupled-query.js" "${extra[@]}"
+      ;;
+    c4a-sync)
+      if [[ -z "${K6_AUTH_TOKEN:-}" || -z "${K6_ORDER_TARGETS:-}" ]]; then
+        skip_test "$name" "K6_AUTH_TOKEN ou K6_ORDER_TARGETS não definidos"
+      else
+        run_test "$name" "c4a-sync.js" \
+          "K6_BASE_URL=${BASE_URL}" \
+          "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
+          "K6_ORDER_TARGETS=${K6_ORDER_TARGETS}" \
+          "K6_CONTENTION=${K6_CONTENTION:-low}"
+      fi
+      ;;
+    c4b-async)
+      if [[ -z "${K6_AUTH_TOKEN:-}" || -z "${K6_ORDER_TARGETS:-}" ]]; then
+        skip_test "$name" "K6_AUTH_TOKEN ou K6_ORDER_TARGETS não definidos"
+      else
+        run_test "$name" "c4b-async.js" \
+          "K6_BASE_URL=${BASE_URL}" \
+          "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
+          "K6_ORDER_TARGETS=${K6_ORDER_TARGETS}" \
+          "K6_CONTENTION=${K6_CONTENTION:-low}"
+      fi
+      ;;
+    *)
+      fail "Teste desconhecido: ${name}"
+      ;;
+  esac
+}
+
+scenario_heading() {
+  case "$1" in
+    1) echo "Cenário 1: Concorrência e Lock Pessimista" ;;
+    2) echo "Cenário 2: Leitura Intensiva e Cache" ;;
+    3) echo "Cenário 3: Acoplamento de Dados" ;;
+    4) echo "Cenário 4: Comunicação Síncrona vs Assíncrona" ;;
+  esac
+}
+
 # =============================================================================
-# Definição dos testes
+# Main
 # =============================================================================
+
+build_run_list
 
 log "Destino dos resultados: ${RESULTS_DIR}"
 log "API alvo: ${BASE_URL}"
-echo ""
-
-# ── Cenário 1 — Lock Pessimista ───────────────────────────────────────────────
-echo -e "${BOLD}── Cenário 1: Concorrência e Lock Pessimista ──────────────────${RESET}"
-
-if [[ -z "${K6_AUTH_TOKEN:-}" || -z "${K6_ORDER_TARGETS:-}" ]]; then
-  skip_test "c1a-low-contention" "K6_AUTH_TOKEN ou K6_ORDER_TARGETS não definidos"
+if [[ -n "${K6_ONLY:-}" ]]; then
+  log "Modo filtrado: ${#RUN_LIST[@]} teste(s) → ${RUN_LIST[*]}"
+  [[ "${K6_COOLDOWN:-1}" == "0" ]] && log "Cool-downs entre cenários: desligados (K6_COOLDOWN=0)"
 else
-  run_test "c1a-low-contention" "c1a-low-contention.js" \
-    "K6_BASE_URL=${BASE_URL}" \
-    "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
-    "K6_ORDER_TARGETS=${K6_ORDER_TARGETS}"
+  log "Modo bateria completa (${#RUN_LIST[@]} testes)"
 fi
-
-if [[ -z "${K6_AUTH_TOKEN:-}" || -z "${K6_CONTENTION_TARGET:-}" ]]; then
-  skip_test "c1b-high-contention" "K6_AUTH_TOKEN ou K6_CONTENTION_TARGET não definidos"
-else
-  run_test "c1b-high-contention" "c1b-high-contention.js" \
-    "K6_BASE_URL=${BASE_URL}" \
-    "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
-    "K6_CONTENTION_TARGET=${K6_CONTENTION_TARGET}"
-fi
-
 echo ""
-cooldown 20
 
-# ── Cenário 2 — Leitura sem/com Cache ────────────────────────────────────────
-echo -e "${BOLD}── Cenário 2: Leitura Intensiva e Cache ───────────────────────${RESET}"
-
-run_test "c2a-no-cache" "c2a-no-cache.js" \
-  "K6_BASE_URL=${BASE_URL}"
-
-run_test "c2b-with-cache" "c2b-with-cache.js" \
-  "K6_BASE_URL=${BASE_URL}"
-
-echo ""
-cooldown 15
-
-# ── Cenário 3 — Acoplamento de Dados ─────────────────────────────────────────
-# c3a é pesado no PostgreSQL; 60s antes do c3b ajuda o pool a recuperar (evita falha no setup do c3b).
-echo -e "${BOLD}── Cenário 3: Acoplamento de Dados ────────────────────────────${RESET}"
-
-PRODUCT_IDS_ENV="${K6_PRODUCT_IDS:-}"
-if [[ -n "$PRODUCT_IDS_ENV" ]]; then
-  run_test "c3a-coupled-query" "c3a-coupled-query.js" \
-    "K6_BASE_URL=${BASE_URL}" \
-    "K6_PRODUCT_IDS=${PRODUCT_IDS_ENV}"
+prev_test=""
+last_scenario=""
+for name in "${RUN_LIST[@]}"; do
+  cooldown_between_tests "$prev_test" "$name"
+  sc=$(scenario_for_test "$name")
+  if [[ "$sc" != "$last_scenario" ]]; then
+    echo -e "${BOLD}── $(scenario_heading "$sc") ──────────────────${RESET}"
+    last_scenario="$sc"
+  fi
+  execute_test "$name"
   echo ""
-  cooldown 60
-  run_test "c3b-decoupled-query" "c3b-decoupled-query.js" \
-    "K6_BASE_URL=${BASE_URL}" \
-    "K6_PRODUCT_IDS=${PRODUCT_IDS_ENV}"
-else
-  run_test "c3a-coupled-query" "c3a-coupled-query.js" \
-    "K6_BASE_URL=${BASE_URL}"
-  echo ""
-  cooldown 60
-  run_test "c3b-decoupled-query" "c3b-decoupled-query.js" \
-    "K6_BASE_URL=${BASE_URL}"
-fi
-
-echo ""
-cooldown 15
-
-# ── Cenário 4 — Comunicação Síncrona vs Assíncrona ───────────────────────────
-echo -e "${BOLD}── Cenário 4: Comunicação Síncrona vs Assíncrona ──────────────${RESET}"
-
-if [[ -z "${K6_AUTH_TOKEN:-}" || -z "${K6_ORDER_TARGETS:-}" ]]; then
-  skip_test "c4a-sync"  "K6_AUTH_TOKEN ou K6_ORDER_TARGETS não definidos"
-  skip_test "c4b-async" "K6_AUTH_TOKEN ou K6_ORDER_TARGETS não definidos"
-else
-  CONTENTION="${K6_CONTENTION:-low}"
-  run_test "c4a-sync" "c4a-sync.js" \
-    "K6_BASE_URL=${BASE_URL}" \
-    "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
-    "K6_ORDER_TARGETS=${K6_ORDER_TARGETS}" \
-    "K6_CONTENTION=${CONTENTION}"
-
-  run_test "c4b-async" "c4b-async.js" \
-    "K6_BASE_URL=${BASE_URL}" \
-    "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
-    "K6_ORDER_TARGETS=${K6_ORDER_TARGETS}" \
-    "K6_CONTENTION=${CONTENTION}"
-fi
-
-echo ""
-
-# =============================================================================
-# Janelas temporais (CloudWatch)
-# =============================================================================
+  prev_test="$name"
+done
 
 BATCH_ENDED_AT=$(utc_iso_ms)
 BATCH_ENDED_EPOCH_MS=$(utc_epoch_ms)
 
-log "Gerando ${WINDOWS_JSON} (correlação CloudWatch)..."
+log "Gerando ${WINDOWS_JSON}..."
 node "${SCRIPT_DIR}/emit-test-windows.js" \
   --out="${WINDOWS_JSON}" \
   --run-id="${TIMESTAMP}" \
@@ -338,50 +384,30 @@ node "${SCRIPT_DIR}/emit-test-windows.js" \
 
 print_cloudwatch_table
 
-# =============================================================================
-# Consolidar resultados em all-results.json
-# =============================================================================
-
-log "Consolidando resultados em ${FINAL_JSON}..."
-
+log "Consolidando ${FINAL_JSON}..."
 node "${SCRIPT_DIR}/merge-results.js" \
   --dir="${RESULTS_DIR}" \
   --out="${FINAL_JSON}" \
   --timestamp="${TIMESTAMP}" \
   --base-url="${BASE_URL}"
 
-# =============================================================================
-# Sumário final no terminal
-# =============================================================================
-
 echo ""
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${RESET}"
-echo -e "${BOLD} Resultado da bateria de testes — ${TIMESTAMP}${RESET}"
+echo -e "${BOLD} Resultado — ${TIMESTAMP}${RESET}"
 echo -e "${BOLD}═══════════════════════════════════════════════════════════════${RESET}"
 
-ALL_TESTS=(
-  "c1a-low-contention"
-  "c1b-high-contention"
-  "c2a-no-cache"
-  "c2b-with-cache"
-  "c3a-coupled-query"
-  "c3b-decoupled-query"
-  "c4a-sync"
-  "c4b-async"
-)
-
-for t in "${ALL_TESTS[@]}"; do
+for t in "${RUN_LIST[@]}"; do
   status="${TEST_STATUS[$t]:-unknown}"
   case "$status" in
     ok)               echo -e "  ${GREEN}✓ PASSOU   ${RESET} ${t}" ;;
     threshold_failed) echo -e "  ${YELLOW}⚠ THRESHOLD${RESET} ${t}" ;;
     skip)             echo -e "  ${CYAN}– PULADO   ${RESET} ${t} (${TEST_REASON[$t]:-})" ;;
     error)            echo -e "  ${RED}✗ ERRO     ${RESET} ${t}" ;;
-    *)                echo -e "  ${YELLOW}? DESCONHECIDO${RESET} ${t}" ;;
+    *)                echo -e "  ${YELLOW}?          ${RESET} ${t}" ;;
   esac
 done
 
 echo ""
-echo -e "  Resultados consolidados → ${BOLD}${FINAL_JSON}${RESET}"
-echo -e "  Janelas CloudWatch (UTC) → ${BOLD}${WINDOWS_JSON}${RESET}"
+echo -e "  Consolidado → ${BOLD}${FINAL_JSON}${RESET}"
+echo -e "  CloudWatch  → ${BOLD}${WINDOWS_JSON}${RESET}"
 echo ""
