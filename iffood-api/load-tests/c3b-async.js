@@ -1,5 +1,5 @@
 /**
- * Cenário 4B — Comunicação Assíncrona via SQS (Tratamento Experimental)
+ * Cenário 3B — Comunicação Assíncrona via SQS (Tratamento Experimental)
  * Endpoint: POST /order-request/async
  *
  * Este teste é o TRATAMENTO EXPERIMENTAL do TCC.
@@ -7,14 +7,14 @@
  * pedido no Amazon SQS e retorna 202 imediatamente. O processamento real
  * (lock pessimista + persistência) ocorre no worker de forma assíncrona.
  *
- * Será comparado com c4a-sync.js nas dimensões:
+ * Será comparado com c3a-sync.js nas dimensões:
  *   - Latência de enfileiramento isolada (avg, p95, p99) — sem ruído de rede AWS
  *   - Throughput (RPS)
  *   - Taxa de erro sob carga crescente
- *   - Resiliência no pico de 100 VUs (manutenção de 202 vs. 5xx do modo síncrono)
+ *   - Resiliência no pico de 200 VUs (manutenção de 202 vs. 5xx do modo síncrono)
  *
  * IMPORTANTE: payload, headers, perfil de carga e think time são intencionalmente
- * idênticos ao c4a-sync.js. A única diferença é o endpoint e o modo de
+ * idênticos ao c3a-sync.js. A única diferença é o endpoint e o modo de
  * processamento — isso garante comparabilidade científica entre os experimentos.
  *
  * Variáveis de ambiente obrigatórias:
@@ -42,7 +42,7 @@
  *   1. Este script loga "ENQUEUE cartId=<id> ts=<epoch_ms>" a cada 50 iterações.
  *
  *   2. Exporte esses logs durante o teste:
- *        k6 run c4b-async.js 2>&1 | grep "^ENQUEUE" > enqueue_log.csv
+ *        k6 run c3b-async.js 2>&1 | grep "^ENQUEUE" > enqueue_log.csv
  *
  *   3. Após o teste, execute no banco (cart_id é UUID v4 por requisição):
  *        SELECT cart_id, EXTRACT(EPOCH FROM updated_at)::bigint * 1000 AS processed_at_ms
@@ -64,7 +64,13 @@
 import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
-import { CANONICAL_STAGES, formatStagesSummary } from './stages.js';
+import { buildCanonicalOptions, formatStagesSummary, maxStageVUs } from './stages.js';
+import {
+  createVuProfileMetrics,
+  createVuProfileRates,
+  recordVuProfileMetrics,
+  recordVuProfileRate,
+} from './vu-profiles.js';
 
 /** cartId deve ser UUID (@IsUUID no CreateOrderRequestDto). */
 function uuidv4() {
@@ -95,32 +101,27 @@ const acceptedRate    = new Rate('async_accepted_rate');
 // 2. Placeholder para total_business_latency (ver metodologia no cabeçalho).
 //    Populado manualmente via pós-processamento: processed_at_ms − enqueue_ts.
 const businessLatency = new Trend('total_business_latency', true);
+const vuMetrics       = createVuProfileMetrics('async_order');
+const acceptedByVu    = createVuProfileRates('async_accepted_rate');
 
 // ── Perfil de carga ───────────────────────────────────────────────────────────
-/**
- * Perfil canônico idêntico ao c4a-sync.js — ver stages.js.
- */
-export const options = {
-  stages: CANONICAL_STAGES,
-  thresholds: {
-    // 1. Threshold sobre processing time isolado (custo puro de enfileiramento SQS)
-    async_order_processing_ms: ['p(95)<1000', 'p(99)<2000'],
-    async_order_latency:       ['p(95)<1200', 'p(99)<2500'],
-    async_order_errors:        ['rate<0.05'],
-    async_accepted_rate:       ['rate>0.95'],
-  },
-};
+export const options = buildCanonicalOptions({
+  async_order_processing_ms: ['p(95)<1000', 'p(99)<2000'],
+  async_order_latency:       ['p(95)<1200', 'p(99)<2500'],
+  async_order_errors:        ['rate<0.05'],
+  async_accepted_rate:       ['rate>0.95'],
+});
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 export function setup() {
-  if (!AUTH_TOKEN)            fail('[C4B][setup] K6_AUTH_TOKEN não definido.');
-  if (ORDER_TARGETS.length === 0) fail('[C4B][setup] K6_ORDER_TARGETS não definido ou vazio.');
+  if (!AUTH_TOKEN)            fail('[C3B][setup] K6_AUTH_TOKEN não definido.');
+  if (ORDER_TARGETS.length === 0) fail('[C3B][setup] K6_ORDER_TARGETS não definido ou vazio.');
 
-  console.log(`[C4B][setup] run_id:        ${RUN_ID}`);
-  console.log(`[C4B][setup] contention:    ${CONTENTION}`);
-  console.log(`[C4B][setup] order targets: ${ORDER_TARGETS.length}`);
-  console.log(`[C4B][setup] pico máximo:   100 VUs — perfil ${formatStagesSummary()}.`);
-  console.log(`[C4B][setup] total_business_latency: colete logs "ENQUEUE" e junte com updated_at do banco.`);
+  console.log(`[C3B][setup] run_id:        ${RUN_ID}`);
+  console.log(`[C3B][setup] contention:    ${CONTENTION}`);
+  console.log(`[C3B][setup] order targets: ${ORDER_TARGETS.length}`);
+  console.log(`[C3B][setup] pico máximo:   ${maxStageVUs()} VUs — perfil ${formatStagesSummary()}.`);
+  console.log(`[C3B][setup] total_business_latency: colete logs "ENQUEUE" e junte com updated_at do banco.`);
 }
 
 // ── Default ───────────────────────────────────────────────────────────────────
@@ -141,7 +142,7 @@ export default function () {
   // 2. Registra o timestamp de enfileiramento antes da chamada HTTP.
   //    Amostrado a cada 50 iterações por VU para não saturar os logs.
   //    Formato parseável: "ENQUEUE cartId=<id> ts=<epoch_ms> vu=<n>"
-  //    Use: k6 run c4b-async.js 2>&1 | grep "^ENQUEUE" > enqueue_log.csv
+  //    Use: k6 run c3b-async.js 2>&1 | grep "^ENQUEUE" > enqueue_log.csv
   const enqueueTs = Date.now();
   if (__ITER % 50 === 0) {
     console.log(`ENQUEUE cartId=${cartId} ts=${enqueueTs} vu=${__VU}`);
@@ -174,17 +175,15 @@ export default function () {
   // 1. Processing time como métrica principal (custo puro de enfileiramento SQS)
   processingTrend.add(processingMs);
   latencyTrend.add(res.timings.duration);
+  recordVuProfileMetrics(vuMetrics, { latencyMs: res.timings.duration, passed: accepted });
 
-  // 2. total_business_latency: impossível calcular em tempo real no k6 pois
-  //    depende do processed_at do worker. Veja metodologia no cabeçalho do script.
-  //    Após o pós-processamento, popule esta métrica via k6 experimental APIs
-  //    ou importe como série separada na ferramenta de visualização.
-  void businessLatency; // declarado para visibilidade no relatório de métricas
+  void businessLatency;
 
   errorRate.add(!accepted);
   requestCount.add(1);
   acceptedRate.add(res.status === 202);
+  recordVuProfileRate(acceptedByVu, res.status === 202);
 
-  // Think time fixo (determinístico) — idêntico ao c4a para taxa de chegada equivalente
+  // Think time fixo (determinístico) — idêntico ao c3a para taxa de chegada equivalente
   sleep(0.2);
 }

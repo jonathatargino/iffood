@@ -22,7 +22,8 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
-import { CANONICAL_STAGES, computePeakWindow, maxStageVUs } from './stages.js';
+import { buildCanonicalOptions, computePeakWindow, maxStageVUs } from './stages.js';
+import { createVuProfileMetrics, recordVuProfileMetrics } from './vu-profiles.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function uuidv4() {
@@ -49,15 +50,13 @@ const connectLatency = new Trend('conn_connecting_ms', true);
 const tlsLatency     = new Trend('conn_tls_handshaking_ms', true);
 // 4. Latência do health-check para diagnóstico de esgotamento de CPU
 const healthLatency  = new Trend('health_check_latency', true);
+const vuMetrics      = createVuProfileMetrics('order_low_contention');
 
 // ── Opções ────────────────────────────────────────────────────────────────────
-export const options = {
-  stages: CANONICAL_STAGES,
-  thresholds: {
-    order_low_contention_latency: ['p(95)<5000'],
-    order_low_contention_errors:  ['rate<0.1'],
-  },
-};
+export const options = buildCanonicalOptions({
+  order_low_contention_latency: ['p(95)<5000'],
+  order_low_contention_errors:  ['rate<0.1'],
+});
 
 // ── Setup (executa uma vez antes dos VUs iniciarem) ───────────────────────────
 export function setup() {
@@ -77,7 +76,7 @@ export function setup() {
 
   // 6. Timestamps de início e janela esperada do pico (correlação com CloudWatch)
   const startMs                    = Date.now();
-  const { peakStart, peakDuration } = computePeakWindow(CANONICAL_STAGES);
+  const { peakStart, peakDuration } = computePeakWindow();
   const peakBeginIso               = new Date(startMs + peakStart).toISOString();
   const peakEndIso                 = new Date(startMs + peakStart + peakDuration).toISOString();
 
@@ -153,6 +152,7 @@ export default function (data) {
   });
 
   latencyTrend.add(res.timings.duration);
+  recordVuProfileMetrics(vuMetrics, { latencyMs: res.timings.duration, passed });
   connectLatency.add(res.timings.connecting);
   tlsLatency.add(res.timings.tls_handshaking);
   errorRate.add(!passed);

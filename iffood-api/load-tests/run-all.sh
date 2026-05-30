@@ -3,14 +3,14 @@
 # run-all.sh — Executa testes de carga k6 e salva resultados consolidados em JSON.
 #
 # Uso:
-#   ./load-tests/run-all.sh                    # bateria completa
-#   ./load-tests/run-one.sh c4a                # um teste (recomendado)
-#   K6_ONLY=c4a-sync ./load-tests/run-all.sh   # filtro manual
+#   ./load-tests/run-all.sh                    # bateria completa (6 testes)
+#   ./load-tests/run-one.sh c3a                # um teste (recomendado)
+#   K6_ONLY=c3a-sync ./load-tests/run-all.sh   # filtro manual
 #
 # Variáveis de ambiente (.env.k6 na raiz ou export):
 #   K6_BASE_URL, K6_AUTH_TOKEN, K6_ORDER_TARGETS, K6_CONTENTION_TARGET,
-#   K6_PRODUCT_IDS, K6_CONTENTION
-#   K6_ONLY     — nomes completos ou atalhos (c4a,c4b,4) separados por vírgula
+#   K6_CONTENTION
+#   K6_ONLY     — nomes completos ou atalhos (c3a,c3b,3) separados por vírgula
 #   K6_COOLDOWN — 1 força pausas entre cenários; 0 pula (run-one usa 0 para 1 teste)
 #
 # Correlação CloudWatch: test-windows.json com started_at/ended_at por teste.
@@ -73,13 +73,11 @@ CANONICAL_ORDER=(
   c1b-high-contention
   c2a-no-cache
   c2b-with-cache
-  c3a-coupled-query
-  c3b-decoupled-query
-  c4a-sync
-  c4b-async
+  c3a-sync
+  c3b-async
 )
 
-# ── Resolver atalhos K6_ONLY (c4a → c4a-sync, 4 → c4a,c4b) ─────────────────────
+# ── Resolver atalhos K6_ONLY ───────────────────────────────────────────────────
 resolve_only_token() {
   local t="${1,,}"
   case "$t" in
@@ -87,16 +85,19 @@ resolve_only_token() {
     c1b|1b) echo "c1b-high-contention" ;;
     c2a|2a) echo "c2a-no-cache" ;;
     c2b|2b) echo "c2b-with-cache" ;;
-    c3a|3a) echo "c3a-coupled-query" ;;
-    c3b|3b) echo "c3b-decoupled-query" ;;
-    c4a|4a) echo "c4a-sync" ;;
-    c4b|4b) echo "c4b-async" ;;
+    c3a|3a) echo "c3a-sync" ;;
+    c3b|3b) echo "c3b-async" ;;
+    # aliases legados (antigo cenário 4)
+    c4a|4a) echo "c3a-sync" ;;
+    c4b|4b) echo "c3b-async" ;;
     1|scenario1|s1) echo "c1a-low-contention,c1b-high-contention" ;;
     2|scenario2|s2) echo "c2a-no-cache,c2b-with-cache" ;;
-    3|scenario3|s3) echo "c3a-coupled-query,c3b-decoupled-query" ;;
-    4|scenario4|s4) echo "c4a-sync,c4b-async" ;;
-    c1a-low-contention|c1b-high-contention|c2a-no-cache|c2b-with-cache|c3a-coupled-query|c3b-decoupled-query|c4a-sync|c4b-async)
+    3|scenario3|s3) echo "c3a-sync,c3b-async" ;;
+    4|scenario4|s4) echo "c3a-sync,c3b-async" ;;
+    c1a-low-contention|c1b-high-contention|c2a-no-cache|c2b-with-cache|c3a-sync|c3b-async)
       echo "$1" ;;
+    c4a-sync) echo "c3a-sync" ;;
+    c4b-async) echo "c3b-async" ;;
     *) echo "" ;;
   esac
 }
@@ -137,7 +138,6 @@ scenario_for_test() {
     c1a*|c1b*) echo 1 ;;
     c2a*|c2b*) echo 2 ;;
     c3a*|c3b*) echo 3 ;;
-    c4a*|c4b*) echo 4 ;;
     *) echo "" ;;
   esac
 }
@@ -145,17 +145,12 @@ scenario_for_test() {
 cooldown_between_tests() {
   local prev="$1" curr="$2"
   [[ -z "$prev" ]] && return 0
-  if [[ "$prev" == "c3a-coupled-query" && "$curr" == "c3b-decoupled-query" ]]; then
-    cooldown 60
-    return 0
-  fi
   local ps cs
   ps=$(scenario_for_test "$prev")
   cs=$(scenario_for_test "$curr")
   case "${ps}:${cs}" in
     1:2) cooldown 20 ;;
     2:3) cooldown 15 ;;
-    3:4) cooldown 15 ;;
   esac
 }
 
@@ -292,32 +287,22 @@ execute_test() {
     c2b-with-cache)
       run_test "$name" "c2b-with-cache.js" "K6_BASE_URL=${BASE_URL}"
       ;;
-    c3a-coupled-query)
-      local extra=("K6_BASE_URL=${BASE_URL}")
-      [[ -n "${K6_PRODUCT_IDS:-}" ]] && extra+=("K6_PRODUCT_IDS=${K6_PRODUCT_IDS}")
-      run_test "$name" "c3a-coupled-query.js" "${extra[@]}"
-      ;;
-    c3b-decoupled-query)
-      local extra=("K6_BASE_URL=${BASE_URL}")
-      [[ -n "${K6_PRODUCT_IDS:-}" ]] && extra+=("K6_PRODUCT_IDS=${K6_PRODUCT_IDS}")
-      run_test "$name" "c3b-decoupled-query.js" "${extra[@]}"
-      ;;
-    c4a-sync)
+    c3a-sync)
       if [[ -z "${K6_AUTH_TOKEN:-}" || -z "${K6_ORDER_TARGETS:-}" ]]; then
         skip_test "$name" "K6_AUTH_TOKEN ou K6_ORDER_TARGETS não definidos"
       else
-        run_test "$name" "c4a-sync.js" \
+        run_test "$name" "c3a-sync.js" \
           "K6_BASE_URL=${BASE_URL}" \
           "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
           "K6_ORDER_TARGETS=${K6_ORDER_TARGETS}" \
           "K6_CONTENTION=${K6_CONTENTION:-low}"
       fi
       ;;
-    c4b-async)
+    c3b-async)
       if [[ -z "${K6_AUTH_TOKEN:-}" || -z "${K6_ORDER_TARGETS:-}" ]]; then
         skip_test "$name" "K6_AUTH_TOKEN ou K6_ORDER_TARGETS não definidos"
       else
-        run_test "$name" "c4b-async.js" \
+        run_test "$name" "c3b-async.js" \
           "K6_BASE_URL=${BASE_URL}" \
           "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
           "K6_ORDER_TARGETS=${K6_ORDER_TARGETS}" \
@@ -334,8 +319,7 @@ scenario_heading() {
   case "$1" in
     1) echo "Cenário 1: Concorrência e Lock Pessimista" ;;
     2) echo "Cenário 2: Leitura Intensiva e Cache" ;;
-    3) echo "Cenário 3: Acoplamento de Dados" ;;
-    4) echo "Cenário 4: Comunicação Síncrona vs Assíncrona" ;;
+    3) echo "Cenário 3: Comunicação Síncrona vs Assíncrona" ;;
   esac
 }
 

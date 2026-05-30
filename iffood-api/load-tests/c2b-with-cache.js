@@ -29,7 +29,8 @@
 import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
-import { CANONICAL_STAGES } from './stages.js';
+import { buildCanonicalOptions } from './stages.js';
+import { createVuProfileMetrics, recordVuProfileMetrics } from './vu-profiles.js';
 
 // ── Configuração ──────────────────────────────────────────────────────────────
 const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:3006';
@@ -58,20 +59,15 @@ const errorRate       = new Rate('store_list_cached_errors');
 const requestCount    = new Counter('store_list_cached_requests');
 const connectLatency  = new Trend('conn_connecting_ms', true);
 const tlsLatency      = new Trend('conn_tls_handshaking_ms', true);
+const vuMetrics       = createVuProfileMetrics('store_list_cached');
 
 // ── Opções ────────────────────────────────────────────────────────────────────
-export const options = {
-  setupTimeout: '90s',
-  stages: CANONICAL_STAGES,
-  thresholds: {
-    // 1. Threshold sobre processing time isolado
-    store_list_cached_processing_ms: ['p(95)<500'],
-    store_list_cached_latency:       ['p(95)<600'],
-    store_list_cached_errors:        ['rate<0.01'],
-    // 2. Com aquecimento completo esperamos hit rate acima de 80%
-    cache_hit_rate:                  ['rate>0.8'],
-  },
-};
+export const options = buildCanonicalOptions({
+  store_list_cached_processing_ms: ['p(95)<500'],
+  store_list_cached_latency:       ['p(95)<600'],
+  store_list_cached_errors:        ['rate<0.01'],
+  cache_hit_rate:                  ['rate>0.8'],
+}, { setupTimeout: '90s' });
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 export function setup() {
@@ -159,6 +155,7 @@ export default function () {
   // 1. Adiciona processing time isolado como métrica principal
   processingTrend.add(processingMs);
   latencyTrend.add(res.timings.duration);
+  recordVuProfileMetrics(vuMetrics, { latencyMs: res.timings.duration, passed });
   connectLatency.add(res.timings.connecting);
   tlsLatency.add(res.timings.tls_handshaking);
   errorRate.add(!passed);

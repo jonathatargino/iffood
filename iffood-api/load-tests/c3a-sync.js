@@ -1,5 +1,5 @@
 /**
- * Cenário 4A — Comunicação Síncrona (Controle Experimental)
+ * Cenário 3A — Comunicação Síncrona (Controle Experimental)
  * Endpoint: POST /order-request
  *
  * Este teste é o CONTROLE EXPERIMENTAL do TCC.
@@ -7,7 +7,7 @@
  * de forma bloqueante: valida estoque com lock pessimista, persiste no banco
  * e só então retorna a resposta ao cliente.
  *
- * Será comparado com c4b-async.js (POST /order-request/async via SQS) nas
+ * Será comparado com c3b-async.js (POST /order-request/async via SQS) nas
  * seguintes dimensões:
  *   - Latência de processamento isolada (avg, p95, p99) — sem ruído de rede AWS
  *   - Throughput (RPS)
@@ -32,7 +32,8 @@
 import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
-import { CANONICAL_STAGES, formatStagesSummary } from './stages.js';
+import { buildCanonicalOptions, formatStagesSummary, maxStageVUs } from './stages.js';
+import { createVuProfileMetrics, recordVuProfileMetrics } from './vu-profiles.js';
 
 /** cartId deve ser UUID (@IsUUID no CreateOrderRequestDto). */
 function uuidv4() {
@@ -58,30 +59,24 @@ const processingTrend = new Trend('sync_order_processing_ms', true);
 const latencyTrend    = new Trend('sync_order_latency', true);
 const errorRate       = new Rate('sync_order_errors');
 const requestCount    = new Counter('sync_order_requests');
+const vuMetrics       = createVuProfileMetrics('sync_order');
 
 // ── Perfil de carga ───────────────────────────────────────────────────────────
-/**
- * Perfil canônico idêntico ao c4b-async.js — ver stages.js.
- */
-export const options = {
-  stages: CANONICAL_STAGES,
-  thresholds: {
-    // 1. Threshold sobre processing time isolado (custo real de lock + DB)
-    sync_order_processing_ms: ['p(95)<5000', 'p(99)<8000'],
-    sync_order_latency:       ['p(95)<5500', 'p(99)<9000'],
-    sync_order_errors:        ['rate<0.1'],
-  },
-};
+export const options = buildCanonicalOptions({
+  sync_order_processing_ms: ['p(95)<5000', 'p(99)<8000'],
+  sync_order_latency:       ['p(95)<5500', 'p(99)<9000'],
+  sync_order_errors:        ['rate<0.1'],
+});
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 export function setup() {
-  if (!AUTH_TOKEN)            fail('[C4A][setup] K6_AUTH_TOKEN não definido.');
-  if (ORDER_TARGETS.length === 0) fail('[C4A][setup] K6_ORDER_TARGETS não definido ou vazio.');
+  if (!AUTH_TOKEN)            fail('[C3A][setup] K6_AUTH_TOKEN não definido.');
+  if (ORDER_TARGETS.length === 0) fail('[C3A][setup] K6_ORDER_TARGETS não definido ou vazio.');
 
-  console.log(`[C4A][setup] run_id:        ${RUN_ID}`);
-  console.log(`[C4A][setup] contention:    ${CONTENTION}`);
-  console.log(`[C4A][setup] order targets: ${ORDER_TARGETS.length}`);
-  console.log(`[C4A][setup] pico máximo:   100 VUs — perfil ${formatStagesSummary()}.`);
+  console.log(`[C3A][setup] run_id:        ${RUN_ID}`);
+  console.log(`[C3A][setup] contention:    ${CONTENTION}`);
+  console.log(`[C3A][setup] order targets: ${ORDER_TARGETS.length}`);
+  console.log(`[C3A][setup] pico máximo:   ${maxStageVUs()} VUs — perfil ${formatStagesSummary()}.`);
 }
 
 // ── Default ───────────────────────────────────────────────────────────────────
@@ -125,9 +120,10 @@ export default function () {
   // 1. Processing time como métrica principal (custo puro de DB lock + persistência)
   processingTrend.add(processingMs);
   latencyTrend.add(res.timings.duration);
+  recordVuProfileMetrics(vuMetrics, { latencyMs: res.timings.duration, passed });
   errorRate.add(!passed);
   requestCount.add(1);
 
-  // Think time fixo (determinístico) — idêntico ao c4b para taxa de chegada equivalente
+  // Think time fixo (determinístico) — idêntico ao c3b para taxa de chegada equivalente
   sleep(0.2);
 }

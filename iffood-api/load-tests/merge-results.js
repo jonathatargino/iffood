@@ -70,17 +70,14 @@ const TEST_META = {
   'c1b-high-contention': { scenario: 1, label: 'Lock Pessimista — Alta Contenção',        file: 'c1b-high-contention.js' },
   'c2a-no-cache':        { scenario: 2, label: 'Leitura Intensiva — Sem Cache',           file: 'c2a-no-cache.js'        },
   'c2b-with-cache':      { scenario: 2, label: 'Leitura Intensiva — Com Cache Redis',     file: 'c2b-with-cache.js'      },
-  'c3a-coupled-query':   { scenario: 3, label: 'Acoplamento — Query com JOINs cruzados',  file: 'c3a-coupled-query.js'   },
-  'c3b-decoupled-query': { scenario: 3, label: 'Acoplamento — Query desacoplada (lean)',  file: 'c3b-decoupled-query.js' },
-  'c4a-sync':            { scenario: 4, label: 'Comunicação Síncrona (POST direto)',       file: 'c4a-sync.js'            },
-  'c4b-async':           { scenario: 4, label: 'Comunicação Assíncrona (SQS + worker)',   file: 'c4b-async.js'           },
+  'c3a-sync':            { scenario: 3, label: 'Comunicação Síncrona (POST direto)',       file: 'c3a-sync.js'            },
+  'c3b-async':           { scenario: 3, label: 'Comunicação Assíncrona (SQS + worker)',   file: 'c3b-async.js'           },
 };
 
 const SCENARIO_LABELS = {
   1: 'Concorrência e Lock Pessimista',
   2: 'Leitura Intensiva e Ausência de Cache',
-  3: 'Acoplamento de Dados',
-  4: 'Comunicação Assíncrona',
+  3: 'Comunicação Síncrona vs Assíncrona',
 };
 
 /**
@@ -93,11 +90,24 @@ const PRIMARY_LATENCY_METRIC = {
   'c1b-high-contention': 'order_high_contention_latency',
   'c2a-no-cache': 'store_list_latency',
   'c2b-with-cache': 'store_list_cached_latency',
-  'c3a-coupled-query': 'product_current_latency',
-  'c3b-decoupled-query': 'product_lean_latency',
-  'c4a-sync': 'sync_order_latency',
-  'c4b-async': 'async_order_latency',
+  'c3a-sync': 'sync_order_latency',
+  'c3b-async': 'async_order_latency',
 };
+
+/** Prefixo das métricas segmentadas por VU — ver load-tests/vu-profiles.js */
+const VU_PROFILE_PREFIX = {
+  'c1a-low-contention': 'order_low_contention',
+  'c1b-high-contention': 'order_high_contention',
+  'c2a-no-cache': 'store_list',
+  'c2b-with-cache': 'store_list_cached',
+  'c3a-sync': 'sync_order',
+  'c3b-async': 'async_order',
+};
+
+/** Preenchidos em main() a partir de load-tests/stages.js */
+let VU_PROFILE_LEVELS = [];
+let VU_PROFILE_DURATION_S = {};
+let VU_PROFILES_MODEL = '';
 
 // ── Métricas de interesse por teste ──────────────────────────────────────────
 // Quais métricas extrair de cada summary-export.
@@ -108,8 +118,6 @@ const METRICS_OF_INTEREST = [
   'order_high_contention_latency',
   'store_list_latency',
   'store_list_cached_latency',
-  'product_current_latency',
-  'product_lean_latency',
   'sync_order_latency',
   'async_order_latency',
   // métricas nativas do k6 (sempre presentes)
@@ -211,6 +219,61 @@ function rateStats(metric) {
   };
 }
 
+/** Throughput por perfil de VU a partir do Counter dedicado (não http_reqs agregado). */
+function buildProfileThroughput(rawMetrics, prefix, vus) {
+  const reqKey = `${prefix}_requests_vu${vus}`;
+  const requests = counterStats(rawMetrics[reqKey]);
+  const durationS = VU_PROFILE_DURATION_S[vus];
+  const rpsFromCounter =
+    requests?.count != null && durationS
+      ? round(requests.count / durationS)
+      : round(requests?.rate);
+
+  return {
+    total_requests: requests?.count ?? null,
+    rps_avg: rpsFromCounter ?? round(requests?.rate),
+    duration_s: durationS,
+  };
+}
+
+/**
+ * Extrai latência, RPS e taxa de erro por plateau de VUs (CANONICAL_VUS).
+ * Depende das métricas {prefix}_latency_vu* geradas por vu-profiles.js.
+ */
+function extractByVuProfile(name, rawMetrics) {
+  const prefix = VU_PROFILE_PREFIX[name];
+  if (!prefix || !rawMetrics) return null;
+
+  const profiles = {};
+
+  for (const vus of VU_PROFILE_LEVELS) {
+    const latKey = `${prefix}_latency_vu${vus}`;
+    const errKey = `${prefix}_errors_vu${vus}`;
+    const latency = formatTrend(rawMetrics[latKey]);
+    const throughput = buildProfileThroughput(rawMetrics, prefix, vus);
+
+    if (!latency && throughput.total_requests == null) continue;
+
+    const profile = {
+      vus,
+      duration_s: VU_PROFILE_DURATION_S[vus],
+      latency: latency || null,
+      throughput,
+      error_rate: round(rateStats(rawMetrics[errKey])?.value),
+    };
+
+    if (name === 'c3b-async') {
+      profile.acceptance_rate = round(
+        rateStats(rawMetrics[`async_accepted_rate_vu${vus}`])?.value,
+      );
+    }
+
+    profiles[String(vus)] = profile;
+  }
+
+  return Object.keys(profiles).length > 0 ? profiles : null;
+}
+
 function buildThroughput(name, rawMetrics) {
   const http = counterStats(rawMetrics?.http_reqs);
   const throughput = {
@@ -222,7 +285,7 @@ function buildThroughput(name, rawMetrics) {
     },
   };
 
-  if (name !== 'c4b-async') return throughput;
+  if (name !== 'c3b-async') return throughput;
 
   const enqueued = counterStats(rawMetrics?.async_order_requests);
   const accepted = rateStats(rawMetrics?.async_accepted_rate);
@@ -274,8 +337,16 @@ function primaryLatencyKey(name, rawMetrics) {
 }
 
 // ── Construção do JSON final ──────────────────────────────────────────────────
+async function main() {
+  const stages = await import('./stages.js');
+  VU_PROFILE_LEVELS = stages.CANONICAL_VUS;
+  VU_PROFILE_DURATION_S = Object.fromEntries(
+    stages.CANONICAL_VUS.map((vus) => [vus, parseInt(stages.VU_PROFILE_DURATIONS[vus], 10)]),
+  );
+  VU_PROFILES_MODEL = stages.formatStagesSummary();
+
 const scenarios = {};
-for (const num of [1, 2, 3, 4]) {
+for (const num of [1, 2, 3]) {
   scenarios[`scenario_${num}`] = {
     id: num,
     label: SCENARIO_LABELS[num],
@@ -317,6 +388,7 @@ for (const [name, meta] of Object.entries(TEST_META)) {
     latency: formatTrend(latMetric),
     throughput: buildThroughput(name, rawMetrics),
     error_rate: round(rateStats(rawMetrics.http_req_failed)?.value),
+    by_vu_profile: extractByVuProfile(name, rawMetrics),
     raw_metrics: metrics,
   };
 
@@ -325,7 +397,7 @@ for (const [name, meta] of Object.entries(TEST_META)) {
     const lock = counterStats(rawMetrics.db_lock_waits);
     entry.db_lock_waits = lock?.count ?? null;
   }
-  if (name === 'c4b-async') {
+  if (name === 'c3b-async') {
     const accepted = rateStats(rawMetrics.async_accepted_rate);
     entry.async_accepted_rate = round(accepted?.value);
     const processing = formatTrend(rawMetrics.async_order_processing_ms);
@@ -363,6 +435,11 @@ const output = {
       note: 'Execute ./load-tests/run-all.sh para gerar test-windows.json com janelas UTC.',
     },
     cloudwatch_timeline: cloudwatchTimeline,
+    vu_profiles: {
+      levels: VU_PROFILE_LEVELS,
+      duration_s: VU_PROFILE_DURATION_S,
+      model: VU_PROFILES_MODEL,
+    },
   },
   scenarios,
   test_windows: testWindows,
@@ -385,7 +462,7 @@ for (const [, scenario] of Object.entries(output.scenarios)) {
     const err = test.error_rate !== null ? `${(test.error_rate * 100).toFixed(1)}%` : '—';
     const flag = test.status === 'ok' ? '✓' : test.status === 'threshold_failed' ? '⚠' : '✗';
     let line = `    ${flag} ${name.padEnd(25)} p95=${String(p95).padStart(7)}ms  stdev=${String(stdev).padStart(7)}ms  rps=${String(rps).padStart(6)}  err=${err}`;
-    if (name === 'c4b-async' && test.throughput?.accepted_202) {
+    if (name === 'c3b-async' && test.throughput?.accepted_202) {
       const acc = test.throughput.accepted_202;
       line += `  202=${acc.total ?? '—'}@${acc.rps_avg ?? '—'}/s`;
     }
@@ -394,6 +471,21 @@ for (const [, scenario] of Object.entries(output.scenarios)) {
       line += `  CW=${win.from}→${win.to}`;
     }
     console.log(line);
+
+    if (test.by_vu_profile) {
+      for (const vus of VU_PROFILE_LEVELS) {
+        const p = test.by_vu_profile[String(vus)];
+        if (!p) continue;
+        const pp95 = p.latency?.['p(95)'] ?? '—';
+        const prps = p.throughput?.rps_avg ?? '—';
+        const perr = p.error_rate != null ? `${(p.error_rate * 100).toFixed(1)}%` : '—';
+        let pline = `      @${String(vus).padStart(3)} VUs  p95=${String(pp95).padStart(7)}ms  rps=${String(prps).padStart(6)}  err=${perr}`;
+        if (p.acceptance_rate != null) {
+          pline += `  accept=${(p.acceptance_rate * 100).toFixed(1)}%`;
+        }
+        console.log(pline);
+      }
+    }
   }
 }
 
@@ -407,3 +499,9 @@ if (cloudwatchTimeline.length > 0) {
   }
 }
 console.log('');
+}
+
+main().catch((err) => {
+  console.error('[merge-results] Erro fatal:', err);
+  process.exit(1);
+});

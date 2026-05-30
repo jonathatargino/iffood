@@ -8,7 +8,7 @@
  *
  * Pré-condição: banco com ≥10.000 registros para estressar o plano de query.
  *
- * Modelo de carga: perfil canônico (10 → 50 → 100 VUs em 2m30s) — ver stages.js
+ * Modelo de carga: plateaus estáveis 10 → 50 → 100 → 150 → 200 VUs — ver stages.js
  *
  * Variável opcional:
  *   K6_BASE_URL — URL da API (padrão: http://localhost:3006)
@@ -22,7 +22,8 @@
 import http from 'k6/http';
 import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
-import { CANONICAL_STAGES } from './stages.js';
+import { buildCanonicalOptions } from './stages.js';
+import { createVuProfileMetrics, recordVuProfileMetrics } from './vu-profiles.js';
 
 // ── Configuração ──────────────────────────────────────────────────────────────
 const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:3006';
@@ -48,21 +49,15 @@ const connectLatency  = new Trend('conn_connecting_ms', true);
 const tlsLatency      = new Trend('conn_tls_handshaking_ms', true);
 // 4. Contador de timeouts: cada ocorrência indica possível saturação de IOPS
 const ioTimeouts      = new Counter('store_list_timeouts');
+const vuMetrics       = createVuProfileMetrics('store_list');
 
 // ── Opções ────────────────────────────────────────────────────────────────────
-export const options = {
-  setupTimeout: '90s',
-  stages: CANONICAL_STAGES,
-  thresholds: {
-    // 1. Threshold sobre processing time (sem overhead de rede)
-    store_list_processing_ms: ['p(95)<3000'],
-    store_list_latency:       ['p(95)<3500'],
-    store_list_errors:        ['rate<0.05'],
-    // 4. Monitoramento de I/O: mais de 10 timeouts invalida a medição
-    //    (indica saturação de IOPS, não apenas latência de query)
-    store_list_timeouts:      ['count<10'],
-  },
-};
+export const options = buildCanonicalOptions({
+  store_list_processing_ms: ['p(95)<3000'],
+  store_list_latency:       ['p(95)<3500'],
+  store_list_errors:        ['rate<0.05'],
+  store_list_timeouts:      ['count<10'],
+}, { setupTimeout: '90s' });
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 export function setup() {
@@ -130,6 +125,7 @@ export default function () {
   // 1. Adiciona processing time isolado como métrica principal
   processingTrend.add(processingMs);
   latencyTrend.add(res.timings.duration);
+  recordVuProfileMetrics(vuMetrics, { latencyMs: res.timings.duration, passed });
   connectLatency.add(res.timings.connecting);
   tlsLatency.add(res.timings.tls_handshaking);
   errorRate.add(!passed);

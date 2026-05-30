@@ -5,13 +5,13 @@
 # Por padrão executa reset do ambiente antes do k6 (evita efeito do teste anterior).
 #
 # Uso:
-#   ./load-tests/run-one.sh c4a
-#   ./load-tests/run-one.sh c4a c4b
-#   ./load-tests/run-one.sh 4
-#   ./load-tests/run-one.sh --no-reset c4a    # pula limpeza (mais rápido, menos isolado)
-#   npm run load:one -- c4a
+#   ./load-tests/run-one.sh c3a
+#   ./load-tests/run-one.sh c3a c3b
+#   ./load-tests/run-one.sh 3
+#   ./load-tests/run-one.sh --no-reset c3a    # pula limpeza (mais rápido, menos isolado)
+#   npm run load:one -- c3a
 #
-# Atalhos: c1a…c4b, 1…4 (cenário inteiro), nomes completos (c4a-sync)
+# Atalhos: c1a…c3b, 1…3 (cenário inteiro), nomes completos (c3a-sync)
 #
 # Variáveis:
 #   K6_RESET=0        — equivalente a --no-reset
@@ -36,14 +36,14 @@ Uso: ./load-tests/run-one.sh [--no-reset] <teste> [teste ...]
   --no-reset, -n   não executa setup.js antes do k6
 
 Testes:
-  c1a, c1b, c2a, c2b, c3a, c3b, c4a, c4b
-  1 … 4  (cenário inteiro)
+  c1a, c1b, c2a, c2b, c3a, c3b
+  1 … 3  (cenário inteiro)
 
 Exemplos:
-  ./load-tests/run-one.sh c4a
-  ./load-tests/run-one.sh --no-reset c4a
-  ./load-tests/run-one.sh c4a c4b
-  npm run load:one -- c4a
+  ./load-tests/run-one.sh c3a
+  ./load-tests/run-one.sh --no-reset c3a
+  ./load-tests/run-one.sh c3a c3b
+  npm run load:one -- c3a
 EOF
 }
 
@@ -54,15 +54,15 @@ resolve_token() {
     c1b|1b) echo "c1b-high-contention" ;;
     c2a|2a) echo "c2a-no-cache" ;;
     c2b|2b) echo "c2b-with-cache" ;;
-    c3a|3a) echo "c3a-coupled-query" ;;
-    c3b|3b) echo "c3b-decoupled-query" ;;
-    c4a|4a) echo "c4a-sync" ;;
-    c4b|4b) echo "c4b-async" ;;
+    c3a|3a) echo "c3a-sync" ;;
+    c3b|3b) echo "c3b-async" ;;
+    c4a|4a) echo "c3a-sync" ;;
+    c4b|4b) echo "c3b-async" ;;
     1|scenario1|s1) echo "c1a-low-contention,c1b-high-contention" ;;
     2|scenario2|s2) echo "c2a-no-cache,c2b-with-cache" ;;
-    3|scenario3|s3) echo "c3a-coupled-query,c3b-decoupled-query" ;;
-    4|scenario4|s4) echo "c4a-sync,c4b-async" ;;
-    c1a-low-contention|c1b-high-contention|c2a-no-cache|c2b-with-cache|c3a-coupled-query|c3b-decoupled-query|c4a-sync|c4b-async)
+    3|scenario3|s3) echo "c3a-sync,c3b-async" ;;
+    4|scenario4|s4) echo "c3a-sync,c3b-async" ;;
+    c1a-low-contention|c1b-high-contention|c2a-no-cache|c2b-with-cache|c3a-sync|c3b-async)
       echo "$1" ;;
     *) echo "" ;;
   esac
@@ -71,7 +71,7 @@ resolve_token() {
 needs_full_reset() {
   for name in "$@"; do
     case "$name" in
-      c2a-no-cache|c2b-with-cache|c3a-coupled-query|c3b-decoupled-query)
+      c2a-no-cache|c2b-with-cache)
         return 0
         ;;
     esac
@@ -103,10 +103,8 @@ CANONICAL_ORDER=(
   c1b-high-contention
   c2a-no-cache
   c2b-with-cache
-  c3a-coupled-query
-  c3b-decoupled-query
-  c4a-sync
-  c4b-async
+  c3a-sync
+  c3b-async
 )
 
 declare -A WANTED=()
@@ -136,10 +134,10 @@ fi
 # ── Reset do ambiente (padrão ligado) ─────────────────────────────────────────
 if [[ "$SKIP_RESET" -eq 0 ]]; then
   if needs_full_reset "${ordered[@]}"; then
-    log "Reset completo (c2/c3 exigem lojas bulk + dados históricos)..."
+    log "Reset completo (c2 exige lojas bulk)..."
     (cd "$ROOT_DIR" && node load-tests/setup.js)
   else
-    log "Reset rápido (limpa pedidos, repõe estoque c1/c4, purge SQS/Redis)..."
+    log "Reset rápido (limpa pedidos, repõe estoque c1/c3, purge SQS/Redis)..."
     (cd "$ROOT_DIR" && node load-tests/setup.js --reset-quick)
   fi
 else

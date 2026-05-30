@@ -24,7 +24,9 @@
     "worker:dev": "ts-node-dev -r tsconfig-paths/register src/workers/main.ts",
     "load": "sh -c 'k6 run load-tests/$EXP.js'",
     "load:setup": "node load-tests/setup.js",
+    "load:reset": "node load-tests/setup.js --reset-quick",
     "load:all": "bash load-tests/run-all.sh",
+    "load:one": "bash load-tests/run-one.sh",
     "load:merge": "node load-tests/merge-results.js",
     "load:windows": "node load-tests/emit-test-windows.js",
     "verify:k6-auth": "node load-tests/verify-k6-auth.js"

@@ -5,20 +5,19 @@
  * load-tests/setup.js
  *
  * Coloca o banco em estado determinístico e gera iffood-api/.env.k6 com os IDs
- * fixos e token necessários para os 8 testes k6 rodarem com total reprodutibilidade.
+ * fixos e token necessários para os 6 testes k6 rodarem com total reprodutibilidade.
  *
  * PRINCÍPIOS DE DESIGN:
  *   - UUIDs fixos → .env.k6 idêntico em toda execução
  *   - Limpeza total antes da repopulação → estado inicial sempre igual
  *   - SQL direto → sem dependência de S3, sem latência de upload
  *   - Estoque resetado a 500/execução → testes não esgotam stock entre rodadas
- *   - Dados históricos em order_requests → exercita JOINs do Cenário 3 com volume real
  *   - ANALYZE após bulk inserts → otimizador PostgreSQL usa planos corretos
- *   - Purge de SQS e Redis → isolamento total do Cenário 4
+ *   - Purge de SQS e Redis → isolamento total do Cenário 3 (sync vs async)
  *
  * Uso:
  *   node load-tests/setup.js              # setup completo (banco + .env.k6)
- *   node load-tests/setup.js --reset-quick  # só loja c1/c4: limpa pedidos, repõe estoque, SQS/Redis
+ *   node load-tests/setup.js --reset-quick  # só loja c1/c3: limpa pedidos, repõe estoque, SQS/Redis
  *
  * Variáveis de ambiente (lidas do .env da raiz ou do shell):
  *
@@ -28,9 +27,8 @@
  *
  *   Opcionais:
  *     K6_BASE_URL                   — URL da API       (padrão: http://localhost:3006)
- *     LOAD_TEST_ORDER_TARGETS_COUNT — produtos c1/c4   (padrão: 150)
+ *     LOAD_TEST_ORDER_TARGETS_COUNT — produtos c1/c4   (padrão: 200)
  *     LOAD_TEST_STORE_COUNT         — lojas bulk c2    (padrão: 10000)
- *     LOAD_TEST_HISTORICAL_ORDERS   — orders históricos c3 (padrão: 50000)
  *     REDIS_URL / REDIS_HOST        — flush do cache (standalone ou cluster)
  *     REDIS_CLUSTER=true            — ElastiCache Valkey (clustercfg.*)
  *     REDIS_PORT                    — default 6379
@@ -72,10 +70,8 @@ const BASE_URL = normalizeBaseUrl(process.env.K6_BASE_URL);
 const DB_URL   = process.env.DB_URL        || '';
 const TOKEN    = process.env.K6_AUTH_TOKEN || '';
 
-const ORDER_TARGETS_COUNT   = parseInt(process.env.LOAD_TEST_ORDER_TARGETS_COUNT  || '150',   10);
-const PRODUCT_IDS_COUNT     = 8;
+const ORDER_TARGETS_COUNT   = parseInt(process.env.LOAD_TEST_ORDER_TARGETS_COUNT  || '200',   10);
 const BULK_STORE_COUNT      = parseInt(process.env.LOAD_TEST_STORE_COUNT          || '10000', 10);
-const HISTORICAL_ORDER_COUNT = parseInt(process.env.LOAD_TEST_HISTORICAL_ORDERS   || '50000', 10);
 const BULK_BATCH_SIZE       = 500;
 
 const PRODUCT_OPTION_QUANTITY = 500; // máximo do CHECK constraint
@@ -85,10 +81,8 @@ const OUT_FILE                = path.join(__dirname, '..', '.env.k6'); // raiz (
 // ── UUIDs fixos — .env.k6 idêntico em toda execução ──────────────────────────
 const TEST_STORE_ID = '10000000-0000-4000-8000-000000000001';
 
-// Loja dedicada ao Cenário 3 (produtos PRODUCT_IDS + 50k pedidos históricos).
-// ISOLADA do TEST_STORE_ID para que a query GET /store do c2 não percorra os
-// 50k order_requests no seu GROUP BY, evitando statement timeout no setup().
-const HISTORICAL_STORE_ID = '10000000-0000-4000-8000-000000000002';
+/** Loja histórica do antigo cenário de acoplamento — removida; só limpamos se existir. */
+const LEGACY_HISTORICAL_STORE_ID = '10000000-0000-4000-8000-000000000002';
 
 function orderTargetIds(i) {
   const hex = i.toString(16).padStart(4, '0');
@@ -98,25 +92,8 @@ function orderTargetIds(i) {
   };
 }
 
-function productIdsIds(i) {
-  const hex = i.toString(16).padStart(4, '0');
-  return {
-    productId:       `40000000-${hex}-4000-8000-000000000001`,
-    productOptionId: `50000000-${hex}-4000-8000-000000000001`,
-  };
-}
-
 const SEED_STORE_NAME  = '__load-test__';
-const HIST_STORE_NAME  = '__load-test-hist__';
 const BULK_STORE_LABEL = '__bulk__';
-
-// Distribuição de status dos pedidos históricos (realismo)
-const ORDER_STATUSES = [
-  'CONCLUDED', 'CONCLUDED', 'CONCLUDED', 'CONCLUDED',
-  'PENDING',
-  'REJECTED',
-  'CHANGED_AND_CONCLUDED',
-];
 
 // ── Log ───────────────────────────────────────────────────────────────────────
 const G = '\x1b[32m', Y = '\x1b[33m', R = '\x1b[31m', C = '\x1b[36m', B = '\x1b[1m', X = '\x1b[0m';
@@ -269,8 +246,8 @@ async function cleanAll(client) {
   log('Limpando dados de teste anteriores...');
   await configureSetupSession(client);
 
-  await cleanStoreData(client, TEST_STORE_ID, 'principal (c1/c2/c4)');
-  await cleanStoreData(client, HISTORICAL_STORE_ID, 'histórica (c3)');
+  await cleanStoreData(client, TEST_STORE_ID, 'principal (c1/c2/c3)');
+  await cleanStoreData(client, LEGACY_HISTORICAL_STORE_ID, 'histórica (legado)');
 
   await deleteBulkStores(client);
 
@@ -587,30 +564,6 @@ async function createStoreAvailabilities(client) {
   ok('7 disponibilidades criadas.');
 }
 
-// ── 5b. Loja histórica (isolada para c3) ──────────────────────────────────────
-async function createHistoricalStore(client) {
-  log(`Criando loja histórica (id=${HISTORICAL_STORE_ID}) para c3a/c3b...`);
-  await client.query(`
-    INSERT INTO stores (id, name, description, whatsapp, photo_url, status, created_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, TRUE, NOW(), NOW())
-  `, [
-    HISTORICAL_STORE_ID,
-    HIST_STORE_NAME,
-    'Loja histórica — contém 50k pedidos para exercitar JOINs do Cenário 3.',
-    '11987654321',
-    PLACEHOLDER_PHOTO_URL,
-  ]);
-
-  // Disponibilidades (obrigatório para a loja aparecer no GET /store como ativa)
-  for (let weekday = 0; weekday <= 6; weekday++) {
-    await client.query(`
-      INSERT INTO store_availabilities (id, weekday, start, "end", store_id, created_at, updated_at)
-      VALUES (gen_random_uuid(), $1, '00:00', '23:59', $2, NOW(), NOW())
-    `, [weekday, HISTORICAL_STORE_ID]);
-  }
-  ok(`Loja histórica criada: ${HISTORICAL_STORE_ID}`);
-}
-
 // ── 6. Produtos e opções ──────────────────────────────────────────────────────
 async function insertProductWithOption(client, productId, optionId, label, storeId = TEST_STORE_ID) {
   await client.query(`
@@ -625,23 +578,12 @@ async function insertProductWithOption(client, productId, optionId, label, store
 }
 
 async function createOrderTargetProducts(client) {
-  log(`Criando ${ORDER_TARGETS_COUNT} produtos para ORDER_TARGETS (c1a, c4a, c4b)...`);
+  log(`Criando ${ORDER_TARGETS_COUNT} produtos para ORDER_TARGETS (c1a, c3a, c3b)...`);
   for (let i = 1; i <= ORDER_TARGETS_COUNT; i++) {
     const { productId, productOptionId } = orderTargetIds(i);
     await insertProductWithOption(client, productId, productOptionId, String(i).padStart(3, '0'));
   }
   ok(`${ORDER_TARGETS_COUNT} produtos ORDER_TARGETS criados.`);
-}
-
-async function createProductIdProducts(client) {
-  log(`Criando ${PRODUCT_IDS_COUNT} produtos para PRODUCT_IDS (c3a, c3b) na loja histórica...`);
-  for (let i = 1; i <= PRODUCT_IDS_COUNT; i++) {
-    const { productId, productOptionId } = productIdsIds(i);
-    // Produtos do c3 vão para HISTORICAL_STORE_ID — isolados do TEST_STORE_ID
-    // para que o GET /store do c2 não precise percorrer os 50k pedidos históricos
-    await insertProductWithOption(client, productId, productOptionId, `C3-${String(i).padStart(2, '0')}`, HISTORICAL_STORE_ID);
-  }
-  ok(`${PRODUCT_IDS_COUNT} produtos PRODUCT_IDS criados em HISTORICAL_STORE_ID.`);
 }
 
 // ── 7. Bulk stores com status variado ─────────────────────────────────────────
@@ -697,94 +639,7 @@ async function bulkInsertStores(client) {
   ok(`Bulk insert concluído: ${needed} lojas adicionadas.`);
 }
 
-// ── 8. Dados históricos para c3a/c3b (volume real de orders) ─────────────────
-async function createHistoricalOrders(client, userProfileId) {
-  log(`Criando ${HISTORICAL_ORDER_COUNT.toLocaleString()} pedidos históricos para c3a/c3b...`);
-  log('  (Simula crescimento real do banco — exercita JOINs cruzados do Cenário 3)');
-
-  // Espalha datas de criação ao longo do último ano (simula "tempo de vida")
-  const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
-  const msPerOrder  = ONE_YEAR_MS / HISTORICAL_ORDER_COUNT;
-
-  let inserted = 0;
-
-  while (inserted < HISTORICAL_ORDER_COUNT) {
-    const batchSize = Math.min(BULK_BATCH_SIZE, HISTORICAL_ORDER_COUNT - inserted);
-
-    // ── INSERT orders ───────────────────────────────────────────────────────
-    // 5 params por linha: status, cart_id, buyer_user_id, store_id, created_at
-    const orderRows   = [];
-    const orderParams = [];
-
-    for (let i = 0; i < batchSize; i++) {
-      const globalIdx = inserted + i;
-      const base      = i * 5;
-      const status    = ORDER_STATUSES[globalIdx % ORDER_STATUSES.length];
-      const cartId    = `hist-${globalIdx + 1}`;
-      const createdAt = new Date(Date.now() - (HISTORICAL_ORDER_COUNT - globalIdx) * msPerOrder);
-
-      orderRows.push(
-        `(gen_random_uuid(), $${base+1}, $${base+2}, $${base+3}, $${base+4}, $${base+5}, $${base+5}, NULL)`,
-      );
-      // Pedidos vinculados à HISTORICAL_STORE_ID — NÃO ao TEST_STORE_ID.
-      // Isso isola os 50k pedidos do c3 da query GROUP BY do GET /store,
-      // impedindo o statement timeout no setup() do c2a/c2b.
-      orderParams.push(status, cartId, userProfileId, HISTORICAL_STORE_ID, createdAt.toISOString());
-    }
-
-    const orderResult = await client.query(
-      `INSERT INTO order_requests (id, status, cart_id, buyer_user_id, store_id, created_at, updated_at, expires_at)
-       VALUES ${orderRows.join(', ')} RETURNING id`,
-      orderParams,
-    );
-
-    const orderIds = orderResult.rows.map((r) => r.id);
-
-    // ── INSERT items para cada order ────────────────────────────────────────
-    // 7 params por linha: quantity, product_name, product_option_name, product_value,
-    //                     order_request_id, product_id, product_option_id
-    const itemRows   = [];
-    const itemParams = [];
-
-    for (let i = 0; i < batchSize; i++) {
-      const globalIdx                    = inserted + i;
-      const base                         = i * 7;
-      const productSlot                  = (globalIdx % PRODUCT_IDS_COUNT) + 1;
-      const { productId, productOptionId } = productIdsIds(productSlot);
-      const label                        = `C3-${String(productSlot).padStart(2, '0')}`;
-
-      itemRows.push(
-        `(gen_random_uuid(), $${base+1}, $${base+2}, $${base+3}, $${base+4}, $${base+5}, $${base+6}, $${base+7}, NOW(), NOW())`,
-      );
-      itemParams.push(
-        1,                    // quantity
-        `Prod LT ${label}`,   // product_name
-        `Opcao ${label}`,     // product_option_name
-        1000,                 // product_value
-        orderIds[i],          // order_request_id
-        productId,            // product_id
-        productOptionId,      // product_option_id
-      );
-    }
-
-    await client.query(
-      `INSERT INTO order_request_items
-         (id, quantity, product_name, product_option_name, product_value,
-          order_request_id, product_id, product_option_id, created_at, updated_at)
-       VALUES ${itemRows.join(', ')}`,
-      itemParams,
-    );
-
-    inserted += batchSize;
-    if (inserted % 5000 === 0 || inserted === HISTORICAL_ORDER_COUNT) {
-      log(`  ${inserted.toLocaleString()}/${HISTORICAL_ORDER_COUNT.toLocaleString()} pedidos históricos inseridos`);
-    }
-  }
-
-  ok(`${HISTORICAL_ORDER_COUNT.toLocaleString()} pedidos históricos criados (espalhados no último ano).`);
-}
-
-// ── 9. ANALYZE — atualiza estatísticas do otimizador ─────────────────────────
+// ── 8. ANALYZE — atualiza estatísticas do otimizador ─────────────────────────
 async function analyzeDatabase(client) {
   log('Executando ANALYZE (atualiza estatísticas do otimizador de consultas)...');
   await client.query(
@@ -793,16 +648,12 @@ async function analyzeDatabase(client) {
   ok('ANALYZE concluído — PostgreSQL usará planos de execução otimizados.');
 }
 
-// ── 10. Gravar .env.k6 ────────────────────────────────────────────────────────
+// ── 9. Gravar .env.k6 ────────────────────────────────────────────────────────
 function buildEnvK6() {
   const orderTargets = Array.from({ length: ORDER_TARGETS_COUNT }, (_, i) => {
     const { productId, productOptionId } = orderTargetIds(i + 1);
     return { storeId: TEST_STORE_ID, productId, productOptionId };
   });
-
-  const productIds = Array.from({ length: PRODUCT_IDS_COUNT }, (_, i) =>
-    productIdsIds(i + 1).productId,
-  );
 
   const lines = [
     `# Gerado automaticamente por load-tests/setup.js em ${new Date().toISOString()}`,
@@ -812,16 +663,13 @@ function buildEnvK6() {
     `K6_BASE_URL=${BASE_URL}`,
     `K6_AUTH_TOKEN=${TOKEN}`,
     ``,
-    `# ── Cenário 1A / 4A / 4B — ORDER_TARGETS (${orderTargets.length} entradas) ──`,
+    `# ── Cenário 1A / Cenário 3 — ORDER_TARGETS (${orderTargets.length} entradas) ──`,
     `K6_ORDER_TARGETS='${JSON.stringify(orderTargets)}'`,
     ``,
     `# ── Cenário 1B — target único para alta contenção ──────────────────────────`,
     `K6_CONTENTION_TARGET='${JSON.stringify(orderTargets[0])}'`,
     ``,
-    `# ── Cenário 3A / 3B — IDs de produtos fixos (${productIds.length} IDs) ─────`,
-    `K6_PRODUCT_IDS='${JSON.stringify(productIds)}'`,
-    ``,
-    `# ── Cenário 4 — nível de contenção ─────────────────────────────────────────`,
+    `# ── Cenário 3 — nível de contenção (sync vs async) ─────────────────────────`,
     `K6_CONTENTION=low`,
     ``,
   ];
@@ -829,7 +677,7 @@ function buildEnvK6() {
   fs.writeFileSync(OUT_FILE, lines.join('\n'), 'utf8');
   ok(`.env.k6 gravado em: ${OUT_FILE}`);
 
-  return { orderTargets, productIds };
+  return { orderTargets };
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -850,12 +698,12 @@ function assertCredentials() {
 }
 
 /**
- * Reset leve antes de c1/c4 isolados (run-one.sh):
+ * Reset leve antes de c1/c3 isolados (run-one.sh):
  * purge SQS + Redis, limpa só a loja de pedidos, repõe ORDER_TARGETS com estoque 500.
- * Não recria 50k pedidos históricos nem 10k lojas bulk.
+ * Não recria 10k lojas bulk.
  */
 async function runQuickReset() {
-  printSetupBanner('reset rápido — c1 / c4');
+  printSetupBanner('reset rápido — c1 / c3');
   const payload = assertCredentials();
   const userAuthId = payload.sub;
   const email = payload.email || 'loadtest@example.com';
@@ -867,7 +715,7 @@ async function runQuickReset() {
 
   try {
     await configureSetupSession(client);
-    await cleanStoreData(client, TEST_STORE_ID, 'principal (c1/c2/c4)');
+    await cleanStoreData(client, TEST_STORE_ID, 'principal (c1/c2/c3)');
     await upsertUserProfile(client, userAuthId, email);
     await createTestStore(client);
     await createStoreAvailabilities(client);
@@ -879,7 +727,7 @@ async function runQuickReset() {
   const { orderTargets } = buildEnvK6();
   console.log('');
   ok(`Reset rápido concluído — ${orderTargets.length} ORDER_TARGETS com estoque ${PRODUCT_OPTION_QUANTITY}.`);
-  console.log(`  ${C}Próximo passo:${X} ./load-tests/run-one.sh c4a`);
+  console.log(`  ${C}Próximo passo:${X} ./load-tests/run-one.sh c3a`);
   console.log('');
 }
 
@@ -896,33 +744,28 @@ async function runFullSetup() {
 
   try {
     await cleanAll(client);
-    const userProfileId = await upsertUserProfile(client, userAuthId, email);
+    await upsertUserProfile(client, userAuthId, email);
     await createTestStore(client);
     await createStoreAvailabilities(client);
-    await createHistoricalStore(client);
     await createOrderTargetProducts(client);
-    await createProductIdProducts(client);
     await bulkInsertStores(client);
-    await createHistoricalOrders(client, userProfileId);
     await analyzeDatabase(client);
   } finally {
     await client.end();
   }
 
-  const { orderTargets, productIds } = buildEnvK6();
+  const { orderTargets } = buildEnvK6();
 
   console.log('');
   console.log(`${B}══════════════════════════════════════════════════════${X}`);
   console.log(`${G}${B} Setup concluído — banco em estado reproduzível!${X}`);
   console.log(`${B}══════════════════════════════════════════════════════${X}`);
-  console.log(`  Loja de teste (c1/c2/c4) : ${TEST_STORE_ID}`);
-  console.log(`  Loja histórica (c3)      : ${HISTORICAL_STORE_ID}  ← ${HISTORICAL_ORDER_COUNT.toLocaleString()} pedidos`);
-  console.log(`  ORDER_TARGETS        : ${orderTargets.length} produtos`);
-  console.log(`  PRODUCT_IDS          : ${productIds.length} IDs (c3)`);
-  console.log(`  Lojas bulk           : ${BULK_STORE_COUNT.toLocaleString()}`);
+  console.log(`  Loja de teste (c1/c2/c3) : ${TEST_STORE_ID}`);
+  console.log(`  ORDER_TARGETS            : ${orderTargets.length} produtos`);
+  console.log(`  Lojas bulk               : ${BULK_STORE_COUNT.toLocaleString()}`);
   console.log(`  .env.k6              : ${OUT_FILE}`);
   console.log('');
-  console.log(`  ${C}Próximo passo:${X} ./load-tests/run-one.sh c4a`);
+  console.log(`  ${C}Próximo passo:${X} ./load-tests/run-one.sh c3a`);
   console.log(`  ${C}Bateria completa:${X} ./load-tests/run-all.sh`);
   console.log('');
 }
