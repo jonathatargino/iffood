@@ -1,5 +1,5 @@
 /**
- * Métricas duplicadas por perfil de VU (10 / 50 / 100 / 150 / 200) para segmentação no
+ * Métricas duplicadas por perfil de VU (50 … 400, passo 50) para segmentação no
  * summary-export do k6 — submétricas por tag não aparecem no JSON exportado.
  *
  * Convenção de nomes (prefix = order_low_contention):

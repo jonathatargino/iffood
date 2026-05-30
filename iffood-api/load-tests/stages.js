@@ -1,22 +1,18 @@
 /**
  * Perfil canônico de carga — baseline idêntico para todos os cenários k6.
  *
- * Cinco plateaus estáveis (10 → 50 → 100 → 150 → 200 VUs) com tag vu_profile
+ * Oito plateaus estáveis (50 → 100 → … → 400 VUs) com tag vu_profile
  * em cada scenario k6, permitindo segmentação de métricas no summary-export.
  *
- * Duração total: 4m30s (30s + 60s × 4).
+ * Duração total: 4m00s (30s × 8).
  */
 
-export const CANONICAL_VUS = [10, 50, 100, 150, 200];
+export const CANONICAL_VUS = [50, 100, 150, 200, 250, 300, 350, 400];
 
 /** Duração de cada plateau por nível de VUs (segundos). */
-export const VU_PROFILE_DURATIONS = {
-  10: '30s',
-  50: '60s',
-  100: '60s',
-  150: '60s',
-  200: '60s',
-};
+export const VU_PROFILE_DURATIONS = Object.fromEntries(
+  CANONICAL_VUS.map((vus) => [vus, '30s']),
+);
 
 /** Offsets cumulativos (ms) do início do teste — usados em merge-results e CloudWatch. */
 export const VU_PROFILE_WINDOWS = (() => {
@@ -55,13 +51,10 @@ export const CANONICAL_SCENARIOS = (() => {
 })();
 
 /** @deprecated Use CANONICAL_SCENARIOS — mantido para referência em docs legados. */
-export const CANONICAL_STAGES = [
-  { duration: '30s', target: 10 },
-  { duration: '60s', target: 50 },
-  { duration: '60s', target: 100 },
-  { duration: '60s', target: 150 },
-  { duration: '60s', target: 200 },
-];
+export const CANONICAL_STAGES = CANONICAL_VUS.map((target) => ({
+  duration: '30s',
+  target,
+}));
 
 export function formatStagesSummary() {
   const parts = CANONICAL_VUS.map((v) => `${v} VUs@${VU_PROFILE_DURATIONS[v]}`);
@@ -83,7 +76,7 @@ function parseDurationMs(d) {
 }
 
 /**
- * Janela do perfil de maior carga (200 VUs) — correlação CloudWatch.
+ * Janela do perfil de maior carga (400 VUs) — correlação CloudWatch.
  */
 export function computePeakWindow() {
   const peakVus = maxStageVUs();

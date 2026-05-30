@@ -27,7 +27,7 @@
  *
  *   Opcionais:
  *     K6_BASE_URL                   — URL da API       (padrão: http://localhost:3006)
- *     LOAD_TEST_ORDER_TARGETS_COUNT — produtos c1/c4   (padrão: 200)
+ *     LOAD_TEST_ORDER_TARGETS_COUNT — produtos c1/c4   (padrão: 400)
  *     LOAD_TEST_STORE_COUNT         — lojas bulk c2    (padrão: 10000)
  *     REDIS_URL / REDIS_HOST        — flush do cache (standalone ou cluster)
  *     REDIS_CLUSTER=true            — ElastiCache Valkey (clustercfg.*)
@@ -70,7 +70,7 @@ const BASE_URL = normalizeBaseUrl(process.env.K6_BASE_URL);
 const DB_URL   = process.env.DB_URL        || '';
 const TOKEN    = process.env.K6_AUTH_TOKEN || '';
 
-const ORDER_TARGETS_COUNT   = parseInt(process.env.LOAD_TEST_ORDER_TARGETS_COUNT  || '200',   10);
+const ORDER_TARGETS_COUNT   = parseInt(process.env.LOAD_TEST_ORDER_TARGETS_COUNT  || '400',   10);
 const BULK_STORE_COUNT      = parseInt(process.env.LOAD_TEST_STORE_COUNT          || '10000', 10);
 const BULK_BATCH_SIZE       = 500;
 

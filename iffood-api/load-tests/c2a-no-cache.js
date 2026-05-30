@@ -8,7 +8,7 @@
  *
  * Pré-condição: banco com ≥10.000 registros para estressar o plano de query.
  *
- * Modelo de carga: plateaus estáveis 10 → 50 → 100 → 150 → 200 VUs — ver stages.js
+ * Modelo de carga: plateaus estáveis 50 → 400 VUs (30s cada) — ver stages.js
  *
  * Variável opcional:
  *   K6_BASE_URL — URL da API (padrão: http://localhost:3006)

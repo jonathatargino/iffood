@@ -11,7 +11,7 @@
  *   - Latência de enfileiramento isolada (avg, p95, p99) — sem ruído de rede AWS
  *   - Throughput (RPS)
  *   - Taxa de erro sob carga crescente
- *   - Resiliência no pico de 200 VUs (manutenção de 202 vs. 5xx do modo síncrono)
+ *   - Resiliência no pico de 400 VUs (manutenção de 202 vs. 5xx do modo síncrono)
  *
  * IMPORTANTE: payload, headers, perfil de carga e think time são intencionalmente
  * idênticos ao c3a-sync.js. A única diferença é o endpoint e o modo de
