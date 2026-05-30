@@ -164,5 +164,6 @@ export default function (data) {
     dbLockWaits.add(1);
   }
 
-  sleep(Math.random() * 0.3 + 0.05);
+  // Think time fixo (determinístico) — reprodutível entre runs
+  sleep(0.2);
 }

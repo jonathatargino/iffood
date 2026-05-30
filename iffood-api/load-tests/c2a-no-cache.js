@@ -131,5 +131,6 @@ export default function () {
   errorRate.add(!passed);
   requestCount.add(1);
 
-  sleep(Math.random() * 0.5 + 0.1);
+  // Think time fixo (determinístico) — reprodutível entre runs
+  sleep(0.2);
 }

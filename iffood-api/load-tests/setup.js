@@ -273,8 +273,6 @@ async function purgeQueues() {
         if (isAwsHosted) {
           sqs = new AWS.SQS({
             region,
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
           });
           log(`Purgando fila SQS na AWS (sem createQueue — fila já existe na conta): ${sqsUrl}`);
           await sqs.purgeQueue({ QueueUrl: sqsUrl }).promise();
