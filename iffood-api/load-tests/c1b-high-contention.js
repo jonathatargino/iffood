@@ -19,6 +19,8 @@
  *                                          (= duration - connecting - tls_handshaking)
  *   db_lock_waits                        — contador de requests com processing > 2000ms
  *   health_check_latency                 — latência do /health (diagnóstico de CPU/instância)
+ *
+ * Checks e thresholds idênticos ao c1a para comparação justa de error rate.
  */
 
 import http from 'k6/http';
@@ -62,6 +64,7 @@ const healthLatency   = new Trend('health_check_latency', true);
 const vuMetrics       = createVuProfileMetrics('order_high_contention');
 
 // ── Opções ────────────────────────────────────────────────────────────────────
+// Thresholds alinhados ao c1a — mesmos critérios de pass/fail k6
 export const options = buildCanonicalOptions({
   order_high_contention_latency: ['p(95)<10000'],
   order_high_contention_errors:  ['rate<0.2'],

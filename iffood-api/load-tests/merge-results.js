@@ -115,7 +115,9 @@ let VU_PROFILES_MODEL = '';
 const METRICS_OF_INTEREST = [
   // latências customizadas por cenário
   'order_low_contention_latency',
+  'order_low_contention_processing_ms',
   'order_high_contention_latency',
+  'order_high_contention_processing_ms',
   'store_list_latency',
   'store_list_cached_latency',
   'sync_order_latency',
@@ -393,9 +395,20 @@ for (const [name, meta] of Object.entries(TEST_META)) {
   };
 
   // Métricas específicas de cada cenário
-  if (name === 'c1b-high-contention' && rawMetrics.db_lock_waits) {
+  if (
+    (name === 'c1a-low-contention' || name === 'c1b-high-contention')
+    && rawMetrics.db_lock_waits
+  ) {
     const lock = counterStats(rawMetrics.db_lock_waits);
     entry.db_lock_waits = lock?.count ?? null;
+  }
+  if (name === 'c1a-low-contention' || name === 'c1b-high-contention') {
+    const procKey =
+      name === 'c1a-low-contention'
+        ? 'order_low_contention_processing_ms'
+        : 'order_high_contention_processing_ms';
+    const processing = formatTrend(rawMetrics[procKey]);
+    if (processing) entry.processing_ms = processing;
   }
   if (name === 'c3b-async') {
     const accepted = rateStats(rawMetrics.async_accepted_rate);

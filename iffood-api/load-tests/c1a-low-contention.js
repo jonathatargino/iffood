@@ -14,9 +14,13 @@
  *   K6_BASE_URL — URL da API (padrão: http://localhost:3006)
  *
  * Métricas customizadas:
- *   order_low_contention_latency — duração total de cada request (ms)
- *   order_low_contention_errors  — taxa de erros HTTP
- *   health_check_latency         — latência do /health (diagnóstico de CPU/instância)
+ *   order_low_contention_latency        — duração total de cada request (ms)
+ *   order_low_contention_processing_ms  — tempo isolado de processamento/DB
+ *   order_low_contention_errors         — checks falhos (HTTP ou processing > 2s)
+ *   db_lock_waits                       — contador de requests com processing > 2000ms
+ *   health_check_latency                — latência do /health (diagnóstico de CPU/instância)
+ *
+ * Checks idênticos ao c1b para comparação justa de error rate.
  */
 
 import http from 'k6/http';
@@ -42,20 +46,26 @@ const ORDER_TARGETS = __ENV.K6_ORDER_TARGETS ? JSON.parse(__ENV.K6_ORDER_TARGETS
 // 2. Tag de identificação dinâmica obrigatória em todas as requests
 const SCENARIO = 'low-contention';
 
+// Idêntico ao c1b — comparação justa de error rate e db_lock_waits
+const DB_LOCK_WAIT_THRESHOLD_MS = 2000;
+
 // ── Métricas ──────────────────────────────────────────────────────────────────
-const latencyTrend   = new Trend('order_low_contention_latency', true);
-const errorRate      = new Rate('order_low_contention_errors');
-const requestCount   = new Counter('order_low_contention_requests');
-const connectLatency = new Trend('conn_connecting_ms', true);
-const tlsLatency     = new Trend('conn_tls_handshaking_ms', true);
+const latencyTrend    = new Trend('order_low_contention_latency', true);
+const processingTrend = new Trend('order_low_contention_processing_ms', true);
+const errorRate       = new Rate('order_low_contention_errors');
+const requestCount    = new Counter('order_low_contention_requests');
+const dbLockWaits     = new Counter('db_lock_waits');
+const connectLatency  = new Trend('conn_connecting_ms', true);
+const tlsLatency      = new Trend('conn_tls_handshaking_ms', true);
 // 4. Latência do health-check para diagnóstico de esgotamento de CPU
-const healthLatency  = new Trend('health_check_latency', true);
-const vuMetrics      = createVuProfileMetrics('order_low_contention');
+const healthLatency   = new Trend('health_check_latency', true);
+const vuMetrics       = createVuProfileMetrics('order_low_contention');
 
 // ── Opções ────────────────────────────────────────────────────────────────────
+// Thresholds alinhados ao c1b — mesmos critérios de pass/fail k6
 export const options = buildCanonicalOptions({
-  order_low_contention_latency: ['p(95)<5000'],
-  order_low_contention_errors:  ['rate<0.1'],
+  order_low_contention_latency: ['p(95)<10000'],
+  order_low_contention_errors:  ['rate<0.2'],
 });
 
 // ── Setup (executa uma vez antes dos VUs iniciarem) ───────────────────────────
@@ -83,6 +93,7 @@ export function setup() {
   console.log(`[C1A] Teste INICIADO em:         ${new Date(startMs).toISOString()}`);
   console.log(`[C1A] Fase de pico esperada:      ${peakBeginIso}  →  ${peakEndIso}`);
   console.log(`[C1A] Correlacione esse intervalo com as métricas do CloudWatch.`);
+  console.log(`[C1A] threshold db_lock_waits:    processingMs > ${DB_LOCK_WAIT_THRESHOLD_MS}ms`);
 
   return { startMs, peakStart, peakDuration };
 }
@@ -147,16 +158,26 @@ export default function (data) {
     tags: { endpoint: 'POST /order-request', scenario: SCENARIO },
   });
 
+  const processingMs = res.timings.duration
+    - res.timings.connecting
+    - res.timings.tls_handshaking;
+
   const passed = check(res, {
-    'status 201 ou 200': (r) => r.status === 201 || r.status === 200,
+    'status 201 ou 200':   (r) => r.status === 201 || r.status === 200,
+    'sem lock wait (>2s)': () => processingMs < DB_LOCK_WAIT_THRESHOLD_MS,
   });
 
   latencyTrend.add(res.timings.duration);
   recordVuProfileMetrics(vuMetrics, { latencyMs: res.timings.duration, passed });
+  processingTrend.add(processingMs);
   connectLatency.add(res.timings.connecting);
   tlsLatency.add(res.timings.tls_handshaking);
   errorRate.add(!passed);
   requestCount.add(1);
+
+  if (processingMs > DB_LOCK_WAIT_THRESHOLD_MS) {
+    dbLockWaits.add(1);
+  }
 
   // Think time fixo (determinístico) — reprodutível entre runs
   sleep(0.2);
