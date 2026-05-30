@@ -10,8 +10,6 @@ export const envSchema = Joi.object({
   SUPABASE_URL: Joi.string().min(32).required(),
   AWS_BUCKET_NAME: Joi.string().required(),
   AWS_REGION: Joi.string().required(),
-  AWS_ACCESS_KEY_ID: Joi.string().required(),
-  AWS_SECRET_ACCESS_KEY: Joi.string().required(),
   AWS_DEFAULT_REGION: Joi.string().required(),
   /** Dev local: fallback quando REDIS_HOST não está definido. */
   REDIS_URL: Joi.string().uri().default('redis://localhost:6379'),
