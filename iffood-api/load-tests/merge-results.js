@@ -430,14 +430,20 @@ for (const [name, meta] of Object.entries(TEST_META)) {
     if (processing) entry.enqueue_processing_ms = processing;
     if (workerAnalysis) {
       entry.worker_processing = workerAnalysis;
-      if (workerAnalysis.status === 'ok' && workerAnalysis.total_business_latency_ms?.samples > 0) {
-        entry.throughput.finalized = {
-          total: workerAnalysis.persistence?.persisted_matched_to_log ?? workerAnalysis.persistence?.persisted_total ?? null,
-          latency: workerAnalysis.total_business_latency_ms,
-          post_k6_drain_latency_ms: workerAnalysis.post_k6_drain_latency_ms,
-          sqs_drain: workerAnalysis.sqs_drain,
-          persistence: workerAnalysis.persistence,
-        };
+      if (workerAnalysis.status === 'ok' || workerAnalysis.status === 'partial') {
+        if (
+          workerAnalysis.total_business_latency_ms?.samples > 0
+          || workerAnalysis.post_k6_drain_latency_ms?.samples > 0
+        ) {
+          entry.throughput.finalized = {
+            total: workerAnalysis.persistence?.persisted_matched_to_log ?? workerAnalysis.persistence?.persisted_total ?? null,
+            latency: workerAnalysis.total_business_latency_ms,
+            post_k6_drain_latency_ms: workerAnalysis.post_k6_drain_latency_ms,
+            sqs_drain: workerAnalysis.sqs_drain,
+            persistence: workerAnalysis.persistence,
+            warnings: workerAnalysis.warnings,
+          };
+        }
       }
     }
   }

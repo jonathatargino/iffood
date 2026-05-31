@@ -51,7 +51,8 @@ const MAX_DRAIN_SEC = parseInt(process.env.K6_WORKER_DRAIN_SEC || '900', 10);
 const POLL_SEC = parseInt(process.env.K6_WORKER_DRAIN_POLL_SEC || '5', 10);
 const CHUNK_SIZE = 2000;
 
-const ENQUEUE_RE = /^ENQUEUE cartId=([^\s]+) ts=(\d+) vu=(\d+)/;
+// k6 envolve console.log: time="..." level=info msg="ENQUEUE cartId=... ts=... vu=..."
+const ENQUEUE_RE = /ENQUEUE cartId=([^\s"']+)\s+ts=(\d+)\s+vu=(\d+)/;
 
 function round(n, d = 2) {
   if (n == null || Number.isNaN(n)) return null;
@@ -375,6 +376,15 @@ async function main() {
   const postK6Latencies = [];
   let missingAfterDrain = 0;
 
+  if (events.length === 0 && rows.length > 0) {
+    for (const row of rows) {
+      const created = Number(row.created_at_ms);
+      if (created > window.ended_at_epoch_ms) {
+        postK6Latencies.push(created - window.ended_at_epoch_ms);
+      }
+    }
+  }
+
   for (const event of events) {
     const row = rowByCart.get(event.cartId);
     if (!row) {
@@ -390,9 +400,36 @@ async function main() {
 
   const enqueuedK6 = k6Summary?.async_order_requests ?? k6Summary?.http_requests ?? null;
   const persistedTotal = rows.length;
+  const lostAfterEnqueue =
+    enqueuedK6 != null && persistedTotal < enqueuedK6 ? enqueuedK6 - persistedTotal : null;
+
+  let status = 'ok';
+  const warnings = [];
+  if (events.length === 0 && (enqueuedK6 ?? 0) > 0) {
+    status = 'partial';
+    warnings.push(
+      'Nenhum ENQUEUE parseado do k6.log — latência end-to-end por cart_id indisponível (verifique formato do log).',
+    );
+  }
+  if (businessLatencies.length === 0 && events.length > 0) {
+    status = 'partial';
+    warnings.push('ENQUEUE no log, mas nenhum cart_id encontrado no banco após drain.');
+  }
+  if (lostAfterEnqueue != null && lostAfterEnqueue > 0) {
+    warnings.push(
+      `${lostAfterEnqueue} mensagens enfileiradas (k6) não viraram row no PG — fila purgada, worker lento ou falha no consumer.`,
+    );
+    if (lostAfterEnqueue > (enqueuedK6 ?? 0) * 0.05) status = 'partial';
+  }
+  if (sqsDrain.drained === true && sqsDrain.waited_sec === 0 && (lostAfterEnqueue ?? 0) > 1000) {
+    warnings.push(
+      'Fila já vazia no início da análise — provável purge manual antes do drain; métricas de fila podem estar enviesadas.',
+    );
+  }
 
   const output = {
-    status: 'ok',
+    status,
+    warnings: warnings.length ? warnings : undefined,
     generated_at: new Date().toISOString(),
     test_name: 'c3b-async',
     k6_window: {
@@ -416,6 +453,7 @@ async function main() {
       persisted_total: persistedTotal,
       persisted_matched_to_log: businessLatencies.length,
       missing_after_drain: events.length ? missingAfterDrain : null,
+      not_persisted_estimate: lostAfterEnqueue,
       backlog_estimate_at_k6_end:
         enqueuedK6 != null && persistedAtK6End != null
           ? Math.max(0, enqueuedK6 - persistedAtK6End)

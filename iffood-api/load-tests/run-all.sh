@@ -373,7 +373,7 @@ run_c3b_worker_analysis() {
 
   log "Pós-processamento c3b: drain SQS + latência end-to-end no worker..."
   if node "$analysis_script" --dir="${RESULTS_DIR}" 2>"$analysis_err"; then
-    if [[ -f "$analysis_out" ]] && node -e "const s=require(process.argv[1]).status; process.exit(s==='ok'?0:1)" "$analysis_out" 2>/dev/null; then
+    if [[ -f "$analysis_out" ]] && node -e "const s=require(process.argv[1]).status; process.exit(s==='ok'||s==='partial'?0:1)" "$analysis_out" 2>/dev/null; then
       ok "Análise do worker salva em c3b-worker-analysis.json"
       C3B_WORKER_ANALYSIS_OK=1
       return 0
