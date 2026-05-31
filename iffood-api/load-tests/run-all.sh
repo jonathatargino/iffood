@@ -12,7 +12,8 @@
 #   K6_CONTENTION
 #   K6_ONLY     — nomes completos ou atalhos (c3a,c3b,3) separados por vírgula
 #   K6_WORKER_ANALYSIS — 0 desliga pós-processamento do worker após c3b (padrão: 1)
-#   K6_WORKER_DRAIN_SEC — segundos máx. esperando SQS esvaziar (padrão: 900)
+#   K6_WORKER_DRAIN_MODE — skip | bounded | full (padrão: skip — analyze imediato, purge depois)
+#   K6_WORKER_DRAIN_SEC  — grace em bounded/full (padrão: 60 em bounded, 900 em full)
 #
 # Correlação CloudWatch: test-windows.json com started_at/ended_at por teste.
 # =============================================================================

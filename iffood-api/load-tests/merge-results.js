@@ -287,6 +287,18 @@ function extractByVuProfile(name, rawMetrics) {
   return Object.keys(profiles).length > 0 ? profiles : null;
 }
 
+function pickWorkerLatency(workerAnalysis) {
+  const during = workerAnalysis?.during_k6_business_latency_ms;
+  const total = workerAnalysis?.total_business_latency_ms;
+  if (during?.samples > 0) {
+    return { latency: during, scope: 'during_k6' };
+  }
+  if (total?.samples > 0) {
+    return { latency: total, scope: 'all_matched' };
+  }
+  return { latency: null, scope: null };
+}
+
 /** Cruza by_vu_profile do worker (e2e PG) com o segmentado do k6 (HTTP). */
 function attachWorkerVuProfiles(entry, workerAnalysis) {
   const workerProfiles = workerAnalysis?.by_vu_profile;
@@ -314,14 +326,24 @@ function attachWorkerVuProfiles(entry, workerAnalysis) {
     entry.by_vu_profile[key].worker = {
       enqueue: wp.enqueue,
       persistence: wp.persistence,
+      during_k6_business_latency_ms: wp.during_k6_business_latency_ms,
       total_business_latency_ms: wp.total_business_latency_ms,
       post_k6_drain_latency_ms: wp.post_k6_drain_latency_ms,
     };
 
-    if (wp.total_business_latency_ms?.samples > 0 || wp.persistence?.persisted_matched_to_log) {
+    const profileLatency =
+      wp.during_k6_business_latency_ms?.samples > 0
+        ? wp.during_k6_business_latency_ms
+        : wp.total_business_latency_ms;
+
+    if (profileLatency?.samples > 0 || wp.persistence?.persisted_matched_to_log) {
       finalizedByProfile[key] = {
-        total: wp.persistence?.persisted_matched_to_log ?? null,
-        latency: wp.total_business_latency_ms,
+        total: wp.persistence?.persisted_during_k6 ?? wp.persistence?.persisted_matched_to_log ?? null,
+        latency: profileLatency,
+        latency_scope:
+          wp.during_k6_business_latency_ms?.samples > 0 ? 'during_k6' : 'all_matched',
+        during_k6_business_latency_ms: wp.during_k6_business_latency_ms,
+        total_business_latency_ms: wp.total_business_latency_ms,
         post_k6_drain_latency_ms: wp.post_k6_drain_latency_ms,
         persistence: wp.persistence,
       };
@@ -476,14 +498,23 @@ for (const [name, meta] of Object.entries(TEST_META)) {
       entry.worker_processing = workerAnalysis;
       if (workerAnalysis.status === 'ok' || workerAnalysis.status === 'partial') {
         const finalizedByProfile = attachWorkerVuProfiles(entry, workerAnalysis);
+        const { latency: workerLatency, scope: latencyScope } = pickWorkerLatency(workerAnalysis);
         if (
-          workerAnalysis.total_business_latency_ms?.samples > 0
+          workerLatency?.samples > 0
           || workerAnalysis.post_k6_drain_latency_ms?.samples > 0
         ) {
           entry.throughput.finalized = {
-            total: workerAnalysis.persistence?.persisted_matched_to_log ?? workerAnalysis.persistence?.persisted_total ?? null,
-            latency: workerAnalysis.total_business_latency_ms,
+            total:
+              workerAnalysis.persistence?.persisted_during_k6
+              ?? workerAnalysis.persistence?.persisted_matched_to_log
+              ?? workerAnalysis.persistence?.persisted_total
+              ?? null,
+            latency: workerLatency,
+            latency_scope: latencyScope,
+            during_k6_business_latency_ms: workerAnalysis.during_k6_business_latency_ms,
+            total_business_latency_ms: workerAnalysis.total_business_latency_ms,
             post_k6_drain_latency_ms: workerAnalysis.post_k6_drain_latency_ms,
+            analysis_mode: workerAnalysis.analysis_mode,
             sqs_drain: workerAnalysis.sqs_drain,
             persistence: workerAnalysis.persistence,
             warnings: workerAnalysis.warnings,
@@ -576,13 +607,16 @@ for (const [, scenario] of Object.entries(output.scenarios)) {
           pline += `  accept=${(p.acceptance_rate * 100).toFixed(1)}%`;
         }
         console.log(pline);
-        if (p.worker?.total_business_latency_ms?.samples > 0) {
-          const we = p.worker.total_business_latency_ms;
-          const matched = p.worker.persistence?.persisted_matched_to_log ?? '—';
+        if (p.worker?.during_k6_business_latency_ms?.samples > 0 || p.worker?.total_business_latency_ms?.samples > 0) {
+          const we =
+            p.worker.during_k6_business_latency_ms?.samples > 0
+              ? p.worker.during_k6_business_latency_ms
+              : p.worker.total_business_latency_ms;
+          const matched = p.worker.persistence?.persisted_during_k6 ?? p.worker.persistence?.persisted_matched_to_log ?? '—';
           const enq = p.worker.enqueue?.logged_enqueues ?? '—';
           console.log(
             `        worker e2e med=${we.med ?? '—'}ms p95=${we['p(95)'] ?? '—'}ms` +
-              ` (${we.samples} amostras, ${matched}/${enq} persistidos)`,
+              ` (${we.samples} amostras, ${matched}/${enq} during_k6)`,
           );
         }
       }

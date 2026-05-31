@@ -15,7 +15,11 @@
  * Variáveis:
  *   DB_URL                    — obrigatório
  *   SQS_QUEUE_URL             — opcional (poll de drain; pula se ausente)
- *   K6_WORKER_DRAIN_SEC       — tempo máx. de espera da fila (padrão: 900)
+ *   K6_WORKER_DRAIN_MODE      — skip | bounded | full (padrão: skip)
+ *     skip    — não espera SQS; cruza log+PG imediatamente (use com purge pós-teste)
+ *     bounded — espera até K6_WORKER_DRAIN_SEC e cruza o que existir no PG
+ *     full    — espera fila esvaziar ou timeout longo (900s)
+ *   K6_WORKER_DRAIN_SEC       — grace period em bounded (padrão: 60)
  *   K6_WORKER_DRAIN_POLL_SEC  — intervalo de poll SQS (padrão: 5)
  */
 
@@ -48,7 +52,17 @@ const OUT_FILE = args.out || (RESULTS_DIR ? path.join(RESULTS_DIR, 'c3b-worker-a
 
 const DB_URL = process.env.DB_URL || '';
 const SQS_URL = process.env.SQS_QUEUE_URL || '';
-const MAX_DRAIN_SEC = parseInt(process.env.K6_WORKER_DRAIN_SEC || '900', 10);
+const DRAIN_MODE = (
+  args['drain-mode'] ||
+  process.env.K6_WORKER_DRAIN_MODE ||
+  'skip'
+).toLowerCase();
+const MAX_DRAIN_SEC = parseInt(
+  args['drain-sec'] ||
+    process.env.K6_WORKER_DRAIN_SEC ||
+    (DRAIN_MODE === 'full' ? '900' : '60'),
+  10,
+);
 const POLL_SEC = parseInt(process.env.K6_WORKER_DRAIN_POLL_SEC || '5', 10);
 const CHUNK_SIZE = 2000;
 
@@ -170,6 +184,7 @@ function initProfileBuckets(canonicalVus) {
   for (const vus of canonicalVus) {
     buckets[String(vus)] = {
       businessLatencies: [],
+      duringK6BusinessLatencies: [],
       postK6Latencies: [],
       enqueued: 0,
       persistedMatched: 0,
@@ -179,6 +194,7 @@ function initProfileBuckets(canonicalVus) {
   }
   buckets._unmapped = {
     businessLatencies: [],
+    duringK6BusinessLatencies: [],
     postK6Latencies: [],
     enqueued: 0,
     persistedMatched: 0,
@@ -219,6 +235,7 @@ function buildByVuProfile(buckets, canonicalVus, vuProfileDurationS, k6AsyncByPr
               ? bucket.enqueued - bucket.persistedMatched
               : null,
       },
+      during_k6_business_latency_ms: summarizeLatencies(bucket.duringK6BusinessLatencies),
       total_business_latency_ms: summarizeLatencies(bucket.businessLatencies),
       post_k6_drain_latency_ms: summarizeLatencies(bucket.postK6Latencies),
     };
@@ -294,9 +311,20 @@ async function getQueueDepth(sqs) {
 }
 
 async function waitForQueueDrain() {
+  if (DRAIN_MODE === 'skip') {
+    return {
+      enabled: false,
+      mode: 'skip',
+      drained: null,
+      waited_sec: 0,
+      note: 'K6_WORKER_DRAIN_MODE=skip — sem espera SQS (métricas during_k6 + PG no instante da análise)',
+    };
+  }
+
   if (!SQS_URL) {
     return {
       enabled: false,
+      mode: DRAIN_MODE,
       drained: null,
       waited_sec: 0,
       note: 'SQS_QUEUE_URL não definido — pulando poll de drain',
@@ -322,6 +350,7 @@ async function waitForQueueDrain() {
     if (last.total === 0) {
       return {
         enabled: true,
+        mode: DRAIN_MODE,
         drained: true,
         waited_sec: round((Date.now() - started) / 1000, 1),
         polls,
@@ -336,12 +365,13 @@ async function waitForQueueDrain() {
 
   return {
     enabled: true,
+    mode: DRAIN_MODE,
     drained: false,
     waited_sec: MAX_DRAIN_SEC,
     polls,
     at_start,
     at_end: last,
-    note: `Fila não esvaziou em ${MAX_DRAIN_SEC}s`,
+    note: `Fila não esvaziou em ${MAX_DRAIN_SEC}s (modo ${DRAIN_MODE})`,
   };
 }
 
@@ -450,7 +480,8 @@ async function main() {
   }
 
   console.log(
-    `[analyze-c3b-worker] Aguardando drain SQS (máx ${MAX_DRAIN_SEC}s, poll ${POLL_SEC}s)...`,
+    `[analyze-c3b-worker] Modo drain: ${DRAIN_MODE}` +
+      (DRAIN_MODE === 'skip' ? '' : ` (máx ${MAX_DRAIN_SEC}s, poll ${POLL_SEC}s)`),
   );
   const sqsDrain = await waitForQueueDrain();
   if (sqsDrain.drained === true) {
@@ -487,6 +518,7 @@ async function main() {
 
   const rowByCart = new Map(rows.map((r) => [r.cart_id, r]));
   const businessLatencies = [];
+  const duringK6BusinessLatencies = [];
   const postK6Latencies = [];
   let missingAfterDrain = 0;
   let unmappedEnqueues = 0;
@@ -523,6 +555,8 @@ async function main() {
 
     if (createdMs <= testEndMs) {
       bucket.persistedDuringK6 += 1;
+      duringK6BusinessLatencies.push(businessMs);
+      bucket.duringK6BusinessLatencies.push(businessMs);
     }
 
     if (createdMs > testEndMs) {
@@ -545,9 +579,23 @@ async function main() {
       'Nenhum ENQUEUE parseado do k6.log — latência end-to-end por cart_id indisponível (verifique formato do log).',
     );
   }
-  if (businessLatencies.length === 0 && events.length > 0) {
+  if (businessLatencies.length === 0 && duringK6BusinessLatencies.length === 0 && events.length > 0) {
     status = 'partial';
-    warnings.push('ENQUEUE no log, mas nenhum cart_id encontrado no banco após drain.');
+    warnings.push('ENQUEUE no log, mas nenhum cart_id encontrado no PG.');
+  }
+  if (
+    duringK6BusinessLatencies.length === 0
+    && (persistedAtK6End ?? 0) > 0
+    && events.length > 0
+  ) {
+    warnings.push(
+      `${persistedAtK6End} rows no PG durante k6, mas nenhum cart_id cruzou com o log ENQUEUE — verifique c3b-async.k6.log.`,
+    );
+  }
+  if (DRAIN_MODE === 'skip' && (lostAfterEnqueue ?? 0) > 0) {
+    warnings.push(
+      'Modo skip_drain: latência e2e reportada em during_k6_business_latency_ms (subset persistido durante o teste). Purge pós-análise é seguro.',
+    );
   }
   if (lostAfterEnqueue != null && lostAfterEnqueue > 0) {
     warnings.push(
@@ -578,6 +626,7 @@ async function main() {
     warnings: warnings.length ? warnings : undefined,
     generated_at: new Date().toISOString(),
     test_name: 'c3b-async',
+    analysis_mode: DRAIN_MODE,
     k6_window: {
       started_at: window.started_at,
       ended_at: window.ended_at,
@@ -605,38 +654,49 @@ async function main() {
           ? Math.max(0, enqueuedK6 - persistedAtK6End)
           : null,
     },
+    during_k6_business_latency_ms: summarizeLatencies(duringK6BusinessLatencies),
     total_business_latency_ms: summarizeLatencies(businessLatencies),
     post_k6_drain_latency_ms: summarizeLatencies(postK6Latencies),
     by_vu_profile: byVuProfile,
     notes: [
-      'total_business_latency_ms = order_requests.created_at − ts do log ENQUEUE (202 aceito).',
+      'during_k6_business_latency_ms = created_at ≤ fim do k6 — use com purge pós-teste (não depende de drain).',
+      'total_business_latency_ms = todos os cart_id do log encontrados no PG (inclui pós-k6 se houver grace/drain).',
       'post_k6_drain_latency_ms = created_at − fim do k6 (tempo extra na fila/worker após o teste).',
       'by_vu_profile: segmentação por plateau (50→400 VUs) via timestamp ENQUEUE − k6_window.started_at.',
-      'Compare com c3a via sync_order_processing_ms / latência HTTP — mesma lógica de negócio no worker.',
+      'Ordem recomendada: k6 → analyze (skip_drain) → purge SQS → setup do próximo teste.',
     ],
   };
 
   writeOutput(output);
   console.log(`[analyze-c3b-worker] Salvo: ${OUT_FILE}`);
 
-  if (output.total_business_latency_ms.samples > 0) {
-    const b = output.total_business_latency_ms;
+  const primaryLatency =
+    output.during_k6_business_latency_ms.samples > 0
+      ? output.during_k6_business_latency_ms
+      : output.total_business_latency_ms;
+
+  if (primaryLatency.samples > 0) {
+    const label =
+      output.during_k6_business_latency_ms.samples > 0 ? 'during_k6 e2e' : 'e2e total';
     console.log(
-      `[analyze-c3b-worker] Latência end-to-end: med=${b.med}ms p95=${b['p(95)']}ms max=${b.max}ms (${b.samples} amostras)`,
+      `[analyze-c3b-worker] Latência ${label}: med=${primaryLatency.med}ms p95=${primaryLatency['p(95)']}ms max=${primaryLatency.max}ms (${primaryLatency.samples} amostras)`,
     );
   }
 
   if (byVuProfile) {
-    console.log('[analyze-c3b-worker] Por perfil de VU (latência e2e med / p95):');
+    console.log('[analyze-c3b-worker] Por perfil de VU (during_k6 e2e med / p95):');
     for (const vus of canonicalVus) {
       const p = byVuProfile[String(vus)];
-      if (!p?.total_business_latency_ms?.samples) continue;
-      const lat = p.total_business_latency_ms;
+      const lat =
+        p?.during_k6_business_latency_ms?.samples > 0
+          ? p.during_k6_business_latency_ms
+          : p?.total_business_latency_ms;
+      if (!lat?.samples) continue;
       const enq = p.enqueue?.logged_enqueues ?? 0;
-      const matched = p.persistence?.persisted_matched_to_log ?? 0;
+      const matched = p.persistence?.persisted_during_k6 ?? p.persistence?.persisted_matched_to_log ?? 0;
       console.log(
         `  vu_${vus}: med=${lat.med}ms p95=${lat['p(95)']}ms` +
-          ` (${lat.samples} amostras, ${matched}/${enq} persistidos no perfil)`,
+          ` (${lat.samples} amostras, ${matched}/${enq} persistidos during_k6)`,
       );
     }
   }
