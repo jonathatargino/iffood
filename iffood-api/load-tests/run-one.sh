@@ -3,6 +3,7 @@
 # run-one.sh — Roda um ou mais testes k6 isolados (sem bateria completa).
 #
 # Por padrão executa reset do ambiente antes do k6 (evita efeito do teste anterior).
+# Internamente chama run-all.sh (mesmo pipeline: k6 → análise worker c3b → merge).
 #
 # Uso:
 #   ./load-tests/run-one.sh c3a

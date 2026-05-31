@@ -134,7 +134,40 @@ function loadK6Summary(resultsDir) {
 function loadC3bWindow(windowsFile) {
   if (!fs.existsSync(windowsFile)) return null;
   const windows = JSON.parse(fs.readFileSync(windowsFile, 'utf8'));
-  return windows.tests?.['c3b-async'] || null;
+  const w = windows.tests?.['c3b-async'];
+  if (!w) return null;
+
+  const startMs =
+    w.started_at_epoch_ms != null && !Number.isNaN(Number(w.started_at_epoch_ms))
+      ? Number(w.started_at_epoch_ms)
+      : w.started_at
+        ? Date.parse(w.started_at)
+        : null;
+  const endMs =
+    w.ended_at_epoch_ms != null && !Number.isNaN(Number(w.ended_at_epoch_ms))
+      ? Number(w.ended_at_epoch_ms)
+      : w.ended_at
+        ? Date.parse(w.ended_at)
+        : null;
+
+  if (!startMs || !endMs || Number.isNaN(startMs) || Number.isNaN(endMs)) {
+    return { ...w, started_at_epoch_ms: null, ended_at_epoch_ms: null };
+  }
+
+  return { ...w, started_at_epoch_ms: startMs, ended_at_epoch_ms: endMs };
+}
+
+function createPgClient() {
+  const config = { connectionString: DB_URL };
+  if (/supabase|sslmode=require|neon\.tech|amazonaws\.com/i.test(DB_URL)) {
+    config.ssl = { rejectUnauthorized: false };
+  }
+  return new Client(config);
+}
+
+function writeOutput(payload) {
+  fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
+  fs.writeFileSync(OUT_FILE, `${JSON.stringify(payload, null, 2)}\n`);
 }
 
 async function getQueueDepth(sqs) {
@@ -240,27 +273,54 @@ async function main() {
     console.error('[analyze-c3b-worker] --dir é obrigatório.');
     process.exit(1);
   }
-  if (!DB_URL) {
-    console.error('[analyze-c3b-worker] DB_URL não definido — análise abortada.');
+
+  const fail = (message, extra = {}) => {
+    writeOutput({
+      status: 'failed',
+      error: message,
+      generated_at: new Date().toISOString(),
+      test_name: 'c3b-async',
+      results_dir: RESULTS_DIR,
+      ...extra,
+    });
+    console.error(`[analyze-c3b-worker] ${message}`);
     process.exit(1);
+  };
+
+  if (!DB_URL) {
+    fail('DB_URL não definido — carregue .env na raiz do projeto ou exporte DB_URL.');
   }
 
   const window = loadC3bWindow(WINDOWS_FILE);
   if (!window?.started_at_epoch_ms || !window?.ended_at_epoch_ms) {
-    console.error('[analyze-c3b-worker] Janela c3b ausente em test-windows.json.');
-    process.exit(1);
+    fail('Janela c3b ausente ou epoch inválido em test-windows.json.', {
+      windows_file: WINDOWS_FILE,
+      window,
+    });
   }
 
   const k6Summary = loadK6Summary(RESULTS_DIR);
-  const { events, byCartId, duplicates } = parseEnqueueLog(K6_LOG);
+  const { events, duplicates } = parseEnqueueLog(K6_LOG);
 
   console.log(
     `[analyze-c3b-worker] ENQUEUE no log: ${events.length}` +
       (duplicates ? ` (${duplicates} duplicados ignorados)` : ''),
   );
 
-  const client = new Client({ connectionString: DB_URL });
-  await client.connect();
+  const client = createPgClient();
+  try {
+    await client.connect();
+  } catch (err) {
+    fail(`Falha ao conectar no PostgreSQL: ${err.message}`, {
+      db_url_host: (() => {
+        try {
+          return new URL(DB_URL.replace(/^postgres(ql)?:/, 'http:')).hostname;
+        } catch {
+          return null;
+        }
+      })(),
+    });
+  }
 
   let persistedAtK6End = null;
   try {
@@ -332,6 +392,7 @@ async function main() {
   const persistedTotal = rows.length;
 
   const output = {
+    status: 'ok',
     generated_at: new Date().toISOString(),
     test_name: 'c3b-async',
     k6_window: {
@@ -369,7 +430,7 @@ async function main() {
     ],
   };
 
-  fs.writeFileSync(OUT_FILE, `${JSON.stringify(output, null, 2)}\n`);
+  writeOutput(output);
   console.log(`[analyze-c3b-worker] Salvo: ${OUT_FILE}`);
 
   if (output.total_business_latency_ms.samples > 0) {
@@ -381,6 +442,17 @@ async function main() {
 }
 
 main().catch((err) => {
+  try {
+    writeOutput({
+      status: 'failed',
+      error: err.message,
+      generated_at: new Date().toISOString(),
+      test_name: 'c3b-async',
+      results_dir: RESULTS_DIR || null,
+    });
+  } catch {
+    /* ignore secondary failure */
+  }
   console.error('[analyze-c3b-worker] Erro fatal:', err.message);
   if (process.env.DEBUG) console.error(err.stack);
   process.exit(1);

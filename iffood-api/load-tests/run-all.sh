@@ -74,6 +74,7 @@ BATCH_STARTED_EPOCH_MS=$(utc_epoch_ms)
 
 declare -A TEST_STATUS
 declare -A TEST_REASON
+C3B_WORKER_ANALYSIS_OK=0
 
 CANONICAL_ORDER=(
   c1a-low-contention
@@ -357,12 +358,36 @@ should_run_c3b_worker_analysis() {
 }
 
 run_c3b_worker_analysis() {
-  log "Pós-processamento c3b: drain SQS + latência end-to-end no worker..."
-  if node "${SCRIPT_DIR}/analyze-c3b-worker.js" --dir="${RESULTS_DIR}"; then
-    ok "Análise do worker salva em c3b-worker-analysis.json"
-  else
-    warn "Análise do worker falhou — merge seguirá só com métricas k6."
+  local analysis_script="${SCRIPT_DIR}/analyze-c3b-worker.js"
+  local analysis_out="${RESULTS_DIR}/c3b-worker-analysis.json"
+  local analysis_err="${RESULTS_DIR}/c3b-worker-analysis.error.log"
+
+  if [[ ! -f "$analysis_script" ]]; then
+    warn "analyze-c3b-worker.js não encontrado — git pull ou copie load-tests/analyze-c3b-worker.js"
+    return 1
   fi
+  if [[ -z "${DB_URL:-}" ]]; then
+    warn "DB_URL não definido — carregue .env na raiz (análise do worker ignorada)."
+    return 1
+  fi
+
+  log "Pós-processamento c3b: drain SQS + latência end-to-end no worker..."
+  if node "$analysis_script" --dir="${RESULTS_DIR}" 2>"$analysis_err"; then
+    if [[ -f "$analysis_out" ]] && node -e "const s=require(process.argv[1]).status; process.exit(s==='ok'?0:1)" "$analysis_out" 2>/dev/null; then
+      ok "Análise do worker salva em c3b-worker-analysis.json"
+      C3B_WORKER_ANALYSIS_OK=1
+      return 0
+    fi
+  fi
+
+  warn "Análise do worker falhou — merge seguirá só com métricas k6."
+  if [[ -s "$analysis_err" ]]; then
+    warn "  Detalhe: $(tail -n 3 "$analysis_err" | tr '\n' ' ')"
+  fi
+  if [[ -f "$analysis_out" ]]; then
+    warn "  Verifique: ${analysis_out} (status=failed)"
+  fi
+  return 1
 }
 
 # =============================================================================
@@ -441,7 +466,9 @@ done
 echo ""
 echo -e "  Consolidado → ${BOLD}${FINAL_JSON}${RESET}"
 echo -e "  CloudWatch  → ${BOLD}${WINDOWS_JSON}${RESET}"
-if should_run_c3b_worker_analysis; then
+if [[ "$C3B_WORKER_ANALYSIS_OK" == "1" ]]; then
   echo -e "  Worker c3b  → ${BOLD}${RESULTS_DIR}/c3b-worker-analysis.json${RESET}"
+elif should_run_c3b_worker_analysis; then
+  echo -e "  Worker c3b  → ${YELLOW}(falhou — veja c3b-worker-analysis.error.log)${RESET}"
 fi
 echo ""

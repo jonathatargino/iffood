@@ -430,7 +430,7 @@ for (const [name, meta] of Object.entries(TEST_META)) {
     if (processing) entry.enqueue_processing_ms = processing;
     if (workerAnalysis) {
       entry.worker_processing = workerAnalysis;
-      if (workerAnalysis.total_business_latency_ms?.samples > 0) {
+      if (workerAnalysis.status === 'ok' && workerAnalysis.total_business_latency_ms?.samples > 0) {
         entry.throughput.finalized = {
           total: workerAnalysis.persistence?.persisted_matched_to_log ?? workerAnalysis.persistence?.persisted_total ?? null,
           latency: workerAnalysis.total_business_latency_ms,
