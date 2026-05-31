@@ -11,7 +11,8 @@
 #   K6_BASE_URL, K6_AUTH_TOKEN, K6_ORDER_TARGETS, K6_CONTENTION_TARGET,
 #   K6_CONTENTION
 #   K6_ONLY     — nomes completos ou atalhos (c3a,c3b,3) separados por vírgula
-#   K6_COOLDOWN — 1 força pausas entre cenários; 0 pula (run-one usa 0 para 1 teste)
+#   K6_WORKER_ANALYSIS — 0 desliga pós-processamento do worker após c3b (padrão: 1)
+#   K6_WORKER_DRAIN_SEC — segundos máx. esperando SQS esvaziar (padrão: 900)
 #
 # Correlação CloudWatch: test-windows.json com started_at/ended_at por teste.
 # =============================================================================
@@ -36,6 +37,12 @@ cooldown() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 ENV_FILE="${ROOT_DIR}/.env.k6"
+ROOT_ENV="${ROOT_DIR}/.env"
+
+if [[ -f "$ROOT_ENV" ]]; then
+  log "Carregando variáveis de ${ROOT_ENV}"
+  set -a; source "$ROOT_ENV"; set +a
+fi
 
 if [[ -f "$ENV_FILE" ]]; then
   log "Carregando variáveis de ${ENV_FILE}"
@@ -208,6 +215,11 @@ run_test() {
   shift 2
   local extra_env=("$@")
   local summary_file="${RESULTS_DIR}/${name}.json"
+  local k6_log=""
+
+  if [[ "$name" == "c3b-async" && "${K6_WORKER_ANALYSIS:-1}" != "0" ]]; then
+    k6_log="${RESULTS_DIR}/c3b-async.k6.log"
+  fi
 
   local started_at ended_at start_ms end_ms
   started_at=$(utc_iso_ms)
@@ -215,6 +227,7 @@ run_test() {
 
   log "Iniciando: ${BOLD}${name}${RESET}"
   log "  CloudWatch início (UTC): ${started_at}"
+  [[ -n "$k6_log" ]] && log "  Log ENQUEUE → ${k6_log}"
 
   local env_prefix=()
   for e in "${extra_env[@]}"; do
@@ -223,10 +236,17 @@ run_test() {
   env_prefix+=("K6_RUN_ID=${TIMESTAMP}" "K6_TEST_NAME=${name}")
 
   local exit_code=0
-  env "${env_prefix[@]}" k6 run \
-    --summary-export="${summary_file}" \
-    "$file" \
-    || exit_code=$?
+  if [[ -n "$k6_log" ]]; then
+    env "${env_prefix[@]}" k6 run \
+      --summary-export="${summary_file}" \
+      "$file" 2>&1 | tee "$k6_log"
+    exit_code=${PIPESTATUS[0]}
+  else
+    env "${env_prefix[@]}" k6 run \
+      --summary-export="${summary_file}" \
+      "$file" \
+      || exit_code=$?
+  fi
 
   ended_at=$(utc_iso_ms)
   end_ms=$(utc_epoch_ms)
@@ -323,6 +343,28 @@ scenario_heading() {
   esac
 }
 
+should_run_c3b_worker_analysis() {
+  [[ "${K6_WORKER_ANALYSIS:-1}" == "0" ]] && return 1
+  local ran=0
+  for name in "${RUN_LIST[@]}"; do
+    [[ "$name" == "c3b-async" ]] && ran=1 && break
+  done
+  [[ "$ran" -eq 0 ]] && return 1
+  case "${TEST_STATUS[c3b-async]:-}" in
+    ok|threshold_failed) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+run_c3b_worker_analysis() {
+  log "Pós-processamento c3b: drain SQS + latência end-to-end no worker..."
+  if node "${SCRIPT_DIR}/analyze-c3b-worker.js" --dir="${RESULTS_DIR}"; then
+    ok "Análise do worker salva em c3b-worker-analysis.json"
+  else
+    warn "Análise do worker falhou — merge seguirá só com métricas k6."
+  fi
+}
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -368,6 +410,11 @@ node "${SCRIPT_DIR}/emit-test-windows.js" \
 
 print_cloudwatch_table
 
+if should_run_c3b_worker_analysis; then
+  echo ""
+  run_c3b_worker_analysis
+fi
+
 log "Consolidando ${FINAL_JSON}..."
 node "${SCRIPT_DIR}/merge-results.js" \
   --dir="${RESULTS_DIR}" \
@@ -394,4 +441,7 @@ done
 echo ""
 echo -e "  Consolidado → ${BOLD}${FINAL_JSON}${RESET}"
 echo -e "  CloudWatch  → ${BOLD}${WINDOWS_JSON}${RESET}"
+if should_run_c3b_worker_analysis; then
+  echo -e "  Worker c3b  → ${BOLD}${RESULTS_DIR}/c3b-worker-analysis.json${RESET}"
+fi
 echo ""

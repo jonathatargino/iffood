@@ -16,6 +16,7 @@
 # Variáveis:
 #   K6_RESET=0        — equivalente a --no-reset
 #   K6_COOLDOWN=0|1   — pausas entre testes do mesmo comando (padrão: 0 se 1 teste)
+#   K6_WORKER_ANALYSIS=0 — desliga análise automática do worker após c3b
 # =============================================================================
 
 set -euo pipefail

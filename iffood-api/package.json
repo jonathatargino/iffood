@@ -28,6 +28,7 @@
     "load:all": "bash load-tests/run-all.sh",
     "load:one": "bash load-tests/run-one.sh",
     "load:merge": "node load-tests/merge-results.js",
+    "load:analyze-c3b": "node load-tests/analyze-c3b-worker.js",
     "load:windows": "node load-tests/emit-test-windows.js",
     "verify:k6-auth": "node load-tests/verify-k6-auth.js"
   },

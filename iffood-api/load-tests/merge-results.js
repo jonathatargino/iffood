@@ -48,6 +48,17 @@ function loadTestWindows() {
   }
 }
 
+function loadWorkerAnalysis(resultsDir) {
+  const file = path.join(resultsDir, 'c3b-worker-analysis.json');
+  if (!fs.existsSync(file)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (e) {
+    console.warn(`[merge-results] Falha ao ler ${file}: ${e.message}`);
+    return null;
+  }
+}
+
 function attachExecutionWindow(entry, testName, windows) {
   const w = windows?.tests?.[testName];
   if (!w) return entry;
@@ -347,6 +358,8 @@ async function main() {
   );
   VU_PROFILES_MODEL = stages.formatStagesSummary();
 
+const workerAnalysis = loadWorkerAnalysis(RESULTS_DIR);
+
 const scenarios = {};
 for (const num of [1, 2, 3]) {
   scenarios[`scenario_${num}`] = {
@@ -415,6 +428,18 @@ for (const [name, meta] of Object.entries(TEST_META)) {
     entry.async_accepted_rate = round(accepted?.value);
     const processing = formatTrend(rawMetrics.async_order_processing_ms);
     if (processing) entry.enqueue_processing_ms = processing;
+    if (workerAnalysis) {
+      entry.worker_processing = workerAnalysis;
+      if (workerAnalysis.total_business_latency_ms?.samples > 0) {
+        entry.throughput.finalized = {
+          total: workerAnalysis.persistence?.persisted_matched_to_log ?? workerAnalysis.persistence?.persisted_total ?? null,
+          latency: workerAnalysis.total_business_latency_ms,
+          post_k6_drain_latency_ms: workerAnalysis.post_k6_drain_latency_ms,
+          sqs_drain: workerAnalysis.sqs_drain,
+          persistence: workerAnalysis.persistence,
+        };
+      }
+    }
   }
 
   attachExecutionWindow(entry, name, testWindows);

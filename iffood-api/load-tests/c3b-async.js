@@ -33,28 +33,16 @@
  *
  * ── METODOLOGIA: total_business_latency ─────────────────────────────────────
  *
- * A latência de negócio TOTAL = t_processado − t_enfileirado, onde:
- *   t_enfileirado = timestamp em que a API retornou 202 (mensurado pelo k6)
- *   t_processado  = updated_at do order_request quando status ≠ 'PENDING' (do banco)
+ * A latência de negócio TOTAL = order_requests.created_at − ts do log ENQUEUE (202).
  *
- * Como o k6 não observa o worker, use a seguinte metodologia pós-teste:
+ * Automático (run-one.sh / run-all.sh com c3b):
+ *   1. k6 grava ENQUEUE em results/<run>/c3b-async.k6.log
+ *   2. analyze-c3b-worker.js espera drain SQS e cruza log + banco
+ *   3. merge-results.js inclui worker_processing no JSON consolidado
  *
- *   1. Este script loga "ENQUEUE cartId=<id> ts=<epoch_ms>" a cada 50 iterações.
- *
- *   2. Exporte esses logs durante o teste:
- *        k6 run c3b-async.js 2>&1 | grep "^ENQUEUE" > enqueue_log.csv
- *
- *   3. Após o teste, execute no banco (cart_id é UUID v4 por requisição):
- *        SELECT cart_id, EXTRACT(EPOCH FROM updated_at)::bigint * 1000 AS processed_at_ms
- *        FROM order_requests
- *        WHERE status IN ('CONCLUDED', 'PENDING')
- *        ORDER BY updated_at DESC;
- *
- *   4. Junte por cart_id e calcule:
- *        total_business_latency_ms = processed_at_ms − ts
- *
- *   5. Importe a coluna total_business_latency_ms como série temporal
- *      no seu painel de resultados para comparar com async_order_processing_ms.
+ * Manual (runs antigos):
+ *   grep "^ENQUEUE" load-tests/results/<run>/c3b-async.k6.log
+ *   npm run load:analyze-c3b -- --dir=load-tests/results/<run>
  *
  * Essa métrica composta revela o custo REAL do modelo assíncrono
  * (enfileiramento + propagação + processamento no worker) vs. o modelo
@@ -139,15 +127,6 @@ export default function () {
     items: [{ productId: target.productId, productOptionId: target.productOptionId, quantity: 1 }],
   });
 
-  // 2. Registra o timestamp de enfileiramento antes da chamada HTTP.
-  //    Amostrado a cada 50 iterações por VU para não saturar os logs.
-  //    Formato parseável: "ENQUEUE cartId=<id> ts=<epoch_ms> vu=<n>"
-  //    Use: k6 run c3b-async.js 2>&1 | grep "^ENQUEUE" > enqueue_log.csv
-  const enqueueTs = Date.now();
-  if (__ITER % 50 === 0) {
-    console.log(`ENQUEUE cartId=${cartId} ts=${enqueueTs} vu=${__VU}`);
-  }
-
   const res = http.post(`${BASE_URL}/order-request/async`, payload, {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${AUTH_TOKEN}` },
     tags: {
@@ -171,6 +150,11 @@ export default function () {
     },
     'response time < 10s':   (r) => r.timings.duration < 10_000,
   });
+
+  // Timestamp após 202 — usado por analyze-c3b-worker.js (capturado via tee no run-all.sh).
+  if (res.status === 202) {
+    console.log(`ENQUEUE cartId=${cartId} ts=${Date.now()} vu=${__VU}`);
+  }
 
   // 1. Processing time como métrica principal (custo puro de enfileiramento SQS)
   processingTrend.add(processingMs);
