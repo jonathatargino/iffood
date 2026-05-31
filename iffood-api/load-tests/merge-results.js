@@ -79,6 +79,7 @@ function attachExecutionWindow(entry, testName, windows) {
 const TEST_META = {
   'c1a-low-contention':  { scenario: 1, label: 'Lock Pessimista — Baixa Contenção',      file: 'c1a-low-contention.js'  },
   'c1b-high-contention': { scenario: 1, label: 'Lock Pessimista — Alta Contenção',        file: 'c1b-high-contention.js' },
+  'c1c-no-lock':         { scenario: 1, label: 'Concorrência Pura — Sem Trava Lógica',    file: 'c1c-no-lock.js'         },
   'c2a-no-cache':        { scenario: 2, label: 'Leitura Intensiva — Sem Cache',           file: 'c2a-no-cache.js'        },
   'c2b-with-cache':      { scenario: 2, label: 'Leitura Intensiva — Com Cache Redis',     file: 'c2b-with-cache.js'      },
   'c3a-sync':            { scenario: 3, label: 'Comunicação Síncrona (POST direto)',       file: 'c3a-sync.js'            },
@@ -99,6 +100,7 @@ const SCENARIO_LABELS = {
 const PRIMARY_LATENCY_METRIC = {
   'c1a-low-contention': 'order_low_contention_latency',
   'c1b-high-contention': 'order_high_contention_latency',
+  'c1c-no-lock':         'order_no_lock_latency',
   'c2a-no-cache': 'store_list_latency',
   'c2b-with-cache': 'store_list_cached_latency',
   'c3a-sync': 'sync_order_latency',
@@ -109,6 +111,7 @@ const PRIMARY_LATENCY_METRIC = {
 const VU_PROFILE_PREFIX = {
   'c1a-low-contention': 'order_low_contention',
   'c1b-high-contention': 'order_high_contention',
+  'c1c-no-lock':         'order_no_lock',
   'c2a-no-cache': 'store_list',
   'c2b-with-cache': 'store_list_cached',
   'c3a-sync': 'sync_order',
@@ -129,6 +132,8 @@ const METRICS_OF_INTEREST = [
   'order_low_contention_processing_ms',
   'order_high_contention_latency',
   'order_high_contention_processing_ms',
+  'order_no_lock_latency',
+  'order_no_lock_processing_ms',
   'store_list_latency',
   'store_list_cached_latency',
   'sync_order_latency',
@@ -481,11 +486,13 @@ for (const [name, meta] of Object.entries(TEST_META)) {
     const lock = counterStats(rawMetrics.db_lock_waits);
     entry.db_lock_waits = lock?.count ?? null;
   }
-  if (name === 'c1a-low-contention' || name === 'c1b-high-contention') {
+  if (name === 'c1a-low-contention' || name === 'c1b-high-contention' || name === 'c1c-no-lock') {
     const procKey =
       name === 'c1a-low-contention'
         ? 'order_low_contention_processing_ms'
-        : 'order_high_contention_processing_ms';
+        : name === 'c1b-high-contention'
+          ? 'order_high_contention_processing_ms'
+          : 'order_no_lock_processing_ms';
     const processing = formatTrend(rawMetrics[procKey]);
     if (processing) entry.processing_ms = processing;
   }

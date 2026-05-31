@@ -40,7 +40,7 @@ Uso: ./load-tests/run-one.sh [--no-reset] <teste> [teste ...]
   --no-reset, -n   não executa setup.js antes do k6
 
 Testes:
-  c1a, c1b, c2a, c2b, c3a, c3b
+  c1a, c1b, c1c, c2a, c2b, c3a, c3b
   1 … 3  (cenário inteiro)
 
 Exemplos:
@@ -56,17 +56,18 @@ resolve_token() {
   case "$t" in
     c1a|1a) echo "c1a-low-contention" ;;
     c1b|1b) echo "c1b-high-contention" ;;
+    c1c|1c) echo "c1c-no-lock" ;;
     c2a|2a) echo "c2a-no-cache" ;;
     c2b|2b) echo "c2b-with-cache" ;;
     c3a|3a) echo "c3a-sync" ;;
     c3b|3b) echo "c3b-async" ;;
     c4a|4a) echo "c3a-sync" ;;
     c4b|4b) echo "c3b-async" ;;
-    1|scenario1|s1) echo "c1a-low-contention,c1b-high-contention" ;;
+    1|scenario1|s1) echo "c1a-low-contention,c1b-high-contention,c1c-no-lock" ;;
     2|scenario2|s2) echo "c2a-no-cache,c2b-with-cache" ;;
     3|scenario3|s3) echo "c3a-sync,c3b-async" ;;
     4|scenario4|s4) echo "c3a-sync,c3b-async" ;;
-    c1a-low-contention|c1b-high-contention|c2a-no-cache|c2b-with-cache|c3a-sync|c3b-async)
+    c1a-low-contention|c1b-high-contention|c1c-no-lock|c2a-no-cache|c2b-with-cache|c3a-sync|c3b-async)
       echo "$1" ;;
     *) echo "" ;;
   esac
@@ -105,6 +106,7 @@ fi
 CANONICAL_ORDER=(
   c1a-low-contention
   c1b-high-contention
+  c1c-no-lock
   c2a-no-cache
   c2b-with-cache
   c3a-sync

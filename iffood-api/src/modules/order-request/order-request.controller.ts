@@ -56,6 +56,27 @@ export class OrderRequestController {
   }
 
   @ApiBearerAuth('access-token')
+  @ApiResponse({ type: CreateOrderResponseDto })
+  @Post('no-lock')
+  @UseGuards(AuthGuard)
+  async createOrderNoLock(
+    @Body() body: CreateOrderRequestDto,
+    @UserId() userId: string,
+  ) {
+    const result = await this.orderRequestService.createOrderNoLock({
+      cartId: body.cartId,
+      storeId: body.storeId,
+      items: body.items,
+      userId,
+    });
+
+    return this.orderRequestMapper.toCreateResponseDto(
+      result.order.id,
+      result.whatsappUrl,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
   @ApiResponse({ status: 202, description: 'Pedido enfileirado para processamento assíncrono' })
   @Post('async')
   @HttpCode(202)

@@ -82,6 +82,7 @@ C3B_WORKER_ANALYSIS_OK=0
 CANONICAL_ORDER=(
   c1a-low-contention
   c1b-high-contention
+  c1c-no-lock
   c2a-no-cache
   c2b-with-cache
   c3a-sync
@@ -94,6 +95,7 @@ resolve_only_token() {
   case "$t" in
     c1a|1a) echo "c1a-low-contention" ;;
     c1b|1b) echo "c1b-high-contention" ;;
+    c1c|1c) echo "c1c-no-lock" ;;
     c2a|2a) echo "c2a-no-cache" ;;
     c2b|2b) echo "c2b-with-cache" ;;
     c3a|3a) echo "c3a-sync" ;;
@@ -101,11 +103,11 @@ resolve_only_token() {
     # aliases legados (antigo cenário 4)
     c4a|4a) echo "c3a-sync" ;;
     c4b|4b) echo "c3b-async" ;;
-    1|scenario1|s1) echo "c1a-low-contention,c1b-high-contention" ;;
+    1|scenario1|s1) echo "c1a-low-contention,c1b-high-contention,c1c-no-lock" ;;
     2|scenario2|s2) echo "c2a-no-cache,c2b-with-cache" ;;
     3|scenario3|s3) echo "c3a-sync,c3b-async" ;;
     4|scenario4|s4) echo "c3a-sync,c3b-async" ;;
-    c1a-low-contention|c1b-high-contention|c2a-no-cache|c2b-with-cache|c3a-sync|c3b-async)
+    c1a-low-contention|c1b-high-contention|c1c-no-lock|c2a-no-cache|c2b-with-cache|c3a-sync|c3b-async)
       echo "$1" ;;
     c4a-sync) echo "c3a-sync" ;;
     c4b-async) echo "c3b-async" ;;
@@ -146,7 +148,7 @@ build_run_list() {
 
 scenario_for_test() {
   case "$1" in
-    c1a*|c1b*) echo 1 ;;
+    c1a*|c1b*|c1c*) echo 1 ;;
     c2a*|c2b*) echo 2 ;;
     c3a*|c3b*) echo 3 ;;
     *) echo "" ;;
@@ -300,6 +302,16 @@ execute_test() {
         skip_test "$name" "K6_AUTH_TOKEN ou K6_CONTENTION_TARGET não definidos"
       else
         run_test "$name" "c1b-high-contention.js" \
+          "K6_BASE_URL=${BASE_URL}" \
+          "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
+          "K6_CONTENTION_TARGET=${K6_CONTENTION_TARGET}"
+      fi
+      ;;
+    c1c-no-lock)
+      if [[ -z "${K6_AUTH_TOKEN:-}" || -z "${K6_CONTENTION_TARGET:-}" ]]; then
+        skip_test "$name" "K6_AUTH_TOKEN ou K6_CONTENTION_TARGET não definidos"
+      else
+        run_test "$name" "c1c-no-lock.js" \
           "K6_BASE_URL=${BASE_URL}" \
           "K6_AUTH_TOKEN=${K6_AUTH_TOKEN}" \
           "K6_CONTENTION_TARGET=${K6_CONTENTION_TARGET}"

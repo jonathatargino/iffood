@@ -31,6 +31,17 @@ export class OrderRequestService {
   ) {}
 
   async createOrder(dto: ServiceCreateOrderDto) {
+    return this.createOrderInternal(dto, { usePessimisticLock: true });
+  }
+
+  async createOrderNoLock(dto: ServiceCreateOrderDto) {
+    return this.createOrderInternal(dto, { usePessimisticLock: false });
+  }
+
+  private async createOrderInternal(
+    dto: ServiceCreateOrderDto,
+    options: { usePessimisticLock: boolean },
+  ) {
     const existing = await measureDb(this.dataSource, (manager) =>
       this.orderRequestRepository.findByCartId(dto.cartId, manager),
     );
@@ -60,14 +71,18 @@ export class OrderRequestService {
       }
 
       const optionIds = dto.items.map((i) => i.productOptionId);
-      const productOptions = await em
+      const productOptionsQuery = em
         .getRepository(ProductOption)
         .createQueryBuilder('po')
         .innerJoinAndSelect('po.product', 'product')
         .innerJoinAndSelect('product.store', 'store')
-        .whereInIds(optionIds)
-        .setLock('pessimistic_write')
-        .getMany();
+        .whereInIds(optionIds);
+
+      if (options.usePessimisticLock) {
+        productOptionsQuery.setLock('pessimistic_write');
+      }
+
+      const productOptions = await productOptionsQuery.getMany();
 
       const optionMap = new Map<string, ProductOption>();
       for (const po of productOptions) {
