@@ -6,8 +6,15 @@ interface DbProcessingStore {
 
 export const dbProcessingStorage = new AsyncLocalStorage<DbProcessingStore>();
 
-export function runWithDbProcessingContext<T>(fn: () => T): T {
-  return dbProcessingStorage.run({ totalMs: 0 }, fn);
+/**
+ * Inicia acumulador por requisição HTTP.
+ * enterWith persiste o contexto nas continuações async do handler NestJS/RxJS
+ * (run() síncrono perde o store antes das queries TypeORM terminarem).
+ */
+export function beginDbProcessing(): DbProcessingStore {
+  const store = { totalMs: 0 };
+  dbProcessingStorage.enterWith(store);
+  return store;
 }
 
 export function addDbProcessingMs(ms: number): void {

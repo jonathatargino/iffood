@@ -6,12 +6,9 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { finalize, Observable } from 'rxjs';
-import {
-  getDbProcessingMs,
-  runWithDbProcessingContext,
-} from '../db/db-processing.context';
+import { beginDbProcessing } from '../db/db-processing.context';
 
-export const PROCESSING_TIME_HEADER = 'X-Processing-Ms';
+export const PROCESSING_TIME_HEADER = 'x-processing-ms';
 
 @Injectable()
 export class ProcessingTimeInterceptor implements NestInterceptor {
@@ -21,14 +18,13 @@ export class ProcessingTimeInterceptor implements NestInterceptor {
     }
 
     const res = context.switchToHttp().getResponse<Response>();
+    const store = beginDbProcessing();
 
-    return runWithDbProcessingContext(() =>
-      next.handle().pipe(
-        finalize(() => {
-          const ms = Math.round(getDbProcessingMs());
-          res.setHeader(PROCESSING_TIME_HEADER, String(ms));
-        }),
-      ),
+    return next.handle().pipe(
+      finalize(() => {
+        const ms = Math.round(store.totalMs);
+        res.setHeader(PROCESSING_TIME_HEADER, String(ms));
+      }),
     );
   }
 }

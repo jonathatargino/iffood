@@ -1,13 +1,16 @@
 /**
- * Lê processing_ms do header X-Processing-Ms (tempo de DB após aquisição do pool).
+ * Lê processing_ms do header x-processing-ms (tempo de DB após aquisição do pool).
+ * k6 normaliza cabeçalhos em minúsculas — não usar mixed-case.
  * Fallback para duration - connecting - tls quando o header não estiver presente.
  */
 export function readProcessingMs(res) {
-  const raw =
-    res.headers['X-Processing-Ms'] ?? res.headers['x-processing-ms'];
-  const headerMs = raw != null ? parseFloat(raw) : NaN;
-  if (Number.isFinite(headerMs)) {
-    return headerMs;
+  const raw = res.headers['x-processing-ms'];
+
+  if (raw != null && raw !== '') {
+    const headerMs = parseFloat(String(raw));
+    if (Number.isFinite(headerMs)) {
+      return headerMs;
+    }
   }
 
   return (
