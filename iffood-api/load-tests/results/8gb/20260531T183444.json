@@ -1,0 +1,1784 @@
+{
+    "meta": {
+      "generated_at": "2026-05-31T18:43:30.831Z",
+      "run_id": "20260531T183444",
+      "base_url": "http://172.31.33.117:3006",
+      "tests_ran": 2,
+      "tests_skipped": 5,
+      "timezone": "UTC",
+      "batch": {
+        "started_at": "2026-05-31T18:34:44.808Z",
+        "ended_at": "2026-05-31T18:42:52.633Z",
+        "started_at_epoch_ms": 1780252484809,
+        "ended_at_epoch_ms": 1780252972634,
+        "duration_ms": 487825
+      },
+      "cloudwatch": {
+        "note": "No console CloudWatch Metrics, use intervalo absoluto (UTC) de cada teste. Métricas ECS/RDS/ElastiCache: filtre pelo período started_at → ended_at.",
+        "console_time_range_format": "absolute UTC"
+      },
+      "cloudwatch_timeline": [
+        {
+          "test_id": "c3a-sync",
+          "scenario": 3,
+          "started_at": "2026-05-31T18:34:44.818Z",
+          "ended_at": "2026-05-31T18:38:50.054Z",
+          "started_at_epoch_ms": 1780252484819,
+          "ended_at_epoch_ms": 1780252730055,
+          "duration_ms": 245236
+        },
+        {
+          "test_id": "c3b-async",
+          "scenario": 3,
+          "started_at": "2026-05-31T18:38:50.088Z",
+          "ended_at": "2026-05-31T18:42:52.606Z",
+          "started_at_epoch_ms": 1780252730089,
+          "ended_at_epoch_ms": 1780252972607,
+          "duration_ms": 242518
+        }
+      ],
+      "vu_profiles": {
+        "levels": [
+          50,
+          100,
+          150,
+          200,
+          250,
+          300,
+          350,
+          400
+        ],
+        "duration_s": {
+          "50": 30,
+          "100": 30,
+          "150": 30,
+          "200": 30,
+          "250": 30,
+          "300": 30,
+          "350": 30,
+          "400": 30
+        },
+        "model": "50 VUs@30s → 100 VUs@30s → 150 VUs@30s → 200 VUs@30s → 250 VUs@30s → 300 VUs@30s → 350 VUs@30s → 400 VUs@30s (plateaus estáveis)"
+      }
+    },
+    "scenarios": {
+      "scenario_1": {
+        "id": 1,
+        "label": "Concorrência e Lock Pessimista",
+        "tests": {
+          "c1a-low-contention": {
+            "label": "Lock Pessimista — Baixa Contenção",
+            "file": "c1a-low-contention.js",
+            "status": "skipped"
+          },
+          "c1b-high-contention": {
+            "label": "Lock Pessimista — Alta Contenção",
+            "file": "c1b-high-contention.js",
+            "status": "skipped"
+          },
+          "c1c-no-lock": {
+            "label": "Concorrência Pura — Sem Trava Lógica",
+            "file": "c1c-no-lock.js",
+            "status": "skipped"
+          }
+        }
+      },
+      "scenario_2": {
+        "id": 2,
+        "label": "Leitura Intensiva e Ausência de Cache",
+        "tests": {
+          "c2a-no-cache": {
+            "label": "Leitura Intensiva — Sem Cache",
+            "file": "c2a-no-cache.js",
+            "status": "skipped"
+          },
+          "c2b-with-cache": {
+            "label": "Leitura Intensiva — Com Cache Redis",
+            "file": "c2b-with-cache.js",
+            "status": "skipped"
+          }
+        }
+      },
+      "scenario_3": {
+        "id": 3,
+        "label": "Comunicação Síncrona vs Assíncrona",
+        "tests": {
+          "c3a-sync": {
+            "label": "Comunicação Síncrona (POST direto)",
+            "file": "c3a-sync.js",
+            "status": "ok",
+            "latency_metric": "sync_order_latency",
+            "latency": {
+              "avg": 1708.12,
+              "min": 144.51,
+              "med": 1803.24,
+              "max": 5948.03,
+              "p(90)": 3019.03,
+              "p(95)": 3077.04,
+              "thresholds": {
+                "p(95)<5500": false,
+                "p(99)<9000": false
+              }
+            },
+            "throughput": {
+              "total_requests": 29410,
+              "rps_avg": 120.95,
+              "http": {
+                "total_requests": 29410,
+                "rps_avg": 120.95
+              }
+            },
+            "error_rate": 0,
+            "by_vu_profile": {
+              "50": {
+                "vus": 50,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 253.98,
+                  "min": 144.51,
+                  "med": 228.24,
+                  "max": 1532.06,
+                  "p(90)": 274.44,
+                  "p(95)": 313.88
+                },
+                "throughput": {
+                  "total_requests": 3322,
+                  "rps_avg": 110.73,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "100": {
+                "vus": 100,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 615.41,
+                  "min": 253.68,
+                  "med": 613.92,
+                  "max": 1044.19,
+                  "p(90)": 632.7,
+                  "p(95)": 648.83
+                },
+                "throughput": {
+                  "total_requests": 3727,
+                  "rps_avg": 124.23,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "150": {
+                "vus": 150,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 1027.83,
+                  "min": 645.31,
+                  "med": 1013.33,
+                  "max": 1839.81,
+                  "p(90)": 1068.15,
+                  "p(95)": 1080.29
+                },
+                "throughput": {
+                  "total_requests": 3741,
+                  "rps_avg": 124.7,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "200": {
+                "vus": 200,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 1450.04,
+                  "min": 1053.48,
+                  "med": 1420.93,
+                  "max": 2653.04,
+                  "p(90)": 1478.13,
+                  "p(95)": 1530.89
+                },
+                "throughput": {
+                  "total_requests": 3736,
+                  "rps_avg": 124.53,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "250": {
+                "vus": 250,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 1880.42,
+                  "min": 1519.25,
+                  "med": 1829.46,
+                  "max": 3519.86,
+                  "p(90)": 1954.58,
+                  "p(95)": 1999.85
+                },
+                "throughput": {
+                  "total_requests": 3738,
+                  "rps_avg": 124.6,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "300": {
+                "vus": 300,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 2331.84,
+                  "min": 1927.56,
+                  "med": 2259.47,
+                  "max": 4310.01,
+                  "p(90)": 2391.83,
+                  "p(95)": 2832.61
+                },
+                "throughput": {
+                  "total_requests": 3709,
+                  "rps_avg": 123.63,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "350": {
+                "vus": 350,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 2779.48,
+                  "min": 2374.03,
+                  "med": 2664.21,
+                  "max": 5200.32,
+                  "p(90)": 2806.19,
+                  "p(95)": 3683.06
+                },
+                "throughput": {
+                  "total_requests": 3701,
+                  "rps_avg": 123.37,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "400": {
+                "vus": 400,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 3177.56,
+                  "min": 2786,
+                  "med": 3044.2,
+                  "max": 5948.03,
+                  "p(90)": 3129.2,
+                  "p(95)": 4477.56
+                },
+                "throughput": {
+                  "total_requests": 3736,
+                  "rps_avg": 124.53,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              }
+            },
+            "raw_metrics": {
+              "sync_order_latency": {
+                "avg": 1708.12,
+                "min": 144.51,
+                "med": 1803.24,
+                "max": 5948.03,
+                "p(90)": 3019.03,
+                "p(95)": 3077.04,
+                "thresholds": {
+                  "p(95)<5500": false,
+                  "p(99)<9000": false
+                }
+              },
+              "sync_order_processing_ms": {
+                "avg": 1707.11,
+                "min": 144.51,
+                "med": 1803.05,
+                "max": 5941.08,
+                "p(90)": 3018.8,
+                "p(95)": 3076.74,
+                "thresholds": {
+                  "p(95)<5000": false,
+                  "p(99)<8000": false
+                }
+              },
+              "http_req_duration": {
+                "avg": 1708.12,
+                "min": 144.51,
+                "med": 1803.24,
+                "max": 5948.03,
+                "p(90)": 3019.03,
+                "p(95)": 3077.04
+              },
+              "http_req_failed": {
+                "fails": 29410,
+                "passes": 0,
+                "value": 0
+              },
+              "http_reqs": {
+                "count": 29410,
+                "rate": 120.9512661432155
+              },
+              "http_req_waiting": {
+                "avg": 1707.96,
+                "min": 144.41,
+                "med": 1803.16,
+                "max": 5947.71,
+                "p(90)": 3018.9,
+                "p(95)": 3076.96
+              }
+            },
+            "processing_ms": {
+              "avg": 1707.11,
+              "min": 144.51,
+              "med": 1803.05,
+              "max": 5941.08,
+              "p(90)": 3018.8,
+              "p(95)": 3076.74,
+              "thresholds": {
+                "p(95)<5000": false,
+                "p(99)<8000": false
+              }
+            },
+            "execution": {
+              "started_at": "2026-05-31T18:34:44.818Z",
+              "ended_at": "2026-05-31T18:38:50.054Z",
+              "started_at_epoch_ms": 1780252484819,
+              "ended_at_epoch_ms": 1780252730055,
+              "duration_ms": 245236,
+              "exit_code": 0,
+              "run_status": "ok",
+              "cloudwatch": {
+                "from": "2026-05-31T18:34:44.818Z",
+                "to": "2026-05-31T18:38:50.054Z",
+                "from_epoch_ms": 1780252484819,
+                "to_epoch_ms": 1780252730055
+              }
+            }
+          },
+          "c3b-async": {
+            "label": "Comunicação Assíncrona (SQS + worker)",
+            "file": "c3b-async.js",
+            "status": "ok",
+            "latency_metric": "async_order_latency",
+            "latency": {
+              "avg": 357.54,
+              "min": 10.2,
+              "med": 335.61,
+              "max": 9704.01,
+              "p(90)": 489.92,
+              "p(95)": 528.06,
+              "thresholds": {
+                "p(95)<1200": false,
+                "p(99)<2500": false
+              }
+            },
+            "throughput": {
+              "total_requests": 97653,
+              "rps_avg": 406.1,
+              "http": {
+                "total_requests": 97653,
+                "rps_avg": 406.1
+              },
+              "accepted_202": {
+                "total": 97653,
+                "rps_avg": 406.1,
+                "acceptance_rate": 1
+              },
+              "enqueue_errors": {
+                "rate": 0,
+                "passes": 0,
+                "fails": 97653
+              },
+              "finalized": {
+                "total": 24782,
+                "latency": {
+                  "samples": 24782,
+                  "avg": 69638.9,
+                  "min": 11.52,
+                  "med": 67047.8,
+                  "p(90)": 131672.33,
+                  "p(95)": 140215.7,
+                  "p(99)": 151165.11,
+                  "max": 238103.46
+                },
+                "latency_scope": "during_k6",
+                "during_k6_business_latency_ms": {
+                  "samples": 24782,
+                  "avg": 69638.9,
+                  "min": 11.52,
+                  "med": 67047.8,
+                  "p(90)": 131672.33,
+                  "p(95)": 140215.7,
+                  "p(99)": 151165.11,
+                  "max": 238103.46
+                },
+                "total_business_latency_ms": {
+                  "samples": 28411,
+                  "avg": 81210.28,
+                  "min": 11.52,
+                  "med": 78361.67,
+                  "p(90)": 154190.78,
+                  "p(95)": 163371.41,
+                  "p(99)": 170277.78,
+                  "max": 238103.46
+                },
+                "post_k6_drain_latency_ms": {
+                  "samples": 3629,
+                  "avg": 17209.22,
+                  "min": 9.19,
+                  "med": 16866.89,
+                  "p(90)": 32320.68,
+                  "p(95)": 34858.1,
+                  "p(99)": 36886.15,
+                  "max": 37486.38
+                },
+                "analysis_mode": "skip",
+                "sqs_drain": {
+                  "enabled": false,
+                  "mode": "skip",
+                  "drained": null,
+                  "waited_sec": 0,
+                  "note": "K6_WORKER_DRAIN_MODE=skip — sem espera SQS (métricas during_k6 + PG no instante da análise)"
+                },
+                "persistence": {
+                  "persisted_during_k6": 24782,
+                  "persisted_total": 28411,
+                  "persisted_matched_to_log": 28411,
+                  "missing_after_drain": 69242,
+                  "not_persisted_estimate": 69242,
+                  "backlog_estimate_at_k6_end": 72871
+                },
+                "warnings": [
+                  "Modo skip_drain: latência e2e reportada em during_k6_business_latency_ms (subset persistido durante o teste). Purge pós-análise é seguro.",
+                  "69242 mensagens enfileiradas (k6) não viraram row no PG — fila purgada, worker lento ou falha no consumer."
+                ],
+                "by_vu_profile": {
+                  "50": {
+                    "total": 4971,
+                    "latency": {
+                      "samples": 4971,
+                      "avg": 17001.97,
+                      "min": 11.52,
+                      "med": 6410.83,
+                      "p(90)": 36943.1,
+                      "p(95)": 52512.58,
+                      "p(99)": 64809.56,
+                      "max": 238103.46
+                    },
+                    "latency_scope": "during_k6",
+                    "during_k6_business_latency_ms": {
+                      "samples": 4971,
+                      "avg": 17001.97,
+                      "min": 11.52,
+                      "med": 6410.83,
+                      "p(90)": 36943.1,
+                      "p(95)": 52512.58,
+                      "p(99)": 64809.56,
+                      "max": 238103.46
+                    },
+                    "total_business_latency_ms": {
+                      "samples": 4971,
+                      "avg": 17001.97,
+                      "min": 11.52,
+                      "med": 6410.83,
+                      "p(90)": 36943.1,
+                      "p(95)": 52512.58,
+                      "p(99)": 64809.56,
+                      "max": 238103.46
+                    },
+                    "post_k6_drain_latency_ms": {
+                      "samples": 0,
+                      "avg": null,
+                      "min": null,
+                      "med": null,
+                      "p(90)": null,
+                      "p(95)": null,
+                      "p(99)": null,
+                      "max": null
+                    },
+                    "persistence": {
+                      "persisted_during_k6": 4971,
+                      "persisted_matched_to_log": 4971,
+                      "missing_after_drain": 2,
+                      "not_persisted_estimate": 386
+                    }
+                  },
+                  "100": {
+                    "total": 8156,
+                    "latency": {
+                      "samples": 8156,
+                      "avg": 47413.82,
+                      "min": 1327.78,
+                      "med": 46240.35,
+                      "p(90)": 78294.91,
+                      "p(95)": 87023.53,
+                      "p(99)": 104226.97,
+                      "max": 127819.12
+                    },
+                    "latency_scope": "during_k6",
+                    "during_k6_business_latency_ms": {
+                      "samples": 8156,
+                      "avg": 47413.82,
+                      "min": 1327.78,
+                      "med": 46240.35,
+                      "p(90)": 78294.91,
+                      "p(95)": 87023.53,
+                      "p(99)": 104226.97,
+                      "max": 127819.12
+                    },
+                    "total_business_latency_ms": {
+                      "samples": 8156,
+                      "avg": 47413.82,
+                      "min": 1327.78,
+                      "med": 46240.35,
+                      "p(90)": 78294.91,
+                      "p(95)": 87023.53,
+                      "p(99)": 104226.97,
+                      "max": 127819.12
+                    },
+                    "post_k6_drain_latency_ms": {
+                      "samples": 0,
+                      "avg": null,
+                      "min": null,
+                      "med": null,
+                      "p(90)": null,
+                      "p(95)": null,
+                      "p(99)": null,
+                      "max": null
+                    },
+                    "persistence": {
+                      "persisted_during_k6": 8156,
+                      "persisted_matched_to_log": 8156,
+                      "missing_after_drain": 4,
+                      "not_persisted_estimate": 184
+                    }
+                  },
+                  "150": {
+                    "total": 9963,
+                    "latency": {
+                      "samples": 9963,
+                      "avg": 103429.82,
+                      "min": 51166.97,
+                      "med": 103249.75,
+                      "p(90)": 136482.15,
+                      "p(95)": 145178.61,
+                      "p(99)": 154516.33,
+                      "max": 165420.3
+                    },
+                    "latency_scope": "during_k6",
+                    "during_k6_business_latency_ms": {
+                      "samples": 9963,
+                      "avg": 103429.82,
+                      "min": 51166.97,
+                      "med": 103249.75,
+                      "p(90)": 136482.15,
+                      "p(95)": 145178.61,
+                      "p(99)": 154516.33,
+                      "max": 165420.3
+                    },
+                    "total_business_latency_ms": {
+                      "samples": 10348,
+                      "avg": 105744.77,
+                      "min": 51166.97,
+                      "med": 104394.6,
+                      "p(90)": 142244.59,
+                      "p(95)": 153749.53,
+                      "p(99)": 169155.27,
+                      "max": 192970.19
+                    },
+                    "post_k6_drain_latency_ms": {
+                      "samples": 385,
+                      "avg": 9699.82,
+                      "min": 82.78,
+                      "med": 7805.04,
+                      "p(90)": 19052.97,
+                      "p(95)": 23766.29,
+                      "p(99)": 33135.42,
+                      "max": 35611.58
+                    },
+                    "persistence": {
+                      "persisted_during_k6": 9963,
+                      "persisted_matched_to_log": 10348,
+                      "missing_after_drain": 51,
+                      "not_persisted_estimate": 283
+                    }
+                  },
+                  "200": {
+                    "total": 1692,
+                    "latency": {
+                      "samples": 1692,
+                      "avg": 132444.48,
+                      "min": 103748.19,
+                      "med": 134770.38,
+                      "p(90)": 145473.48,
+                      "p(95)": 147419.07,
+                      "p(99)": 148316.51,
+                      "max": 152385.17
+                    },
+                    "latency_scope": "during_k6",
+                    "during_k6_business_latency_ms": {
+                      "samples": 1692,
+                      "avg": 132444.48,
+                      "min": 103748.19,
+                      "med": 134770.38,
+                      "p(90)": 145473.48,
+                      "p(95)": 147419.07,
+                      "p(99)": 148316.51,
+                      "max": 152385.17
+                    },
+                    "total_business_latency_ms": {
+                      "samples": 4906,
+                      "avg": 150250.11,
+                      "min": 103748.19,
+                      "med": 152896.04,
+                      "p(90)": 166981.84,
+                      "p(95)": 169452.73,
+                      "p(99)": 176267.92,
+                      "max": 186010.71
+                    },
+                    "post_k6_drain_latency_ms": {
+                      "samples": 3214,
+                      "avg": 17937.51,
+                      "min": 9.19,
+                      "med": 17986.2,
+                      "p(90)": 32484.47,
+                      "p(95)": 34556.43,
+                      "p(99)": 36890.54,
+                      "max": 37486.38
+                    },
+                    "persistence": {
+                      "persisted_during_k6": 1692,
+                      "persisted_matched_to_log": 4906,
+                      "missing_after_drain": 7371,
+                      "not_persisted_estimate": 7416
+                    }
+                  },
+                  "250": {
+                    "total": 0,
+                    "latency": {
+                      "samples": 30,
+                      "avg": 155576.68,
+                      "min": 154789.03,
+                      "med": 155136.29,
+                      "p(90)": 156852.35,
+                      "p(95)": 156856.49,
+                      "p(99)": 156858.74,
+                      "max": 156858.74
+                    },
+                    "latency_scope": "all_matched",
+                    "during_k6_business_latency_ms": {
+                      "samples": 0,
+                      "avg": null,
+                      "min": null,
+                      "med": null,
+                      "p(90)": null,
+                      "p(95)": null,
+                      "p(99)": null,
+                      "max": null
+                    },
+                    "total_business_latency_ms": {
+                      "samples": 30,
+                      "avg": 155576.68,
+                      "min": 154789.03,
+                      "med": 155136.29,
+                      "p(90)": 156852.35,
+                      "p(95)": 156856.49,
+                      "p(99)": 156858.74,
+                      "max": 156858.74
+                    },
+                    "post_k6_drain_latency_ms": {
+                      "samples": 30,
+                      "avg": 35555.42,
+                      "min": 34687.23,
+                      "med": 35922.92,
+                      "p(90)": 36054.41,
+                      "p(95)": 36056.65,
+                      "p(99)": 36057.86,
+                      "max": 36057.86
+                    },
+                    "persistence": {
+                      "persisted_during_k6": 0,
+                      "persisted_matched_to_log": 30,
+                      "missing_after_drain": 13537,
+                      "not_persisted_estimate": 13948
+                    }
+                  }
+                }
+              }
+            },
+            "error_rate": 0,
+            "by_vu_profile": {
+              "50": {
+                "vus": 50,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 80.83,
+                  "min": 10.2,
+                  "med": 76.93,
+                  "max": 263.93,
+                  "p(90)": 140.35,
+                  "p(95)": 172.51
+                },
+                "throughput": {
+                  "total_requests": 5357,
+                  "rps_avg": 178.57,
+                  "duration_s": 30
+                },
+                "error_rate": 0,
+                "acceptance_rate": 1,
+                "worker": {
+                  "enqueue": {
+                    "logged_enqueues": 4973,
+                    "k6_async_requests": 5357
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 4971,
+                    "persisted_matched_to_log": 4971,
+                    "missing_after_drain": 2,
+                    "not_persisted_estimate": 386
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 4971,
+                    "avg": 17001.97,
+                    "min": 11.52,
+                    "med": 6410.83,
+                    "p(90)": 36943.1,
+                    "p(95)": 52512.58,
+                    "p(99)": 64809.56,
+                    "max": 238103.46
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 4971,
+                    "avg": 17001.97,
+                    "min": 11.52,
+                    "med": 6410.83,
+                    "p(90)": 36943.1,
+                    "p(95)": 52512.58,
+                    "p(99)": 64809.56,
+                    "max": 238103.46
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  }
+                }
+              },
+              "100": {
+                "vus": 100,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 159.88,
+                  "min": 10.51,
+                  "med": 165.14,
+                  "max": 970.9,
+                  "p(90)": 211.27,
+                  "p(95)": 233.33
+                },
+                "throughput": {
+                  "total_requests": 8340,
+                  "rps_avg": 278,
+                  "duration_s": 30
+                },
+                "error_rate": 0,
+                "acceptance_rate": 1,
+                "worker": {
+                  "enqueue": {
+                    "logged_enqueues": 8160,
+                    "k6_async_requests": 8340
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 8156,
+                    "persisted_matched_to_log": 8156,
+                    "missing_after_drain": 4,
+                    "not_persisted_estimate": 184
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 8156,
+                    "avg": 47413.82,
+                    "min": 1327.78,
+                    "med": 46240.35,
+                    "p(90)": 78294.91,
+                    "p(95)": 87023.53,
+                    "p(99)": 104226.97,
+                    "max": 127819.12
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 8156,
+                    "avg": 47413.82,
+                    "min": 1327.78,
+                    "med": 46240.35,
+                    "p(90)": 78294.91,
+                    "p(95)": 87023.53,
+                    "p(99)": 104226.97,
+                    "max": 127819.12
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  }
+                }
+              },
+              "150": {
+                "vus": 150,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 226.2,
+                  "min": 10.4,
+                  "med": 232.16,
+                  "max": 2552.48,
+                  "p(90)": 278.23,
+                  "p(95)": 304.48
+                },
+                "throughput": {
+                  "total_requests": 10631,
+                  "rps_avg": 354.37,
+                  "duration_s": 30
+                },
+                "error_rate": 0,
+                "acceptance_rate": 1,
+                "worker": {
+                  "enqueue": {
+                    "logged_enqueues": 10399,
+                    "k6_async_requests": 10631
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 9963,
+                    "persisted_matched_to_log": 10348,
+                    "missing_after_drain": 51,
+                    "not_persisted_estimate": 283
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 9963,
+                    "avg": 103429.82,
+                    "min": 51166.97,
+                    "med": 103249.75,
+                    "p(90)": 136482.15,
+                    "p(95)": 145178.61,
+                    "p(99)": 154516.33,
+                    "max": 165420.3
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 10348,
+                    "avg": 105744.77,
+                    "min": 51166.97,
+                    "med": 104394.6,
+                    "p(90)": 142244.59,
+                    "p(95)": 153749.53,
+                    "p(99)": 169155.27,
+                    "max": 192970.19
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 385,
+                    "avg": 9699.82,
+                    "min": 82.78,
+                    "med": 7805.04,
+                    "p(90)": 19052.97,
+                    "p(95)": 23766.29,
+                    "p(99)": 33135.42,
+                    "max": 35611.58
+                  }
+                }
+              },
+              "200": {
+                "vus": 200,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 286.6,
+                  "min": 11.98,
+                  "med": 283.02,
+                  "max": 2920.69,
+                  "p(90)": 338.56,
+                  "p(95)": 376.72
+                },
+                "throughput": {
+                  "total_requests": 12322,
+                  "rps_avg": 410.73,
+                  "duration_s": 30
+                },
+                "error_rate": 0,
+                "acceptance_rate": 1,
+                "worker": {
+                  "enqueue": {
+                    "logged_enqueues": 12277,
+                    "k6_async_requests": 12322
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 1692,
+                    "persisted_matched_to_log": 4906,
+                    "missing_after_drain": 7371,
+                    "not_persisted_estimate": 7416
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 1692,
+                    "avg": 132444.48,
+                    "min": 103748.19,
+                    "med": 134770.38,
+                    "p(90)": 145473.48,
+                    "p(95)": 147419.07,
+                    "p(99)": 148316.51,
+                    "max": 152385.17
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 4906,
+                    "avg": 150250.11,
+                    "min": 103748.19,
+                    "med": 152896.04,
+                    "p(90)": 166981.84,
+                    "p(95)": 169452.73,
+                    "p(99)": 176267.92,
+                    "max": 186010.71
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 3214,
+                    "avg": 17937.51,
+                    "min": 9.19,
+                    "med": 17986.2,
+                    "p(90)": 32484.47,
+                    "p(95)": 34556.43,
+                    "p(99)": 36890.54,
+                    "max": 37486.38
+                  }
+                }
+              },
+              "250": {
+                "vus": 250,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 343.05,
+                  "min": 12.71,
+                  "med": 341.48,
+                  "max": 3395.57,
+                  "p(90)": 397.5,
+                  "p(95)": 415.85
+                },
+                "throughput": {
+                  "total_requests": 13978,
+                  "rps_avg": 465.93,
+                  "duration_s": 30
+                },
+                "error_rate": 0,
+                "acceptance_rate": 1,
+                "worker": {
+                  "enqueue": {
+                    "logged_enqueues": 13567,
+                    "k6_async_requests": 13978
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 0,
+                    "persisted_matched_to_log": 30,
+                    "missing_after_drain": 13537,
+                    "not_persisted_estimate": 13948
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 30,
+                    "avg": 155576.68,
+                    "min": 154789.03,
+                    "med": 155136.29,
+                    "p(90)": 156852.35,
+                    "p(95)": 156856.49,
+                    "p(99)": 156858.74,
+                    "max": 156858.74
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 30,
+                    "avg": 35555.42,
+                    "min": 34687.23,
+                    "med": 35922.92,
+                    "p(90)": 36054.41,
+                    "p(95)": 36056.65,
+                    "p(99)": 36057.86,
+                    "max": 36057.86
+                  }
+                }
+              },
+              "300": {
+                "vus": 300,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 421.04,
+                  "min": 19.19,
+                  "med": 388.51,
+                  "max": 7304.26,
+                  "p(90)": 470.22,
+                  "p(95)": 488.1
+                },
+                "throughput": {
+                  "total_requests": 14660,
+                  "rps_avg": 488.67,
+                  "duration_s": 30
+                },
+                "error_rate": 0,
+                "acceptance_rate": 1,
+                "worker": {
+                  "enqueue": {
+                    "logged_enqueues": 14678,
+                    "k6_async_requests": 14660
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 0,
+                    "persisted_matched_to_log": 0,
+                    "missing_after_drain": 14678,
+                    "not_persisted_estimate": 14660
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  }
+                }
+              },
+              "350": {
+                "vus": 350,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 488.25,
+                  "min": 15.74,
+                  "med": 445.23,
+                  "max": 8253.43,
+                  "p(90)": 522.38,
+                  "p(95)": 559.7
+                },
+                "throughput": {
+                  "total_requests": 15469,
+                  "rps_avg": 515.63,
+                  "duration_s": 30
+                },
+                "error_rate": 0,
+                "acceptance_rate": 1,
+                "worker": {
+                  "enqueue": {
+                    "logged_enqueues": 15293,
+                    "k6_async_requests": 15469
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 0,
+                    "persisted_matched_to_log": 0,
+                    "missing_after_drain": 15293,
+                    "not_persisted_estimate": 15469
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  }
+                }
+              },
+              "400": {
+                "vus": 400,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 514.42,
+                  "min": 42.17,
+                  "med": 463.06,
+                  "max": 9704.01,
+                  "p(90)": 549.82,
+                  "p(95)": 593.31
+                },
+                "throughput": {
+                  "total_requests": 16896,
+                  "rps_avg": 563.2,
+                  "duration_s": 30
+                },
+                "error_rate": 0,
+                "acceptance_rate": 1,
+                "worker": {
+                  "enqueue": {
+                    "logged_enqueues": 18306,
+                    "k6_async_requests": 16896
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 0,
+                    "persisted_matched_to_log": 0,
+                    "missing_after_drain": 18306,
+                    "not_persisted_estimate": 16896
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  }
+                }
+              }
+            },
+            "raw_metrics": {
+              "async_order_latency": {
+                "avg": 357.54,
+                "min": 10.2,
+                "med": 335.61,
+                "max": 9704.01,
+                "p(90)": 489.92,
+                "p(95)": 528.06,
+                "thresholds": {
+                  "p(95)<1200": false,
+                  "p(99)<2500": false
+                }
+              },
+              "http_req_duration": {
+                "avg": 357.54,
+                "min": 10.2,
+                "med": 335.61,
+                "max": 9704.01,
+                "p(90)": 489.92,
+                "p(95)": 528.06
+              },
+              "http_req_failed": {
+                "passes": 0,
+                "fails": 97653,
+                "value": 0
+              },
+              "http_reqs": {
+                "rate": 406.0995307671362,
+                "count": 97653
+              },
+              "http_req_waiting": {
+                "avg": 357.33,
+                "min": 10.13,
+                "med": 335.53,
+                "max": 9699.84,
+                "p(90)": 489.58,
+                "p(95)": 527.91
+              },
+              "async_order_processing_ms": {
+                "avg": 357.07,
+                "min": 10.2,
+                "med": 335.52,
+                "max": 9635.16,
+                "p(90)": 489.75,
+                "p(95)": 527.95,
+                "thresholds": {
+                  "p(95)<1000": false,
+                  "p(99)<2000": false
+                }
+              },
+              "async_order_requests": {
+                "count": 97653,
+                "rate": 406.0995307671362
+              },
+              "async_accepted_rate": {
+                "fails": 0,
+                "passes": 97653,
+                "thresholds": {
+                  "rate>0.95": false
+                },
+                "value": 1
+              },
+              "async_order_errors": {
+                "passes": 0,
+                "fails": 97653,
+                "thresholds": {
+                  "rate<0.05": false
+                },
+                "value": 0
+              }
+            },
+            "async_accepted_rate": 1,
+            "enqueue_processing_ms": {
+              "avg": 357.07,
+              "min": 10.2,
+              "med": 335.52,
+              "max": 9635.16,
+              "p(90)": 489.75,
+              "p(95)": 527.95,
+              "thresholds": {
+                "p(95)<1000": false,
+                "p(99)<2000": false
+              }
+            },
+            "worker_processing": {
+              "status": "partial",
+              "warnings": [
+                "Modo skip_drain: latência e2e reportada em during_k6_business_latency_ms (subset persistido durante o teste). Purge pós-análise é seguro.",
+                "69242 mensagens enfileiradas (k6) não viraram row no PG — fila purgada, worker lento ou falha no consumer."
+              ],
+              "generated_at": "2026-05-31T18:43:30.750Z",
+              "test_name": "c3b-async",
+              "analysis_mode": "skip",
+              "k6_window": {
+                "started_at": "2026-05-31T18:38:50.088Z",
+                "ended_at": "2026-05-31T18:42:52.606Z",
+                "started_at_epoch_ms": 1780252730089,
+                "ended_at_epoch_ms": 1780252972607,
+                "duration_ms": 242518
+              },
+              "analysis_ended_at": "2026-05-31T18:43:29.697Z",
+              "analysis_ended_at_epoch_ms": 1780253009697,
+              "enqueue": {
+                "k6_async_requests": 97653,
+                "logged_enqueues": 97653,
+                "duplicate_log_lines": 0,
+                "k6_log": "c3b-async.k6.log"
+              },
+              "sqs_drain": {
+                "enabled": false,
+                "mode": "skip",
+                "drained": null,
+                "waited_sec": 0,
+                "note": "K6_WORKER_DRAIN_MODE=skip — sem espera SQS (métricas during_k6 + PG no instante da análise)"
+              },
+              "persistence": {
+                "persisted_during_k6": 24782,
+                "persisted_total": 28411,
+                "persisted_matched_to_log": 28411,
+                "missing_after_drain": 69242,
+                "not_persisted_estimate": 69242,
+                "backlog_estimate_at_k6_end": 72871
+              },
+              "during_k6_business_latency_ms": {
+                "samples": 24782,
+                "avg": 69638.9,
+                "min": 11.52,
+                "med": 67047.8,
+                "p(90)": 131672.33,
+                "p(95)": 140215.7,
+                "p(99)": 151165.11,
+                "max": 238103.46
+              },
+              "total_business_latency_ms": {
+                "samples": 28411,
+                "avg": 81210.28,
+                "min": 11.52,
+                "med": 78361.67,
+                "p(90)": 154190.78,
+                "p(95)": 163371.41,
+                "p(99)": 170277.78,
+                "max": 238103.46
+              },
+              "post_k6_drain_latency_ms": {
+                "samples": 3629,
+                "avg": 17209.22,
+                "min": 9.19,
+                "med": 16866.89,
+                "p(90)": 32320.68,
+                "p(95)": 34858.1,
+                "p(99)": 36886.15,
+                "max": 37486.38
+              },
+              "by_vu_profile": {
+                "50": {
+                  "vus": 50,
+                  "duration_s": 30,
+                  "enqueue": {
+                    "logged_enqueues": 4973,
+                    "k6_async_requests": 5357
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 4971,
+                    "persisted_matched_to_log": 4971,
+                    "missing_after_drain": 2,
+                    "not_persisted_estimate": 386
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 4971,
+                    "avg": 17001.97,
+                    "min": 11.52,
+                    "med": 6410.83,
+                    "p(90)": 36943.1,
+                    "p(95)": 52512.58,
+                    "p(99)": 64809.56,
+                    "max": 238103.46
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 4971,
+                    "avg": 17001.97,
+                    "min": 11.52,
+                    "med": 6410.83,
+                    "p(90)": 36943.1,
+                    "p(95)": 52512.58,
+                    "p(99)": 64809.56,
+                    "max": 238103.46
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  }
+                },
+                "100": {
+                  "vus": 100,
+                  "duration_s": 30,
+                  "enqueue": {
+                    "logged_enqueues": 8160,
+                    "k6_async_requests": 8340
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 8156,
+                    "persisted_matched_to_log": 8156,
+                    "missing_after_drain": 4,
+                    "not_persisted_estimate": 184
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 8156,
+                    "avg": 47413.82,
+                    "min": 1327.78,
+                    "med": 46240.35,
+                    "p(90)": 78294.91,
+                    "p(95)": 87023.53,
+                    "p(99)": 104226.97,
+                    "max": 127819.12
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 8156,
+                    "avg": 47413.82,
+                    "min": 1327.78,
+                    "med": 46240.35,
+                    "p(90)": 78294.91,
+                    "p(95)": 87023.53,
+                    "p(99)": 104226.97,
+                    "max": 127819.12
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  }
+                },
+                "150": {
+                  "vus": 150,
+                  "duration_s": 30,
+                  "enqueue": {
+                    "logged_enqueues": 10399,
+                    "k6_async_requests": 10631
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 9963,
+                    "persisted_matched_to_log": 10348,
+                    "missing_after_drain": 51,
+                    "not_persisted_estimate": 283
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 9963,
+                    "avg": 103429.82,
+                    "min": 51166.97,
+                    "med": 103249.75,
+                    "p(90)": 136482.15,
+                    "p(95)": 145178.61,
+                    "p(99)": 154516.33,
+                    "max": 165420.3
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 10348,
+                    "avg": 105744.77,
+                    "min": 51166.97,
+                    "med": 104394.6,
+                    "p(90)": 142244.59,
+                    "p(95)": 153749.53,
+                    "p(99)": 169155.27,
+                    "max": 192970.19
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 385,
+                    "avg": 9699.82,
+                    "min": 82.78,
+                    "med": 7805.04,
+                    "p(90)": 19052.97,
+                    "p(95)": 23766.29,
+                    "p(99)": 33135.42,
+                    "max": 35611.58
+                  }
+                },
+                "200": {
+                  "vus": 200,
+                  "duration_s": 30,
+                  "enqueue": {
+                    "logged_enqueues": 12277,
+                    "k6_async_requests": 12322
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 1692,
+                    "persisted_matched_to_log": 4906,
+                    "missing_after_drain": 7371,
+                    "not_persisted_estimate": 7416
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 1692,
+                    "avg": 132444.48,
+                    "min": 103748.19,
+                    "med": 134770.38,
+                    "p(90)": 145473.48,
+                    "p(95)": 147419.07,
+                    "p(99)": 148316.51,
+                    "max": 152385.17
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 4906,
+                    "avg": 150250.11,
+                    "min": 103748.19,
+                    "med": 152896.04,
+                    "p(90)": 166981.84,
+                    "p(95)": 169452.73,
+                    "p(99)": 176267.92,
+                    "max": 186010.71
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 3214,
+                    "avg": 17937.51,
+                    "min": 9.19,
+                    "med": 17986.2,
+                    "p(90)": 32484.47,
+                    "p(95)": 34556.43,
+                    "p(99)": 36890.54,
+                    "max": 37486.38
+                  }
+                },
+                "250": {
+                  "vus": 250,
+                  "duration_s": 30,
+                  "enqueue": {
+                    "logged_enqueues": 13567,
+                    "k6_async_requests": 13978
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 0,
+                    "persisted_matched_to_log": 30,
+                    "missing_after_drain": 13537,
+                    "not_persisted_estimate": 13948
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 30,
+                    "avg": 155576.68,
+                    "min": 154789.03,
+                    "med": 155136.29,
+                    "p(90)": 156852.35,
+                    "p(95)": 156856.49,
+                    "p(99)": 156858.74,
+                    "max": 156858.74
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 30,
+                    "avg": 35555.42,
+                    "min": 34687.23,
+                    "med": 35922.92,
+                    "p(90)": 36054.41,
+                    "p(95)": 36056.65,
+                    "p(99)": 36057.86,
+                    "max": 36057.86
+                  }
+                },
+                "300": {
+                  "vus": 300,
+                  "duration_s": 30,
+                  "enqueue": {
+                    "logged_enqueues": 14678,
+                    "k6_async_requests": 14660
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 0,
+                    "persisted_matched_to_log": 0,
+                    "missing_after_drain": 14678,
+                    "not_persisted_estimate": 14660
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  }
+                },
+                "350": {
+                  "vus": 350,
+                  "duration_s": 30,
+                  "enqueue": {
+                    "logged_enqueues": 15293,
+                    "k6_async_requests": 15469
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 0,
+                    "persisted_matched_to_log": 0,
+                    "missing_after_drain": 15293,
+                    "not_persisted_estimate": 15469
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  }
+                },
+                "400": {
+                  "vus": 400,
+                  "duration_s": 30,
+                  "enqueue": {
+                    "logged_enqueues": 18306,
+                    "k6_async_requests": 16896
+                  },
+                  "persistence": {
+                    "persisted_during_k6": 0,
+                    "persisted_matched_to_log": 0,
+                    "missing_after_drain": 18306,
+                    "not_persisted_estimate": 16896
+                  },
+                  "during_k6_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "total_business_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  },
+                  "post_k6_drain_latency_ms": {
+                    "samples": 0,
+                    "avg": null,
+                    "min": null,
+                    "med": null,
+                    "p(90)": null,
+                    "p(95)": null,
+                    "p(99)": null,
+                    "max": null
+                  }
+                }
+              },
+              "notes": [
+                "during_k6_business_latency_ms = created_at ≤ fim do k6 — use com purge pós-teste (não depende de drain).",
+                "total_business_latency_ms = todos os cart_id do log encontrados no PG (inclui pós-k6 se houver grace/drain).",
+                "post_k6_drain_latency_ms = created_at − fim do k6 (tempo extra na fila/worker após o teste).",
+                "by_vu_profile: segmentação por plateau (50→400 VUs) via timestamp ENQUEUE − k6_window.started_at.",
+                "Ordem recomendada: k6 → analyze (skip_drain) → purge SQS → setup do próximo teste."
+              ]
+            },
+            "execution": {
+              "started_at": "2026-05-31T18:38:50.088Z",
+              "ended_at": "2026-05-31T18:42:52.606Z",
+              "started_at_epoch_ms": 1780252730089,
+              "ended_at_epoch_ms": 1780252972607,
+              "duration_ms": 242518,
+              "exit_code": 0,
+              "run_status": "ok",
+              "cloudwatch": {
+                "from": "2026-05-31T18:38:50.088Z",
+                "to": "2026-05-31T18:42:52.606Z",
+                "from_epoch_ms": 1780252730089,
+                "to_epoch_ms": 1780252972607
+              }
+            }
+          }
+        }
+      }
+    },
+    "test_windows": {
+      "run_id": "20260531T183444",
+      "timezone": "UTC",
+      "cloudwatch": {
+        "note": "No console CloudWatch Metrics, use intervalo absoluto (UTC) de cada teste. Métricas ECS/RDS/ElastiCache: filtre pelo período started_at → ended_at.",
+        "console_time_range_format": "absolute UTC"
+      },
+      "batch": {
+        "started_at": "2026-05-31T18:34:44.808Z",
+        "ended_at": "2026-05-31T18:42:52.633Z",
+        "started_at_epoch_ms": 1780252484809,
+        "ended_at_epoch_ms": 1780252972634,
+        "duration_ms": 487825
+      },
+      "tests": {
+        "c3a-sync": {
+          "label": "c3a-sync",
+          "scenario": 3,
+          "status": "ok",
+          "exit_code": 0,
+          "started_at": "2026-05-31T18:34:44.818Z",
+          "ended_at": "2026-05-31T18:38:50.054Z",
+          "started_at_epoch_ms": 1780252484819,
+          "ended_at_epoch_ms": 1780252730055,
+          "duration_ms": 245236,
+          "cloudwatch": {
+            "from": "2026-05-31T18:34:44.818Z",
+            "to": "2026-05-31T18:38:50.054Z",
+            "from_epoch_ms": 1780252484819,
+            "to_epoch_ms": 1780252730055
+          }
+        },
+        "c3b-async": {
+          "label": "c3b-async",
+          "scenario": 3,
+          "status": "ok",
+          "exit_code": 0,
+          "started_at": "2026-05-31T18:38:50.088Z",
+          "ended_at": "2026-05-31T18:42:52.606Z",
+          "started_at_epoch_ms": 1780252730089,
+          "ended_at_epoch_ms": 1780252972607,
+          "duration_ms": 242518,
+          "cloudwatch": {
+            "from": "2026-05-31T18:38:50.088Z",
+            "to": "2026-05-31T18:42:52.606Z",
+            "from_epoch_ms": 1780252730089,
+            "to_epoch_ms": 1780252972607
+          }
+        }
+      }
+    }
+  }

@@ -1,0 +1,695 @@
+{
+    "meta": {
+      "generated_at": "2026-05-31T19:18:38.376Z",
+      "run_id": "20260531T191031",
+      "base_url": "http://172.31.12.40:3006",
+      "tests_ran": 2,
+      "tests_skipped": 5,
+      "timezone": "UTC",
+      "batch": {
+        "started_at": "2026-05-31T19:10:31.582Z",
+        "ended_at": "2026-05-31T19:18:38.294Z",
+        "started_at_epoch_ms": 1780254631583,
+        "ended_at_epoch_ms": 1780255118295,
+        "duration_ms": 486712
+      },
+      "cloudwatch": {
+        "note": "No console CloudWatch Metrics, use intervalo absoluto (UTC) de cada teste. Métricas ECS/RDS/ElastiCache: filtre pelo período started_at → ended_at.",
+        "console_time_range_format": "absolute UTC"
+      },
+      "cloudwatch_timeline": [
+        {
+          "test_id": "c2a-no-cache",
+          "scenario": 2,
+          "started_at": "2026-05-31T19:10:31.587Z",
+          "ended_at": "2026-05-31T19:14:37.137Z",
+          "started_at_epoch_ms": 1780254631588,
+          "ended_at_epoch_ms": 1780254877138,
+          "duration_ms": 245550
+        },
+        {
+          "test_id": "c2b-with-cache",
+          "scenario": 2,
+          "started_at": "2026-05-31T19:14:37.166Z",
+          "ended_at": "2026-05-31T19:18:38.262Z",
+          "started_at_epoch_ms": 1780254877167,
+          "ended_at_epoch_ms": 1780255118263,
+          "duration_ms": 241096
+        }
+      ],
+      "vu_profiles": {
+        "levels": [
+          50,
+          100,
+          150,
+          200,
+          250,
+          300,
+          350,
+          400
+        ],
+        "duration_s": {
+          "50": 30,
+          "100": 30,
+          "150": 30,
+          "200": 30,
+          "250": 30,
+          "300": 30,
+          "350": 30,
+          "400": 30
+        },
+        "model": "50 VUs@30s → 100 VUs@30s → 150 VUs@30s → 200 VUs@30s → 250 VUs@30s → 300 VUs@30s → 350 VUs@30s → 400 VUs@30s (plateaus estáveis)"
+      }
+    },
+    "scenarios": {
+      "scenario_1": {
+        "id": 1,
+        "label": "Concorrência e Lock Pessimista",
+        "tests": {
+          "c1a-low-contention": {
+            "label": "Lock Pessimista — Baixa Contenção",
+            "file": "c1a-low-contention.js",
+            "status": "skipped"
+          },
+          "c1b-high-contention": {
+            "label": "Lock Pessimista — Alta Contenção",
+            "file": "c1b-high-contention.js",
+            "status": "skipped"
+          },
+          "c1c-no-lock": {
+            "label": "Concorrência Pura — Sem Trava Lógica",
+            "file": "c1c-no-lock.js",
+            "status": "skipped"
+          }
+        }
+      },
+      "scenario_2": {
+        "id": 2,
+        "label": "Leitura Intensiva e Ausência de Cache",
+        "tests": {
+          "c2a-no-cache": {
+            "label": "Leitura Intensiva — Sem Cache",
+            "file": "c2a-no-cache.js",
+            "status": "ok",
+            "latency_metric": "store_list_latency",
+            "latency": {
+              "avg": 2691.76,
+              "min": 47.61,
+              "med": 2756.09,
+              "max": 8905.95,
+              "p(90)": 4535.38,
+              "p(95)": 4598.18,
+              "thresholds": {
+                "p(95)<3500": true
+              }
+            },
+            "throughput": {
+              "total_requests": 19728,
+              "rps_avg": 80.59,
+              "http": {
+                "total_requests": 19728,
+                "rps_avg": 80.59
+              }
+            },
+            "error_rate": 0,
+            "by_vu_profile": {
+              "50": {
+                "vus": 50,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 533.34,
+                  "min": 47.61,
+                  "med": 511.75,
+                  "max": 1070.86,
+                  "p(90)": 664.59,
+                  "p(95)": 725.65
+                },
+                "throughput": {
+                  "total_requests": 2065,
+                  "rps_avg": 68.83,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "100": {
+                "vus": 100,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 1106.42,
+                  "min": 478.02,
+                  "med": 1044.3,
+                  "max": 2066.29,
+                  "p(90)": 1306.64,
+                  "p(95)": 1388.9
+                },
+                "throughput": {
+                  "total_requests": 2340,
+                  "rps_avg": 78,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "150": {
+                "vus": 150,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 1616.54,
+                  "min": 967.21,
+                  "med": 1597.02,
+                  "max": 2753.89,
+                  "p(90)": 1647.41,
+                  "p(95)": 1693.96
+                },
+                "throughput": {
+                  "total_requests": 2555,
+                  "rps_avg": 85.17,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "200": {
+                "vus": 200,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 2264.96,
+                  "min": 1705.5,
+                  "med": 2208.81,
+                  "max": 4144.38,
+                  "p(90)": 2254.01,
+                  "p(95)": 2631.77
+                },
+                "throughput": {
+                  "total_requests": 2527,
+                  "rps_avg": 84.23,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "250": {
+                "vus": 250,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 2874.14,
+                  "min": 2227.13,
+                  "med": 2784.54,
+                  "max": 5247.77,
+                  "p(90)": 2838.75,
+                  "p(95)": 3668.27
+                },
+                "throughput": {
+                  "total_requests": 2560,
+                  "rps_avg": 85.33,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "300": {
+                "vus": 300,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 3522.3,
+                  "min": 2770.6,
+                  "med": 3395.6,
+                  "max": 6206.93,
+                  "p(90)": 3535.14,
+                  "p(95)": 4801.87
+                },
+                "throughput": {
+                  "total_requests": 2560,
+                  "rps_avg": 85.33,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "350": {
+                "vus": 350,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 4207.49,
+                  "min": 3404.29,
+                  "med": 4006.17,
+                  "max": 7597.22,
+                  "p(90)": 4519.22,
+                  "p(95)": 6076.15
+                },
+                "throughput": {
+                  "total_requests": 2556,
+                  "rps_avg": 85.2,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "400": {
+                "vus": 400,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 4846.69,
+                  "min": 4140.53,
+                  "med": 4549.67,
+                  "max": 8905.95,
+                  "p(90)": 5841.9,
+                  "p(95)": 7362.83
+                },
+                "throughput": {
+                  "total_requests": 2564,
+                  "rps_avg": 85.47,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              }
+            },
+            "raw_metrics": {
+              "store_list_latency": {
+                "avg": 2691.76,
+                "min": 47.61,
+                "med": 2756.09,
+                "max": 8905.95,
+                "p(90)": 4535.38,
+                "p(95)": 4598.18,
+                "thresholds": {
+                  "p(95)<3500": true
+                }
+              },
+              "store_list_processing_ms": {
+                "avg": 2690.74,
+                "min": 44.97,
+                "med": 2755.72,
+                "max": 8905.08,
+                "p(90)": 4535.08,
+                "p(95)": 4598.11,
+                "thresholds": {
+                  "p(95)<3000": true
+                }
+              },
+              "http_req_duration": {
+                "avg": 2691.63,
+                "min": 47.61,
+                "med": 2756.08,
+                "max": 8905.95,
+                "p(90)": 4535.37,
+                "p(95)": 4598.18
+              },
+              "http_req_failed": {
+                "passes": 0,
+                "fails": 19728,
+                "value": 0
+              },
+              "http_reqs": {
+                "count": 19728,
+                "rate": 80.58589358392524
+              },
+              "http_req_waiting": {
+                "avg": 2691.44,
+                "min": 47.38,
+                "med": 2755.98,
+                "max": 8905.64,
+                "p(90)": 4535.27,
+                "p(95)": 4597.99
+              }
+            },
+            "processing_ms": {
+              "avg": 2690.74,
+              "min": 44.97,
+              "med": 2755.72,
+              "max": 8905.08,
+              "p(90)": 4535.08,
+              "p(95)": 4598.11,
+              "thresholds": {
+                "p(95)<3000": true
+              }
+            },
+            "execution": {
+              "started_at": "2026-05-31T19:10:31.587Z",
+              "ended_at": "2026-05-31T19:14:37.137Z",
+              "started_at_epoch_ms": 1780254631588,
+              "ended_at_epoch_ms": 1780254877138,
+              "duration_ms": 245550,
+              "exit_code": 99,
+              "run_status": "threshold_failed",
+              "cloudwatch": {
+                "from": "2026-05-31T19:10:31.587Z",
+                "to": "2026-05-31T19:14:37.137Z",
+                "from_epoch_ms": 1780254631588,
+                "to_epoch_ms": 1780254877138
+              }
+            }
+          },
+          "c2b-with-cache": {
+            "label": "Leitura Intensiva — Com Cache Redis",
+            "file": "c2b-with-cache.js",
+            "status": "ok",
+            "latency_metric": "store_list_cached_latency",
+            "latency": {
+              "avg": 18.65,
+              "min": 1.59,
+              "med": 5.08,
+              "max": 3893.07,
+              "p(90)": 18.2,
+              "p(95)": 32,
+              "thresholds": {
+                "p(95)<600": false
+              }
+            },
+            "throughput": {
+              "total_requests": 246764,
+              "rps_avg": 1027.14,
+              "http": {
+                "total_requests": 246764,
+                "rps_avg": 1027.14
+              }
+            },
+            "error_rate": 0,
+            "by_vu_profile": {
+              "50": {
+                "vus": 50,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 6.54,
+                  "min": 1.68,
+                  "med": 3.68,
+                  "max": 596.51,
+                  "p(90)": 6.09,
+                  "p(95)": 7.46
+                },
+                "throughput": {
+                  "total_requests": 7255,
+                  "rps_avg": 241.83,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "100": {
+                "vus": 100,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 13.13,
+                  "min": 1.68,
+                  "med": 3.66,
+                  "max": 1810.68,
+                  "p(90)": 7.54,
+                  "p(95)": 9.22
+                },
+                "throughput": {
+                  "total_requests": 14079,
+                  "rps_avg": 469.3,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "150": {
+                "vus": 150,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 14.06,
+                  "min": 1.66,
+                  "med": 3.75,
+                  "max": 1640.35,
+                  "p(90)": 7.99,
+                  "p(95)": 13.46
+                },
+                "throughput": {
+                  "total_requests": 21029,
+                  "rps_avg": 700.97,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "200": {
+                "vus": 200,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 8.63,
+                  "min": 1.59,
+                  "med": 3.89,
+                  "max": 887.46,
+                  "p(90)": 10.88,
+                  "p(95)": 17.33
+                },
+                "throughput": {
+                  "total_requests": 28731,
+                  "rps_avg": 957.7,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "250": {
+                "vus": 250,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 7.27,
+                  "min": 1.64,
+                  "med": 4.26,
+                  "max": 512.66,
+                  "p(90)": 11.15,
+                  "p(95)": 17.01
+                },
+                "throughput": {
+                  "total_requests": 36158,
+                  "rps_avg": 1205.27,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "300": {
+                "vus": 300,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 9.71,
+                  "min": 1.64,
+                  "med": 5.91,
+                  "max": 314.93,
+                  "p(90)": 18.05,
+                  "p(95)": 30.94
+                },
+                "throughput": {
+                  "total_requests": 42889,
+                  "rps_avg": 1429.63,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "350": {
+                "vus": 350,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 56.82,
+                  "min": 1.66,
+                  "med": 5.45,
+                  "max": 3893.07,
+                  "p(90)": 18.61,
+                  "p(95)": 44.98
+                },
+                "throughput": {
+                  "total_requests": 40878,
+                  "rps_avg": 1362.6,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              },
+              "400": {
+                "vus": 400,
+                "duration_s": 30,
+                "latency": {
+                  "avg": 14.77,
+                  "min": 1.68,
+                  "med": 9.08,
+                  "max": 452.75,
+                  "p(90)": 31.28,
+                  "p(95)": 47.65
+                },
+                "throughput": {
+                  "total_requests": 55744,
+                  "rps_avg": 1858.13,
+                  "duration_s": 30
+                },
+                "error_rate": 0
+              }
+            },
+            "raw_metrics": {
+              "store_list_cached_latency": {
+                "avg": 18.65,
+                "min": 1.59,
+                "med": 5.08,
+                "max": 3893.07,
+                "p(90)": 18.2,
+                "p(95)": 32,
+                "thresholds": {
+                  "p(95)<600": false
+                }
+              },
+              "store_list_cached_processing_ms": {
+                "avg": 18.58,
+                "min": -41.59,
+                "med": 5.07,
+                "max": 3893.07,
+                "p(90)": 18.12,
+                "p(95)": 31.95,
+                "thresholds": {
+                  "p(95)<500": false
+                }
+              },
+              "cache_hit_processing_ms": {
+                "avg": 8.67,
+                "min": -41.59,
+                "med": 5.04,
+                "max": 99.69,
+                "p(90)": 17.33,
+                "p(95)": 29.11
+              },
+              "cache_miss_processing_ms": {
+                "avg": 1461.17,
+                "min": 100.04,
+                "med": 859.51,
+                "max": 3893.07,
+                "p(90)": 3705.51,
+                "p(95)": 3785.04
+              },
+              "cache_hit_rate": {
+                "passes": 245079,
+                "fails": 1684,
+                "thresholds": {
+                  "rate>0.8": false
+                },
+                "value": 0.9931756381629336
+              },
+              "http_req_duration": {
+                "avg": 18.65,
+                "min": 1.59,
+                "med": 5.08,
+                "max": 3893.07,
+                "p(90)": 18.2,
+                "p(95)": 32
+              },
+              "http_req_failed": {
+                "passes": 0,
+                "fails": 246764,
+                "value": 0
+              },
+              "http_reqs": {
+                "count": 246764,
+                "rate": 1027.1354325220384
+              },
+              "http_req_waiting": {
+                "avg": 18.55,
+                "min": 1.57,
+                "med": 5.02,
+                "max": 3892.97,
+                "p(90)": 18.03,
+                "p(95)": 31.74
+              }
+            },
+            "processing_ms": {
+              "avg": 18.58,
+              "min": -41.59,
+              "med": 5.07,
+              "max": 3893.07,
+              "p(90)": 18.12,
+              "p(95)": 31.95,
+              "thresholds": {
+                "p(95)<500": false
+              }
+            },
+            "cache_hit_rate": 0.99,
+            "cache_hit_processing_ms": {
+              "avg": 8.67,
+              "min": -41.59,
+              "med": 5.04,
+              "max": 99.69,
+              "p(90)": 17.33,
+              "p(95)": 29.11
+            },
+            "cache_miss_processing_ms": {
+              "avg": 1461.17,
+              "min": 100.04,
+              "med": 859.51,
+              "max": 3893.07,
+              "p(90)": 3705.51,
+              "p(95)": 3785.04
+            },
+            "execution": {
+              "started_at": "2026-05-31T19:14:37.166Z",
+              "ended_at": "2026-05-31T19:18:38.262Z",
+              "started_at_epoch_ms": 1780254877167,
+              "ended_at_epoch_ms": 1780255118263,
+              "duration_ms": 241096,
+              "exit_code": 0,
+              "run_status": "ok",
+              "cloudwatch": {
+                "from": "2026-05-31T19:14:37.166Z",
+                "to": "2026-05-31T19:18:38.262Z",
+                "from_epoch_ms": 1780254877167,
+                "to_epoch_ms": 1780255118263
+              }
+            }
+          }
+        }
+      },
+      "scenario_3": {
+        "id": 3,
+        "label": "Comunicação Síncrona vs Assíncrona",
+        "tests": {
+          "c3a-sync": {
+            "label": "Comunicação Síncrona (POST direto)",
+            "file": "c3a-sync.js",
+            "status": "skipped"
+          },
+          "c3b-async": {
+            "label": "Comunicação Assíncrona (SQS + worker)",
+            "file": "c3b-async.js",
+            "status": "skipped"
+          }
+        }
+      }
+    },
+    "test_windows": {
+      "run_id": "20260531T191031",
+      "timezone": "UTC",
+      "cloudwatch": {
+        "note": "No console CloudWatch Metrics, use intervalo absoluto (UTC) de cada teste. Métricas ECS/RDS/ElastiCache: filtre pelo período started_at → ended_at.",
+        "console_time_range_format": "absolute UTC"
+      },
+      "batch": {
+        "started_at": "2026-05-31T19:10:31.582Z",
+        "ended_at": "2026-05-31T19:18:38.294Z",
+        "started_at_epoch_ms": 1780254631583,
+        "ended_at_epoch_ms": 1780255118295,
+        "duration_ms": 486712
+      },
+      "tests": {
+        "c2a-no-cache": {
+          "label": "c2a-no-cache",
+          "scenario": 2,
+          "status": "threshold_failed",
+          "exit_code": 99,
+          "started_at": "2026-05-31T19:10:31.587Z",
+          "ended_at": "2026-05-31T19:14:37.137Z",
+          "started_at_epoch_ms": 1780254631588,
+          "ended_at_epoch_ms": 1780254877138,
+          "duration_ms": 245550,
+          "cloudwatch": {
+            "from": "2026-05-31T19:10:31.587Z",
+            "to": "2026-05-31T19:14:37.137Z",
+            "from_epoch_ms": 1780254631588,
+            "to_epoch_ms": 1780254877138
+          }
+        },
+        "c2b-with-cache": {
+          "label": "c2b-with-cache",
+          "scenario": 2,
+          "status": "ok",
+          "exit_code": 0,
+          "started_at": "2026-05-31T19:14:37.166Z",
+          "ended_at": "2026-05-31T19:18:38.262Z",
+          "started_at_epoch_ms": 1780254877167,
+          "ended_at_epoch_ms": 1780255118263,
+          "duration_ms": 241096,
+          "cloudwatch": {
+            "from": "2026-05-31T19:14:37.166Z",
+            "to": "2026-05-31T19:18:38.262Z",
+            "from_epoch_ms": 1780254877167,
+            "to_epoch_ms": 1780255118263
+          }
+        }
+      }
+    }
+  }
