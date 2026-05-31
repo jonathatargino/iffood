@@ -287,6 +287,50 @@ function extractByVuProfile(name, rawMetrics) {
   return Object.keys(profiles).length > 0 ? profiles : null;
 }
 
+/** Cruza by_vu_profile do worker (e2e PG) com o segmentado do k6 (HTTP). */
+function attachWorkerVuProfiles(entry, workerAnalysis) {
+  const workerProfiles = workerAnalysis?.by_vu_profile;
+  if (
+    !workerProfiles
+    || (workerAnalysis.status !== 'ok' && workerAnalysis.status !== 'partial')
+  ) {
+    return null;
+  }
+
+  if (!entry.by_vu_profile) entry.by_vu_profile = {};
+
+  const finalizedByProfile = {};
+
+  for (const [key, wp] of Object.entries(workerProfiles)) {
+    if (key === '_unmapped') continue;
+
+    if (!entry.by_vu_profile[key]) {
+      entry.by_vu_profile[key] = {
+        vus: wp.vus,
+        duration_s: wp.duration_s,
+      };
+    }
+
+    entry.by_vu_profile[key].worker = {
+      enqueue: wp.enqueue,
+      persistence: wp.persistence,
+      total_business_latency_ms: wp.total_business_latency_ms,
+      post_k6_drain_latency_ms: wp.post_k6_drain_latency_ms,
+    };
+
+    if (wp.total_business_latency_ms?.samples > 0 || wp.persistence?.persisted_matched_to_log) {
+      finalizedByProfile[key] = {
+        total: wp.persistence?.persisted_matched_to_log ?? null,
+        latency: wp.total_business_latency_ms,
+        post_k6_drain_latency_ms: wp.post_k6_drain_latency_ms,
+        persistence: wp.persistence,
+      };
+    }
+  }
+
+  return Object.keys(finalizedByProfile).length > 0 ? finalizedByProfile : null;
+}
+
 function buildThroughput(name, rawMetrics) {
   const http = counterStats(rawMetrics?.http_reqs);
   const throughput = {
@@ -431,6 +475,7 @@ for (const [name, meta] of Object.entries(TEST_META)) {
     if (workerAnalysis) {
       entry.worker_processing = workerAnalysis;
       if (workerAnalysis.status === 'ok' || workerAnalysis.status === 'partial') {
+        const finalizedByProfile = attachWorkerVuProfiles(entry, workerAnalysis);
         if (
           workerAnalysis.total_business_latency_ms?.samples > 0
           || workerAnalysis.post_k6_drain_latency_ms?.samples > 0
@@ -442,7 +487,10 @@ for (const [name, meta] of Object.entries(TEST_META)) {
             sqs_drain: workerAnalysis.sqs_drain,
             persistence: workerAnalysis.persistence,
             warnings: workerAnalysis.warnings,
+            ...(finalizedByProfile ? { by_vu_profile: finalizedByProfile } : {}),
           };
+        } else if (finalizedByProfile) {
+          entry.throughput.finalized = { by_vu_profile: finalizedByProfile };
         }
       }
     }
@@ -528,6 +576,15 @@ for (const [, scenario] of Object.entries(output.scenarios)) {
           pline += `  accept=${(p.acceptance_rate * 100).toFixed(1)}%`;
         }
         console.log(pline);
+        if (p.worker?.total_business_latency_ms?.samples > 0) {
+          const we = p.worker.total_business_latency_ms;
+          const matched = p.worker.persistence?.persisted_matched_to_log ?? '—';
+          const enq = p.worker.enqueue?.logged_enqueues ?? '—';
+          console.log(
+            `        worker e2e med=${we.med ?? '—'}ms p95=${we['p(95)'] ?? '—'}ms` +
+              ` (${we.samples} amostras, ${matched}/${enq} persistidos)`,
+          );
+        }
       }
     }
   }

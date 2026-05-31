@@ -5,7 +5,8 @@
  * analyze-c3b-worker.js
  *
  * Pós-processamento do c3b-async: espera esvaziar a fila SQS, cruza logs ENQUEUE
- * do k6 com order_requests no PostgreSQL e calcula latência end-to-end de negócio.
+ * do k6 com order_requests no PostgreSQL e calcula latência end-to-end de negócio
+ * (global e por perfil de VU: 50, 100, …, 400).
  *
  * Chamado automaticamente pelo run-all.sh após c3b (inclui run-one.sh c3b).
  *
@@ -115,7 +116,13 @@ function parseEnqueueLog(filePath) {
   return { events, byCartId, duplicates };
 }
 
-function loadK6Summary(resultsDir) {
+function counterCount(metric) {
+  if (!metric) return null;
+  const src = metric.values ?? metric;
+  return src.count ?? null;
+}
+
+function loadK6Summary(resultsDir, canonicalVus = []) {
   const summaryPath = path.join(resultsDir, 'c3b-async.json');
   if (!fs.existsSync(summaryPath)) return null;
   try {
@@ -123,13 +130,110 @@ function loadK6Summary(resultsDir) {
     const metrics = raw.metrics || {};
     const http = metrics.http_reqs?.values || metrics.http_reqs || {};
     const asyncReqs = metrics.async_order_requests?.values || metrics.async_order_requests || {};
+    const asyncByProfile = {};
+    for (const vus of canonicalVus) {
+      const key = String(vus);
+      asyncByProfile[key] = counterCount(metrics[`async_order_requests_vu${vus}`]);
+    }
     return {
       http_requests: http.count ?? null,
       async_order_requests: asyncReqs.count ?? null,
+      async_order_requests_by_profile: asyncByProfile,
     };
   } catch {
     return null;
   }
+}
+
+/** Perfil de plateau (50, 100, …) a partir do timestamp ENQUEUE vs início do k6. */
+function resolveVuProfile(relativeMs, vuProfileWindows, canonicalVus) {
+  if (relativeMs == null || Number.isNaN(relativeMs) || relativeMs < 0) return null;
+
+  for (const vus of canonicalVus) {
+    const w = vuProfileWindows[String(vus)];
+    if (!w) continue;
+    if (relativeMs >= w.offset_ms && relativeMs < w.offset_ms + w.duration_ms) {
+      return String(vus);
+    }
+  }
+
+  const last = String(canonicalVus[canonicalVus.length - 1]);
+  const lastW = vuProfileWindows[last];
+  if (lastW && relativeMs >= lastW.offset_ms) {
+    return last;
+  }
+  return null;
+}
+
+function initProfileBuckets(canonicalVus) {
+  const buckets = {};
+  for (const vus of canonicalVus) {
+    buckets[String(vus)] = {
+      businessLatencies: [],
+      postK6Latencies: [],
+      enqueued: 0,
+      persistedMatched: 0,
+      missingAfterDrain: 0,
+      persistedDuringK6: 0,
+    };
+  }
+  buckets._unmapped = {
+    businessLatencies: [],
+    postK6Latencies: [],
+    enqueued: 0,
+    persistedMatched: 0,
+    missingAfterDrain: 0,
+    persistedDuringK6: 0,
+  };
+  return buckets;
+}
+
+function buildByVuProfile(buckets, canonicalVus, vuProfileDurationS, k6AsyncByProfile) {
+  const profiles = {};
+
+  const addProfile = (key, bucket, vusMeta) => {
+    if (
+      bucket.enqueued === 0
+      && bucket.persistedMatched === 0
+      && bucket.businessLatencies.length === 0
+    ) {
+      return;
+    }
+
+    const k6Async = k6AsyncByProfile?.[key] ?? null;
+    profiles[key] = {
+      vus: vusMeta?.vus ?? null,
+      duration_s: vuProfileDurationS[key] ?? null,
+      enqueue: {
+        logged_enqueues: bucket.enqueued,
+        k6_async_requests: k6Async,
+      },
+      persistence: {
+        persisted_during_k6: bucket.persistedDuringK6,
+        persisted_matched_to_log: bucket.persistedMatched,
+        missing_after_drain: bucket.enqueued ? bucket.missingAfterDrain : null,
+        not_persisted_estimate:
+          k6Async != null && bucket.persistedMatched < k6Async
+            ? k6Async - bucket.persistedMatched
+            : bucket.enqueued > bucket.persistedMatched
+              ? bucket.enqueued - bucket.persistedMatched
+              : null,
+      },
+      total_business_latency_ms: summarizeLatencies(bucket.businessLatencies),
+      post_k6_drain_latency_ms: summarizeLatencies(bucket.postK6Latencies),
+    };
+  };
+
+  for (const vus of canonicalVus) {
+    const key = String(vus);
+    addProfile(key, buckets[key], { vus });
+  }
+
+  if (buckets._unmapped.enqueued > 0 || buckets._unmapped.persistedMatched > 0) {
+    addProfile('_unmapped', buckets._unmapped, { vus: null });
+  }
+
+  return Object.keys(profiles).length ? profiles : undefined;
 }
 
 function loadC3bWindow(windowsFile) {
@@ -275,6 +379,13 @@ async function main() {
     process.exit(1);
   }
 
+  const stages = await import('./stages.js');
+  const canonicalVus = stages.CANONICAL_VUS;
+  const vuProfileWindows = stages.VU_PROFILE_WINDOWS;
+  const vuProfileDurationS = Object.fromEntries(
+    canonicalVus.map((vus) => [String(vus), parseInt(stages.VU_PROFILE_DURATIONS[vus], 10)]),
+  );
+
   const fail = (message, extra = {}) => {
     writeOutput({
       status: 'failed',
@@ -300,8 +411,11 @@ async function main() {
     });
   }
 
-  const k6Summary = loadK6Summary(RESULTS_DIR);
+  const k6Summary = loadK6Summary(RESULTS_DIR, canonicalVus);
   const { events, duplicates } = parseEnqueueLog(K6_LOG);
+  const profileBuckets = initProfileBuckets(canonicalVus);
+  const testStartMs = window.started_at_epoch_ms;
+  const testEndMs = window.ended_at_epoch_ms;
 
   console.log(
     `[analyze-c3b-worker] ENQUEUE no log: ${events.length}` +
@@ -375,26 +489,46 @@ async function main() {
   const businessLatencies = [];
   const postK6Latencies = [];
   let missingAfterDrain = 0;
+  let unmappedEnqueues = 0;
 
   if (events.length === 0 && rows.length > 0) {
     for (const row of rows) {
       const created = Number(row.created_at_ms);
-      if (created > window.ended_at_epoch_ms) {
-        postK6Latencies.push(created - window.ended_at_epoch_ms);
+      if (created > testEndMs) {
+        postK6Latencies.push(created - testEndMs);
       }
     }
   }
 
   for (const event of events) {
+    const profileKey =
+      resolveVuProfile(event.enqueue_ts_ms - testStartMs, vuProfileWindows, canonicalVus) ||
+      '_unmapped';
+    const bucket = profileBuckets[profileKey] || profileBuckets._unmapped;
+    bucket.enqueued += 1;
+    if (profileKey === '_unmapped') unmappedEnqueues += 1;
+
     const row = rowByCart.get(event.cartId);
     if (!row) {
       missingAfterDrain += 1;
+      bucket.missingAfterDrain += 1;
       continue;
     }
-    const businessMs = Number(row.created_at_ms) - event.enqueue_ts_ms;
+
+    const createdMs = Number(row.created_at_ms);
+    const businessMs = createdMs - event.enqueue_ts_ms;
     businessLatencies.push(businessMs);
-    if (Number(row.created_at_ms) > window.ended_at_epoch_ms) {
-      postK6Latencies.push(Number(row.created_at_ms) - window.ended_at_epoch_ms);
+    bucket.businessLatencies.push(businessMs);
+    bucket.persistedMatched += 1;
+
+    if (createdMs <= testEndMs) {
+      bucket.persistedDuringK6 += 1;
+    }
+
+    if (createdMs > testEndMs) {
+      const postK6Ms = createdMs - testEndMs;
+      postK6Latencies.push(postK6Ms);
+      bucket.postK6Latencies.push(postK6Ms);
     }
   }
 
@@ -426,6 +560,18 @@ async function main() {
       'Fila já vazia no início da análise — provável purge manual antes do drain; métricas de fila podem estar enviesadas.',
     );
   }
+  if (unmappedEnqueues > 0) {
+    warnings.push(
+      `${unmappedEnqueues} ENQUEUE(s) fora das janelas canônicas de perfil — agrupados em by_vu_profile._unmapped.`,
+    );
+  }
+
+  const byVuProfile = buildByVuProfile(
+    profileBuckets,
+    canonicalVus,
+    vuProfileDurationS,
+    k6Summary?.async_order_requests_by_profile,
+  );
 
   const output = {
     status,
@@ -461,9 +607,11 @@ async function main() {
     },
     total_business_latency_ms: summarizeLatencies(businessLatencies),
     post_k6_drain_latency_ms: summarizeLatencies(postK6Latencies),
+    by_vu_profile: byVuProfile,
     notes: [
       'total_business_latency_ms = order_requests.created_at − ts do log ENQUEUE (202 aceito).',
       'post_k6_drain_latency_ms = created_at − fim do k6 (tempo extra na fila/worker após o teste).',
+      'by_vu_profile: segmentação por plateau (50→400 VUs) via timestamp ENQUEUE − k6_window.started_at.',
       'Compare com c3a via sync_order_processing_ms / latência HTTP — mesma lógica de negócio no worker.',
     ],
   };
@@ -476,6 +624,21 @@ async function main() {
     console.log(
       `[analyze-c3b-worker] Latência end-to-end: med=${b.med}ms p95=${b['p(95)']}ms max=${b.max}ms (${b.samples} amostras)`,
     );
+  }
+
+  if (byVuProfile) {
+    console.log('[analyze-c3b-worker] Por perfil de VU (latência e2e med / p95):');
+    for (const vus of canonicalVus) {
+      const p = byVuProfile[String(vus)];
+      if (!p?.total_business_latency_ms?.samples) continue;
+      const lat = p.total_business_latency_ms;
+      const enq = p.enqueue?.logged_enqueues ?? 0;
+      const matched = p.persistence?.persisted_matched_to_log ?? 0;
+      console.log(
+        `  vu_${vus}: med=${lat.med}ms p95=${lat['p(95)']}ms` +
+          ` (${lat.samples} amostras, ${matched}/${enq} persistidos no perfil)`,
+      );
+    }
   }
 }
 
