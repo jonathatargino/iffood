@@ -20,6 +20,7 @@ import {
 } from './dto/order-request.service.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventNames } from '../../events/event-names';
+import { measureDb, measureDbTransaction } from '../../common/db/db-processing.util';
 
 @Injectable()
 export class OrderRequestService {
@@ -30,7 +31,9 @@ export class OrderRequestService {
   ) {}
 
   async createOrder(dto: ServiceCreateOrderDto) {
-    const existing = await this.orderRequestRepository.findByCartId(dto.cartId);
+    const existing = await measureDb(this.dataSource, (manager) =>
+      this.orderRequestRepository.findByCartId(dto.cartId, manager),
+    );
     if (existing) {
       return {
         order: existing,
@@ -38,7 +41,7 @@ export class OrderRequestService {
       };
     }
 
-    return this.dataSource.transaction(async (em) => {
+    return measureDbTransaction(this.dataSource, async (em) => {
       const store = await em.findOne(Store, {
         where: {
           id: dto.storeId,

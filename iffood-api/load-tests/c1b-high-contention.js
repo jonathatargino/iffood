@@ -28,6 +28,7 @@ import { check, sleep } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
 import { buildCanonicalOptions, computePeakWindow } from './stages.js';
 import { createVuProfileMetrics, recordVuProfileMetrics } from './vu-profiles.js';
+import { readProcessingMs } from './processing-ms.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function uuidv4() {
@@ -144,9 +145,7 @@ export default function (data) {
   // 1. Isola o tempo de processamento/espera de banco eliminando overhead TCP e TLS.
   //    connecting + tls_handshaking são custos de rede, não de contenção de lock.
   //    processingMs reflete puramente o tempo de app + DB (bloqueio pessimista).
-  const processingMs = res.timings.duration
-    - res.timings.connecting
-    - res.timings.tls_handshaking;
+  const processingMs = readProcessingMs(res);
 
   const passed = check(res, {
     'status 201 ou 200':    (r) => r.status === 201 || r.status === 200,

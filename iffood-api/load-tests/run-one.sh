@@ -19,6 +19,7 @@
 #   K6_COOLDOWN=0|1   — pausas entre testes do mesmo comando (padrão: 0 se 1 teste)
 #   K6_WORKER_ANALYSIS=0 — desliga análise automática do worker após c3b
 #   K6_WORKER_DRAIN_MODE=skip — analyze sem esperar SQS (purge seguro depois)
+#   K6_WORKER_PG_RETRY_MAX=15  K6_WORKER_PG_RETRY_SEC=12 — retry visível se pool PG cheio
 # =============================================================================
 
 set -euo pipefail

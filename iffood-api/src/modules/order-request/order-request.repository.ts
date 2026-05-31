@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { OrderRequest, OrderRequestStatus } from './order-request.entity';
 
 @Injectable()
@@ -10,8 +10,15 @@ export class OrderRequestRepository {
     private readonly typeormRepository: Repository<OrderRequest>,
   ) {}
 
-  async findByCartId(cartId: string): Promise<OrderRequest | null> {
-    return this.typeormRepository.findOne({
+  async findByCartId(
+    cartId: string,
+    manager?: EntityManager,
+  ): Promise<OrderRequest | null> {
+    const repository = manager
+      ? manager.getRepository(OrderRequest)
+      : this.typeormRepository;
+
+    return repository.findOne({
       where: { cartId },
       relations: {
         store: {

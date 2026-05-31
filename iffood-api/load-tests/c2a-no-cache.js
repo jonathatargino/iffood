@@ -24,6 +24,7 @@ import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
 import { buildCanonicalOptions } from './stages.js';
 import { createVuProfileMetrics, recordVuProfileMetrics } from './vu-profiles.js';
+import { readProcessingMs } from './processing-ms.js';
 
 // ── Configuração ──────────────────────────────────────────────────────────────
 const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:3006';
@@ -95,12 +96,8 @@ export default function () {
     timeout: REQUEST_TIMEOUT_MS,
   });
 
-  // 1. Isola o tempo de processamento eliminando overhead TCP (connecting) e TLS.
-  //    Com HTTP, tls_handshaking é 0, mas a subtração garante correção para HTTPS.
-  //    processingMs representa o tempo real de query + serialização no servidor.
-  const processingMs = res.timings.duration
-    - res.timings.connecting
-    - res.timings.tls_handshaking;
+  // 1. X-Processing-Ms mede query + serialização após aquisição do pool (sem fila).
+  const processingMs = readProcessingMs(res);
 
   // 4. Detecta timeouts causados por saturação de I/O (PostgreSQL IOPS da t3.micro)
   if (res.error_code && TIMEOUT_ERROR_CODES.has(res.error_code)) {

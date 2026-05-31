@@ -17,6 +17,7 @@ import { UserProfile } from '../user-profile/user-profile.entity';
 import { StoreAvailability } from './store-availability/store-availability.entity';
 import { StoreCacheService } from './store-cache.service';
 import { StoreMapper } from './store.mapper';
+import { measureDb } from '../../common/db/db-processing.util';
 
 @Injectable()
 export class StoreService {
@@ -29,11 +30,12 @@ export class StoreService {
   ) {}
 
   async findAll(filters: FindAllStoreFilters) {
-    const stores =
-      await this.storeRepository.findAllActiveWithPositiveProductOptions(
+    return measureDb(this.dataSource, (manager) =>
+      this.storeRepository.findAllActiveWithPositiveProductOptions(
         filters,
-      );
-    return stores;
+        manager,
+      ),
+    );
   }
 
   /**

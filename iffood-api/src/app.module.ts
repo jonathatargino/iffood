@@ -8,6 +8,7 @@ import { OrderRequestModule } from './modules/order-request/order-request.module
 import { ReviewModule } from './modules/review/review.module';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggingInterceptor } from './common/interceptors/logging-interceptor';
+import { ProcessingTimeInterceptor } from './common/interceptors/processing-time.interceptor';
 import { envSchema } from './config/schema';
 import { GeneralExceptionsFilter } from './common/filters/general-exceptions.filter';
 import { UserProfileModule } from './modules/user-profile/user-profile.module';
@@ -19,6 +20,10 @@ import { HealthController } from './common/health/health.controller';
     {
       provide: APP_FILTER,
       useClass: GeneralExceptionsFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ProcessingTimeInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

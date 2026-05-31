@@ -34,6 +34,7 @@ import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
 import { buildCanonicalOptions, formatStagesSummary, maxStageVUs } from './stages.js';
 import { createVuProfileMetrics, recordVuProfileMetrics } from './vu-profiles.js';
+import { readProcessingMs } from './processing-ms.js';
 
 /** cartId deve ser UUID (@IsUUID no CreateOrderRequestDto). */
 function uuidv4() {
@@ -107,10 +108,8 @@ export default function () {
     },
   });
 
-  // 1. Isola o tempo de processamento: lock + query + serialização, sem overhead TCP
-  const processingMs = res.timings.duration
-    - res.timings.connecting
-    - res.timings.tls_handshaking;
+  // 1. X-Processing-Ms mede lock + query + serialização após aquisição do pool.
+  const processingMs = readProcessingMs(res);
 
   const passed = check(res, {
     'status 2xx':          (r) => r.status >= 200 && r.status < 300,

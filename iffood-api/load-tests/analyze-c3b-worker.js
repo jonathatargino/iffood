@@ -21,6 +21,9 @@
  *     full    — espera fila esvaziar ou timeout longo (900s)
  *   K6_WORKER_DRAIN_SEC       — grace period em bounded (padrão: 60)
  *   K6_WORKER_DRAIN_POLL_SEC  — intervalo de poll SQS (padrão: 5)
+ *   K6_WORKER_PG_RETRY_MAX    — tentativas de conexão/query no PG (padrão: 15)
+ *   K6_WORKER_PG_RETRY_SEC    — espera base entre tentativas (padrão: 12)
+ *   K6_WORKER_PG_RETRY_BACKOFF — 0 desliga backoff linear (padrão: ligado, teto 60s)
  */
 
 const fs = require('fs');
@@ -64,6 +67,15 @@ const MAX_DRAIN_SEC = parseInt(
   10,
 );
 const POLL_SEC = parseInt(process.env.K6_WORKER_DRAIN_POLL_SEC || '5', 10);
+const PG_RETRY_MAX = parseInt(
+  args['pg-retry-max'] || process.env.K6_WORKER_PG_RETRY_MAX || '15',
+  10,
+);
+const PG_RETRY_WAIT_SEC = parseInt(
+  args['pg-retry-sec'] || process.env.K6_WORKER_PG_RETRY_SEC || '12',
+  10,
+);
+const PG_RETRY_BACKOFF = process.env.K6_WORKER_PG_RETRY_BACKOFF !== '0';
 const CHUNK_SIZE = 2000;
 
 // k6 envolve console.log: time="..." level=info msg="ENQUEUE cartId=... ts=... vu=..."
@@ -77,6 +89,175 @@ function round(n, d = 2) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isPgRetryableError(err) {
+  if (!err) return false;
+  const code = String(err.code || '').toUpperCase();
+  const msg = String(err.message || '').toLowerCase();
+  const full = `${code} ${msg}`.toLowerCase();
+  return (
+    code === '53300'
+    || code === '57P03'
+    || code === '08006'
+    || code === '08001'
+    || code === '08003'
+    || code === 'ETIMEDOUT'
+    || code === 'ECONNREFUSED'
+    || code === 'ECONNRESET'
+    || code === 'EMAXCONNSESSION'
+    || full.includes('too many clients')
+    || full.includes('too many connections')
+    || full.includes('max clients reached')
+    || full.includes('max clients are limited')
+    || full.includes('emaxconnsession')
+    || full.includes('pool_size')
+    || full.includes('session mode')
+    || full.includes('remaining connection slots')
+    || full.includes('connection terminated')
+    || full.includes('connection timeout')
+    || full.includes('connect econnrefused')
+    || full.includes('timeout expired')
+    || full.includes('could not connect')
+  );
+}
+
+function pgRetryWaitSec(attempt) {
+  if (!PG_RETRY_BACKOFF) return PG_RETRY_WAIT_SEC;
+  return Math.min(PG_RETRY_WAIT_SEC * attempt, 60);
+}
+
+function logPgRetryBanner(attempt, err, context) {
+  const waitSec = pgRetryWaitSec(attempt);
+  const nextAttempt = attempt + 1;
+  const lines = [
+    '',
+    '[analyze-c3b-worker] ═══════════════════════════════════════════════════════',
+    `[analyze-c3b-worker] PostgreSQL indisponível — ${context} (tentativa ${attempt}/${PG_RETRY_MAX})`,
+    `[analyze-c3b-worker] Erro: ${err.message}`,
+    '[analyze-c3b-worker] Provável pool saturado (worker ~10 conn + API + limite Supabase ~15).',
+    '[analyze-c3b-worker] Ações possíveis enquanto aguarda:',
+    '[analyze-c3b-worker]   • pausar/parar o worker NestJS',
+    '[analyze-c3b-worker]   • purge na fila SQS (após o k6; reduz carga nova no PG)',
+    '[analyze-c3b-worker]   • encerrar sessões idle no painel do banco (Supabase → Database)',
+    nextAttempt <= PG_RETRY_MAX
+      ? `[analyze-c3b-worker] Próxima tentativa ${nextAttempt}/${PG_RETRY_MAX} em ${waitSec}s...`
+      : '[analyze-c3b-worker] Tentativas esgotadas — análise abortada.',
+    '[analyze-c3b-worker] ═══════════════════════════════════════════════════════',
+    '',
+  ];
+  for (const line of lines) console.log(line);
+  return waitSec;
+}
+
+async function waitPgRetry(attempt, err, context) {
+  const waitSec = logPgRetryBanner(attempt, err, context);
+  await sleep(waitSec * 1000);
+}
+
+async function fetchOrdersByCartIds(client, cartIds) {
+  const rows = [];
+  for (let i = 0; i < cartIds.length; i += CHUNK_SIZE) {
+    const chunk = cartIds.slice(i, i + CHUNK_SIZE);
+    const res = await client.query(
+      `SELECT cart_id,
+              EXTRACT(EPOCH FROM created_at) * 1000 AS created_at_ms,
+              status
+       FROM order_requests
+       WHERE cart_id = ANY($1::text[])`,
+      [chunk],
+    );
+    rows.push(...res.rows);
+  }
+  return rows;
+}
+
+async function countOrdersInWindow(client, startMs, endMs) {
+  const res = await client.query(
+    `SELECT COUNT(*)::int AS count
+     FROM order_requests
+     WHERE created_at >= to_timestamp($1 / 1000.0)
+       AND created_at <= to_timestamp($2 / 1000.0)`,
+    [startMs, endMs],
+  );
+  return res.rows[0]?.count ?? 0;
+}
+
+async function fetchOrdersInWindow(client, startMs, endMs) {
+  const res = await client.query(
+    `SELECT cart_id,
+            EXTRACT(EPOCH FROM created_at) * 1000 AS created_at_ms,
+            status
+     FROM order_requests
+     WHERE created_at >= to_timestamp($1 / 1000.0)
+       AND created_at <= to_timestamp($2 / 1000.0)`,
+    [startMs, endMs],
+  );
+  return res.rows;
+}
+
+async function collectPgAnalysisData({ events, window }) {
+  let lastErr;
+  for (let attempt = 1; attempt <= PG_RETRY_MAX; attempt++) {
+    let client;
+    try {
+      if (attempt > 1) {
+        console.log(
+          `[analyze-c3b-worker] Retomando coleta no PostgreSQL (tentativa ${attempt}/${PG_RETRY_MAX})...`,
+        );
+      }
+
+      client = createPgClient();
+      console.log(
+        `[analyze-c3b-worker] Conectando PostgreSQL (tentativa ${attempt}/${PG_RETRY_MAX})...`,
+      );
+      await client.connect();
+      if (attempt > 1) {
+        console.log('[analyze-c3b-worker] PostgreSQL conectado.');
+      }
+
+      let persistedAtK6End = null;
+      try {
+        persistedAtK6End = await countOrdersInWindow(
+          client,
+          window.started_at_epoch_ms,
+          window.ended_at_epoch_ms,
+        );
+        console.log(`[analyze-c3b-worker] Persistidos durante k6: ${persistedAtK6End}`);
+      } catch (err) {
+        if (isPgRetryableError(err)) throw err;
+        console.warn(`[analyze-c3b-worker] Snapshot durante k6 falhou: ${err.message}`);
+      }
+
+      console.log(
+        `[analyze-c3b-worker] Modo drain: ${DRAIN_MODE}` +
+          (DRAIN_MODE === 'skip' ? '' : ` (máx ${MAX_DRAIN_SEC}s, poll ${POLL_SEC}s)`),
+      );
+      const sqsDrain = await waitForQueueDrain();
+
+      const analysisEndedMs = Date.now();
+      let rows = [];
+      if (events.length > 0) {
+        rows = await fetchOrdersByCartIds(client, events.map((e) => e.cartId));
+      } else {
+        console.warn('[analyze-c3b-worker] Log ENQUEUE vazio — usando janela temporal no banco.');
+        rows = await fetchOrdersInWindow(
+          client,
+          window.started_at_epoch_ms,
+          analysisEndedMs,
+        );
+      }
+
+      await client.end();
+      return { persistedAtK6End, sqsDrain, analysisEndedMs, rows };
+    } catch (err) {
+      lastErr = err;
+      if (client) await client.end().catch(() => {});
+      if (attempt >= PG_RETRY_MAX || !isPgRetryableError(err)) break;
+      await waitPgRetry(attempt, err, 'coleta PostgreSQL');
+    }
+  }
+  throw lastErr;
 }
 
 function percentile(sorted, p) {
@@ -375,34 +556,6 @@ async function waitForQueueDrain() {
   };
 }
 
-async function fetchOrdersByCartIds(client, cartIds) {
-  const rows = [];
-  for (let i = 0; i < cartIds.length; i += CHUNK_SIZE) {
-    const chunk = cartIds.slice(i, i + CHUNK_SIZE);
-    const res = await client.query(
-      `SELECT cart_id,
-              EXTRACT(EPOCH FROM created_at) * 1000 AS created_at_ms,
-              status
-       FROM order_requests
-       WHERE cart_id = ANY($1::text[])`,
-      [chunk],
-    );
-    rows.push(...res.rows);
-  }
-  return rows;
-}
-
-async function countOrdersInWindow(client, startMs, endMs) {
-  const res = await client.query(
-    `SELECT COUNT(*)::int AS count
-     FROM order_requests
-     WHERE created_at >= to_timestamp($1 / 1000.0)
-       AND created_at <= to_timestamp($2 / 1000.0)`,
-    [startMs, endMs],
-  );
-  return res.rows[0]?.count ?? 0;
-}
-
 async function main() {
   if (!RESULTS_DIR) {
     console.error('[analyze-c3b-worker] --dir é obrigatório.');
@@ -451,12 +604,24 @@ async function main() {
     `[analyze-c3b-worker] ENQUEUE no log: ${events.length}` +
       (duplicates ? ` (${duplicates} duplicados ignorados)` : ''),
   );
+  console.log(
+    `[analyze-c3b-worker] Retry PG: até ${PG_RETRY_MAX} tentativas, espera base ${PG_RETRY_WAIT_SEC}s` +
+      (PG_RETRY_BACKOFF ? ' (backoff linear, teto 60s)' : ''),
+  );
 
-  const client = createPgClient();
+  let persistedAtK6End = null;
+  let sqsDrain;
+  let analysisEndedMs;
+  let rows = [];
   try {
-    await client.connect();
+    ({
+      persistedAtK6End,
+      sqsDrain,
+      analysisEndedMs,
+      rows,
+    } = await collectPgAnalysisData({ events, window }));
   } catch (err) {
-    fail(`Falha ao conectar no PostgreSQL: ${err.message}`, {
+    fail(`Falha ao coletar dados no PostgreSQL após ${PG_RETRY_MAX} tentativas: ${err.message}`, {
       db_url_host: (() => {
         try {
           return new URL(DB_URL.replace(/^postgres(ql)?:/, 'http:')).hostname;
@@ -464,26 +629,11 @@ async function main() {
           return null;
         }
       })(),
+      pg_retry_max: PG_RETRY_MAX,
+      pg_retry_wait_sec: PG_RETRY_WAIT_SEC,
     });
   }
 
-  let persistedAtK6End = null;
-  try {
-    persistedAtK6End = await countOrdersInWindow(
-      client,
-      window.started_at_epoch_ms,
-      window.ended_at_epoch_ms,
-    );
-    console.log(`[analyze-c3b-worker] Persistidos durante k6: ${persistedAtK6End}`);
-  } catch (err) {
-    console.warn(`[analyze-c3b-worker] Snapshot durante k6 falhou: ${err.message}`);
-  }
-
-  console.log(
-    `[analyze-c3b-worker] Modo drain: ${DRAIN_MODE}` +
-      (DRAIN_MODE === 'skip' ? '' : ` (máx ${MAX_DRAIN_SEC}s, poll ${POLL_SEC}s)`),
-  );
-  const sqsDrain = await waitForQueueDrain();
   if (sqsDrain.drained === true) {
     console.log(`[analyze-c3b-worker] Fila esvaziada em ${sqsDrain.waited_sec}s`);
   } else if (sqsDrain.enabled) {
@@ -492,28 +642,6 @@ async function main() {
     );
   } else {
     console.warn(`[analyze-c3b-worker] ${sqsDrain.note}`);
-  }
-
-  const analysisEndedMs = Date.now();
-  let rows = [];
-  try {
-    if (events.length > 0) {
-      rows = await fetchOrdersByCartIds(client, events.map((e) => e.cartId));
-    } else {
-      console.warn('[analyze-c3b-worker] Log ENQUEUE vazio — usando janela temporal no banco.');
-      const res = await client.query(
-        `SELECT cart_id,
-                EXTRACT(EPOCH FROM created_at) * 1000 AS created_at_ms,
-                status
-         FROM order_requests
-         WHERE created_at >= to_timestamp($1 / 1000.0)
-           AND created_at <= to_timestamp($2 / 1000.0)`,
-        [window.started_at_epoch_ms, analysisEndedMs],
-      );
-      rows = res.rows;
-    }
-  } finally {
-    await client.end();
   }
 
   const rowByCart = new Map(rows.map((r) => [r.cart_id, r]));

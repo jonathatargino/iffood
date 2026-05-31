@@ -14,6 +14,8 @@
 #   K6_WORKER_ANALYSIS — 0 desliga pós-processamento do worker após c3b (padrão: 1)
 #   K6_WORKER_DRAIN_MODE — skip | bounded | full (padrão: skip — analyze imediato, purge depois)
 #   K6_WORKER_DRAIN_SEC  — grace em bounded/full (padrão: 60 em bounded, 900 em full)
+#   K6_WORKER_PG_RETRY_MAX — tentativas PG no analyze (padrão: 15)
+#   K6_WORKER_PG_RETRY_SEC — espera entre tentativas (padrão: 12s, backoff até 60s)
 #
 # Correlação CloudWatch: test-windows.json com started_at/ended_at por teste.
 # =============================================================================
@@ -373,7 +375,10 @@ run_c3b_worker_analysis() {
   fi
 
   log "Pós-processamento c3b: drain SQS + latência end-to-end no worker..."
-  if node "$analysis_script" --dir="${RESULTS_DIR}" 2>"$analysis_err"; then
+  local exit_code=0
+  node "$analysis_script" --dir="${RESULTS_DIR}" 2>&1 | tee "$analysis_err"
+  exit_code=${PIPESTATUS[0]}
+  if [[ $exit_code -eq 0 ]]; then
     if [[ -f "$analysis_out" ]] && node -e "const s=require(process.argv[1]).status; process.exit(s==='ok'||s==='partial'?0:1)" "$analysis_out" 2>/dev/null; then
       ok "Análise do worker salva em c3b-worker-analysis.json"
       C3B_WORKER_ANALYSIS_OK=1

@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Store } from './store.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindAllStoreFilters } from './dto/store.core.dto';
@@ -10,8 +10,15 @@ export class StoreRepository {
     @InjectRepository(Store) private typeormStoreRepository: Repository<Store>,
   ) {}
 
-  async findAllActiveWithPositiveProductOptions(filters: FindAllStoreFilters) {
-    const queryBuilder = this.typeormStoreRepository
+  async findAllActiveWithPositiveProductOptions(
+    filters: FindAllStoreFilters,
+    manager?: EntityManager,
+  ) {
+    const storeRepository = manager
+      ? manager.getRepository(Store)
+      : this.typeormStoreRepository;
+
+    const queryBuilder = storeRepository
       .createQueryBuilder('store')
       .leftJoin('store.products', 'product')
       .leftJoin('product.productOptions', 'productOption')

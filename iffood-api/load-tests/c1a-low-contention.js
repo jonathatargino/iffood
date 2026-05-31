@@ -28,6 +28,7 @@ import { check, sleep } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
 import { buildCanonicalOptions, computePeakWindow, maxStageVUs } from './stages.js';
 import { createVuProfileMetrics, recordVuProfileMetrics } from './vu-profiles.js';
+import { readProcessingMs } from './processing-ms.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function uuidv4() {
@@ -158,9 +159,7 @@ export default function (data) {
     tags: { endpoint: 'POST /order-request', scenario: SCENARIO },
   });
 
-  const processingMs = res.timings.duration
-    - res.timings.connecting
-    - res.timings.tls_handshaking;
+  const processingMs = readProcessingMs(res);
 
   const passed = check(res, {
     'status 201 ou 200':   (r) => r.status === 201 || r.status === 200,
