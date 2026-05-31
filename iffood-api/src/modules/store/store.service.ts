@@ -55,10 +55,12 @@ export class StoreService {
       return cached;
     }
 
-    const result =
-      await this.storeRepository.findAllActiveWithPositiveProductOptions(
+    const result = await measureDb(this.dataSource, (manager) =>
+      this.storeRepository.findAllActiveWithPositiveProductOptions(
         filters,
-      );
+        manager,
+      ),
+    );
 
     const dto = this.storeMapper.toPaginatedDto(result);
     await this.storeCacheService.set(key, dto);

@@ -31,6 +31,7 @@ import { check, sleep, fail } from 'k6';
 import { Trend, Rate, Counter } from 'k6/metrics';
 import { buildCanonicalOptions } from './stages.js';
 import { createVuProfileMetrics, recordVuProfileMetrics } from './vu-profiles.js';
+import { readProcessingMs } from './processing-ms.js';
 
 // ── Configuração ──────────────────────────────────────────────────────────────
 const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:3006';
@@ -110,9 +111,7 @@ export default function () {
   //    Para Redis: processingMs ≈ tempo de serialização + RTT interno à instância.
   //    Para DB (MISS): processingMs ≈ tempo de query + serialização.
   //    Essa separação é fundamental para o argumento do TCC sobre o ganho do Redis.
-  const processingMs = res.timings.duration
-    - res.timings.connecting
-    - res.timings.tls_handshaking;
+  const processingMs = readProcessingMs(res);
 
   // 2. Identifica Cache HIT ou MISS.
   //    Prioridade 1: header X-Cache retornado pela API (ex: Nginx, CDN, ou middleware).

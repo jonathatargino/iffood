@@ -118,6 +118,16 @@ const VU_PROFILE_PREFIX = {
   'c3b-async': 'async_order',
 };
 
+/** Trend de processing_ms (header x-processing-ms ou equivalente k6) por teste. */
+const PROCESSING_METRIC = {
+  'c1a-low-contention': 'order_low_contention_processing_ms',
+  'c1b-high-contention': 'order_high_contention_processing_ms',
+  'c1c-no-lock': 'order_no_lock_processing_ms',
+  'c2a-no-cache': 'store_list_processing_ms',
+  'c2b-with-cache': 'store_list_cached_processing_ms',
+  'c3a-sync': 'sync_order_processing_ms',
+};
+
 /** Preenchidos em main() a partir de load-tests/stages.js */
 let VU_PROFILE_LEVELS = [];
 let VU_PROFILE_DURATION_S = {};
@@ -135,8 +145,14 @@ const METRICS_OF_INTEREST = [
   'order_no_lock_latency',
   'order_no_lock_processing_ms',
   'store_list_latency',
+  'store_list_processing_ms',
   'store_list_cached_latency',
+  'store_list_cached_processing_ms',
+  'cache_hit_processing_ms',
+  'cache_miss_processing_ms',
+  'cache_hit_rate',
   'sync_order_latency',
+  'sync_order_processing_ms',
   'async_order_latency',
   // métricas nativas do k6 (sempre presentes)
   'http_req_duration',
@@ -479,23 +495,28 @@ for (const [name, meta] of Object.entries(TEST_META)) {
   };
 
   // Métricas específicas de cada cenário
-  if (
-    (name === 'c1a-low-contention' || name === 'c1b-high-contention')
-    && rawMetrics.db_lock_waits
-  ) {
-    const lock = counterStats(rawMetrics.db_lock_waits);
-    entry.db_lock_waits = lock?.count ?? null;
+  if (name === 'c1a-low-contention' || name === 'c1b-high-contention') {
+    if (rawMetrics.db_lock_waits) {
+      const lock = counterStats(rawMetrics.db_lock_waits);
+      entry.db_lock_waits = lock?.count ?? null;
+    }
   }
-  if (name === 'c1a-low-contention' || name === 'c1b-high-contention' || name === 'c1c-no-lock') {
-    const procKey =
-      name === 'c1a-low-contention'
-        ? 'order_low_contention_processing_ms'
-        : name === 'c1b-high-contention'
-          ? 'order_high_contention_processing_ms'
-          : 'order_no_lock_processing_ms';
+
+  const procKey = PROCESSING_METRIC[name];
+  if (procKey) {
     const processing = formatTrend(rawMetrics[procKey]);
     if (processing) entry.processing_ms = processing;
   }
+
+  if (name === 'c2b-with-cache') {
+    const hitRate = rateStats(rawMetrics.cache_hit_rate);
+    if (hitRate) entry.cache_hit_rate = round(hitRate.value);
+    const hitProc = formatTrend(rawMetrics.cache_hit_processing_ms);
+    const missProc = formatTrend(rawMetrics.cache_miss_processing_ms);
+    if (hitProc) entry.cache_hit_processing_ms = hitProc;
+    if (missProc) entry.cache_miss_processing_ms = missProc;
+  }
+
   if (name === 'c3b-async') {
     const accepted = rateStats(rawMetrics.async_accepted_rate);
     entry.async_accepted_rate = round(accepted?.value);
